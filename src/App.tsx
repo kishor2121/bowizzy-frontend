@@ -29,6 +29,7 @@ import {
   User,
   Video,
 } from "lucide-react";
+
 import Dashboard from "./pages/Dashboard";
 import Profile from "./pages/Profile";
 import ResumeBuilder from "./pages/ResumeBuilder";
@@ -43,39 +44,12 @@ import InterviewerEvaluation from "./pages/(InterviewPrep)/InterviewerEvaluation
 import TakeMockInterview from "./pages/(InterviewPrep)/TakeMockInterview";
 import ProfileForm from "./pages/(Profile)/ProfileForms";
 import ParsingSteps from "./pages/(Profile)/components/ParsingSteps";
-import TemplateSelection from "./pages/(ResumeBuilder)/TemplateSelection";
-import ResumeEditor from "./pages/(ResumeBuilder)/ResumeEditor";
+
+
 
 const isAuthenticated = () => {
   return true;
 };
-// const items = [
-//   {
-//     title: "Home",
-//     url: "/",
-//     icon: Home,
-//   },
-//   {
-//     title: "Inbox",
-//     url: "#",
-//     icon: Inbox,
-//   },
-//   {
-//     title: "Calendar",
-//     url: "#",
-//     icon: Calendar,
-//   },
-//   {
-//     title: "Search",
-//     url: "#",
-//     icon: Search,
-//   },
-//   {
-//     title: "Settings",
-//     url: "#",
-//     icon: Settings,
-//   },
-// ]
 
 const careerMap = [
   {
@@ -104,6 +78,7 @@ const careerMap = [
     label: "LinkedIn optimization",
   },
 ];
+
 const bowizzy = [
   {
     href: "/digital-product",
@@ -121,6 +96,7 @@ const bowizzy = [
     label: "Feedback",
   },
 ];
+
 function LayoutWrapper({ children }: { children: React.ReactNode }) {
   return (
     <SidebarProvider>
@@ -129,17 +105,14 @@ function LayoutWrapper({ children }: { children: React.ReactNode }) {
           <div className="flex items-center justify-center p-6">
             <img src={Bowizzy} alt="Bowizzard Logo" />
           </div>
-          {/* <div className="h-10">
-
-          </div> */}
         </SidebarHeader>
+
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem key={"Dashboard"}>
                 <SidebarMenuButton asChild className="p-5 flex items-center">
                   <a href={"/dashboard"}>
-                    {/* <item.icon /> */}
                     <LayoutDashboard color="#3B3B3B" size={16} />
                     <span className="ml-4" style={{ fontSize: "14px" }}>
                       Dashboard
@@ -150,6 +123,7 @@ function LayoutWrapper({ children }: { children: React.ReactNode }) {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
         <SidebarGroup>
           <SidebarGroupLabel className="p-5">Career</SidebarGroupLabel>
           <SidebarGroupContent>
@@ -171,6 +145,7 @@ function LayoutWrapper({ children }: { children: React.ReactNode }) {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
         <SidebarGroup>
           <SidebarGroupLabel className="p-5">Bowizzy</SidebarGroupLabel>
           <SidebarGroupContent>
@@ -192,6 +167,7 @@ function LayoutWrapper({ children }: { children: React.ReactNode }) {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
         <SidebarFooter className="mt-auto mb-4">
           <SidebarMenuButton
             asChild
@@ -209,18 +185,20 @@ function LayoutWrapper({ children }: { children: React.ReactNode }) {
           </SidebarMenuButton>
         </SidebarFooter>
       </Sidebar>
+
       <main className="bg-[#F0F0F0] min-h-screen flex-1">{children}</main>
     </SidebarProvider>
   );
 }
-// ProtectedRoute component
+
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   if (!isAuthenticated()) {
-    // Redirect to home or login page
     return <Navigate to="/" replace />;
   }
   return <>{children}</>;
 }
+
+
 
 function App() {
   const router = createBrowserRouter([
@@ -247,7 +225,6 @@ function App() {
           </LayoutWrapper>
         </ProtectedRoute>
       ),
-
     },
     {
       path: "linkedin-optimization",
@@ -279,6 +256,7 @@ function App() {
         </ProtectedRoute>
       ),
     },
+
     {
       path: "interview-prep/mock-interview",
       Component: () => (
@@ -289,6 +267,68 @@ function App() {
         </ProtectedRoute>
       ),
     },
+
+    // ⭐ VIDEO PRACTICE MAIN PAGE
+    {
+      path: "interview-prep/video-practice",
+      Component: () => (
+        <ProtectedRoute>
+          <LayoutWrapper>
+            <VideoPractice />
+          </LayoutWrapper>
+        </ProtectedRoute>
+      ),
+    },
+
+    // ⭐ NEW: INTERVIEW STEPS PAGE
+    {
+      path: "interview-prep/video-practice/steps",
+      Component: () => (
+        <ProtectedRoute>
+          <LayoutWrapper>
+            <InterviewSteps />
+          </LayoutWrapper>
+        </ProtectedRoute>
+      ),
+    },
+
+    // ⭐ QUESTION PAGE
+    {
+      path: "interview-prep/video-practice/question",
+      Component: () => (
+        <ProtectedRoute>
+          <LayoutWrapper>
+            <InterviewQuestion />
+          </LayoutWrapper>
+        </ProtectedRoute>
+      ),
+    },
+
+    // ⭐ NEW: INTERVIEW COMPLETE PAGE
+    {
+      path: "interview-prep/video-practice/complete",
+      Component: () => (
+        <ProtectedRoute>
+          <LayoutWrapper>
+            <InterviewComplete />
+          </LayoutWrapper>
+        </ProtectedRoute>
+      ),
+    },
+
+    {
+      path: "interview-prep/video-practice/review",
+      Component: () => (
+        <ProtectedRoute>
+          <LayoutWrapper>
+            <InterviewReview />
+          </LayoutWrapper>
+        </ProtectedRoute>
+      ),
+    },
+
+
+    // OTHER EXISTING ROUTES...
     {
       path: "interview-prep/give-mock-interview",
       Component: () => (
@@ -391,6 +431,7 @@ function App() {
       )
     }
   ]);
+
   return <RouterProvider router={router} />;
 }
 
