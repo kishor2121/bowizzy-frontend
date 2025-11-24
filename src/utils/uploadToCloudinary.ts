@@ -1,8 +1,8 @@
 export const uploadToCloudinary = async (file: File) => {
-  const cloudName = (import.meta.env.VITE_CLOUDINARY_CLOUD_NAME as string) || "drwntqk7r";
-  const apiKey ="245518394983543";
-  const apiSecret = "GIVyijGBiPsILVyi-reW-3ZdNOU";
-  const uploadPreset = "Bowizzy_FE"; 
+  const cloudName = (import.meta.env.VITE_CLOUDINARY_CLOUD_NAME as string) || undefined;
+  const apiKey = (import.meta.env.VITE_CLOUDINARY_API_KEY as string) || undefined;
+  const apiSecret = (import.meta.env.VITE_CLOUDINARY_API_SECRET as string) || undefined;
+  const uploadPreset = (import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET as string) || undefined;
 
   const sha1hex = async (str: string) => {
     const enc = new TextEncoder().encode(str);
