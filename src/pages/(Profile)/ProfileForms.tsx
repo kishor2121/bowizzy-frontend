@@ -8,7 +8,13 @@ import ExperienceDetailsForm from "./components/ExperienceDetailsForm";
 import ProjectDetailsForm from "./components/ProjectDetailsForm";
 import SkillsLinksDetailsForm from "./components/SkillsLinksDetailsForm";
 import CertificationDetailsForm from "./components/CertificationDetailsForm";
-import api from "@/api";  
+import { savePersonalDetails } from "@/services/personalService";
+import { saveEducationFromForm } from "@/services/educationService";
+import { saveExperienceFromForm } from "@/services/experienceService";
+import { saveProjectsFromForm } from "@/services/projectService";
+import { saveSkillsFromForm } from "@/services/skillsService";
+import { saveLinksFromForm } from "@/services/linksService";
+import { saveCertificate } from "@/services/certificateService";
 
 export default function ProfileForm() {
   const [currentStep, setCurrentStep] = useState(0);
@@ -42,276 +48,17 @@ export default function ProfileForm() {
     try {
       const userId = parsedData?.user_id;
       const token = parsedData?.token;
-      const authHeader = {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      };
-          const personalFD = new FormData();
-
-          personalFD.append("user_id", userId);
-          personalFD.append("first_name", data.personal.firstName || "");
-          personalFD.append("middle_name", data.personal.middleName || "");
-          personalFD.append("last_name", data.personal.lastName || "");
-
-          personalFD.append("email", data.personal.email || "");
-          personalFD.append("mobile_number", data.personal.mobileNumber || "");
-
-          if (data.personal.dateOfBirth && data.personal.dateOfBirth.trim() !== "") {
-            personalFD.append("date_of_birth", data.personal.dateOfBirth);
-          }
-
-          personalFD.append("gender", data.personal.gender || "");
-
-          if (Array.isArray(data.personal.languages)) {
-            data.personal.languages.forEach((lang) => {
-              personalFD.append("languages_known[]", lang);
-            });
-          }
-
-          if (data.personal.uploadedPhotoURL) {
-            personalFD.append("profile_photo_url", data.personal.uploadedPhotoURL);
-          } else if (data.personal.profilePhoto instanceof File) {
-            personalFD.append("profile_photo_url", data.personal.profilePhoto);
-          } else if (typeof data.personal.profilePhoto === "string") {
-            personalFD.append("profile_photo_url", data.personal.profilePhoto);
-          }
-
-          personalFD.append("address", data.personal.address || "");
-          personalFD.append("country", data.personal.country || "");
-          personalFD.append("state", data.personal.state || "");
-          personalFD.append("city", data.personal.city || "");
-          personalFD.append("pincode", data.personal.pincode || "");
-          personalFD.append("nationality", data.personal.nationality || "");
-          personalFD.append("passport_number", data.personal.passportNumber || "");
-
-          await api.post(`/users/${userId}/personal-details`, personalFD, {
-            headers: {
-              "Content-Type": "multipart/form-data",
-              Authorization: `Bearer ${token}`,
-            },
-          });
-
-
-
-      // 2️⃣ EDUCATION
-      const buildYear = (val: any) => {
-        if (val === undefined || val === null || val === "") return null;
-        if (typeof val === "string" && val.includes("-")) {
-          const yearPart = val.split("-")[0];
-          const y = parseInt(yearPart, 10);
-          return isNaN(y) ? yearPart : y;
-        }
-        const n = parseInt(val as any, 10);
-        return isNaN(n) ? val : n;
-      };
-
-      const educationArray: any[] = [];
-
-      const sslc = data.education?.sslc;
-      if (sslc && (sslc.institutionName || sslc.result || sslc.yearOfPassing)) {
-        educationArray.push({
-          education_type: "sslc",
-          institution_name: sslc.institutionName || "",
-          board_type: sslc.boardType || "",
-          end_year: buildYear(sslc.yearOfPassing),
-          result_format: (sslc.resultFormat || "").toLowerCase(),
-          result: sslc.result || "",
-        });
-      }
-
-      const puc = data.education?.pu;
-      if (puc && (puc.institutionName || puc.result || puc.yearOfPassing)) {
-        educationArray.push({
-          education_type: "puc",
-          institution_name: puc.institutionName || "",
-          board_type: puc.boardType || "",
-          subject_stream: puc.subjectStream || "",
-          end_year: buildYear(puc.yearOfPassing),
-          result_format: (puc.resultFormat || "").toLowerCase(),
-          result: puc.result || "",
-        });
-      }
-
-      const higherList = [
-        ...(data.education?.higherEducations || []),
-        ...(data.education?.extraEducations || []),
-      ];
-
-      for (const he of higherList) {
-        if (!he || (!he.degree && !he.institutionName && !he.fieldOfStudy)) continue;
-        educationArray.push({
-          education_type: "higher",
-          degree: he.degree || "",
-          field_of_study: he.fieldOfStudy || "",
-          institution_name: he.institutionName || "",
-          university_name: he.universityBoard || he.universityName || "",
-          start_year: buildYear(he.startYear),
-          end_year: buildYear(he.endYear),
-          result_format: (he.resultFormat || "").toLowerCase(),
-          result: he.result || "",
-          currently_pursuing: !!he.currentlyPursuing,
-        });
-      }
-
-      if (educationArray.length > 0) {
-        await api.post(`/users/${userId}/education`, educationArray, authHeader);
-      }
-
-      // 3️⃣ EXPERIENCE 
-      const expData = data.experience || {};
-      const normalizeMonthToDate = (val: any) => {
-        if (!val) return null;
-        if (typeof val === "string") {
-          if (/^\d{4}-\d{2}$/.test(val)) return `${val}-01`;
-          if (/^\d{4}-\d{2}-\d{2}$/.test(val)) return val;
-        }
-        return val;
-      };
-      const experiencesList = expData.workExperiences || expData.experienceDetails || [];
-      const experiencesPayload: any[] = [];
-
-      for (const w of experiencesList) {
-        if (!w) continue;
-        experiencesPayload.push({
-          company_name: w.companyName || w.company_name || "",
-          job_title: w.jobTitle || w.job_title || "",
-          employment_type: w.employmentType || w.employment_type || "",
-          location: w.location || "",
-          work_mode: w.workMode || w.work_mode || "",
-          start_date: normalizeMonthToDate(w.startDate || w.start_date),
-          end_date: normalizeMonthToDate(w.endDate || w.end_date),
-          currently_working_here: !!w.currentlyWorking || !!w.currently_working_here,
-          description: w.description || "",
-        });
-      }
-
-      if (experiencesPayload.length > 0 || expData.jobRole) {
-        await api.post(
-          `/users/${userId}/work-experience`,
-          {
-            job_role: expData.jobRole || expData.job_role || "",
-            experiences: experiencesPayload,
-          },
-          authHeader
-        );
-      }
-
-      // 4️⃣ PROJECTS — send all projects in one JSON payload
-      const projectsData = data.projects || {};
-      const projectsList = projectsData.projects || projectsData.projectDetails || [];
-      const projectsPayload: any[] = [];
-
-      for (const p of projectsList) {
-        if (!p) continue;
-        projectsPayload.push({
-          project_title: p.projectTitle || p.project_title || "",
-          project_type: p.projectType || p.project_type || "",
-          start_date: normalizeMonthToDate(p.startDate || p.start_date),
-          end_date: normalizeMonthToDate(p.endDate || p.end_date),
-          currently_working: !!p.currentlyWorking || !!p.currently_working,
-          description: p.description || "",
-          roles_responsibilities: p.rolesAndResponsibilities || p.roles_responsibilities || "",
-        });
-      }
-
-      if (projectsPayload.length > 0) {
-        await api.post(
-          `/users/${userId}/projects`,
-          { projects: projectsPayload },
-          authHeader
-        );
-      }
-
-      // 5️⃣ SKILLS — send skills as single JSON array
-      const skillsData = data.skills || {};
-      const skillsList = Array.isArray(skillsData.skills)
-        ? skillsData.skills
-        : Array.isArray(skillsData)
-        ? skillsData
-        : [];
-
-      const skillsPayload = skillsList
-        .filter((s: any) => s && (s.skillName || s.skill_name))
-        .map((s: any) => ({
-          skill_name: s.skillName || s.skill_name || "",
-          skill_level: s.skillLevel || s.skill_level || "",
-        }));
-
-      if (skillsPayload.length > 0) {
-        await api.post(`/users/${userId}/skills`, { skills: skillsPayload }, authHeader);
-      }
-
-      const linksData = data.skills || {};
-      const linksList = Array.isArray(linksData.links)
-        ? linksData.links
-        : Array.isArray(linksData)
-        ? linksData
-        : [];
-
-      const linksPayload: any[] = [];
-
-      for (const l of linksList) {
-        if (!l) continue;
-        if (l.linkedinProfile) {
-          linksPayload.push({ link_type: "linkedin", url: l.linkedinProfile });
-        }
-        if (l.githubProfile) {
-          linksPayload.push({ link_type: "github", url: l.githubProfile });
-        }
-        if (l.portfolioUrl) {
-          linksPayload.push({
-            link_type: "portfolio",
-            url: l.portfolioUrl,
-            description: l.portfolioDescription || "",
-          });
-        }
-        if (l.publicationUrl) {
-          linksPayload.push({
-            link_type: "publication",
-            url: l.publicationUrl,
-            description: l.publicationDescription || "",
-          });
-        }
-      }
-
-      if (linksPayload.length > 0) {
-        await api.post(`/users/${userId}/links`, { links: linksPayload }, authHeader);
-      }
-
-      // 7️⃣ CERTIFICATES — WITH FILE UPLOAD
-      if (data.certification.certificates) {
+      await savePersonalDetails(userId, token, data.personal || {});
+      await saveEducationFromForm(userId, token, data.education);
+      await saveExperienceFromForm(userId, token, data.experience);
+      await saveProjectsFromForm(userId, token, data.projects);
+      await saveSkillsFromForm(userId, token, data.skills);
+      await saveLinksFromForm(userId, token, data.skills);
+      if (data.certification?.certificates) {
         for (const cert of data.certification.certificates) {
-          const formData = new FormData();
-          formData.append("certificate_type", cert.certificateType);
-          formData.append("certificate_title", cert.certificateTitle);
-          formData.append("domain", cert.domain);
-          formData.append("certificate_provided_by", cert.certificateProvidedBy);
-          // formData.append("date", cert.date);
-          // CERTIFICATE DATE
-          formData.append("description", cert.description);
-
-          // *** ⬇️ IMPORTANT CHANGE — SEND Cloudinary URL, not File ***
-          if (cert.uploadedFileUrl) {
-            formData.append("file_url", cert.uploadedFileUrl);   // <<--- URL stored in BE
-          }
-
-
-
-
-          await api.post(
-            `/users/${userId}/certificates`,
-            formData,
-            {
-              headers: {
-                "Content-Type": "multipart/form-data",
-                Authorization: `Bearer ${token}`,
-              },
-            }
-          );
+          await saveCertificate(userId, token, cert);
         }
       }
-
       alert("Profile saved successfully!");
       navigate("/dashboard");
 

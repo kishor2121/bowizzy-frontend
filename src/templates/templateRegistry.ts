@@ -18,6 +18,15 @@ export const TEMPLATE_REGISTRY: TemplateInfo[] = [
     category: 'Professional',
     description: 'A clean two-column layout perfect for marketing and business professionals'
   },
+  { 
+    id: 'twopage',
+    name: 'Professional',
+    thumbnailUrl: '/resume-templates/thumbnails/modern-professional.png',
+    component: ModernProfessionalTemplate,
+    category: 'Professional',
+    description: 'A clean two-column layout perfect for marketing and business professionals'
+
+  },
 ];
 
 export const getTemplateById = (id: string): TemplateInfo | undefined => {

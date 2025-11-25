@@ -1,6 +1,6 @@
-import  { useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import api from "../api";
+import { loginUser } from "../services/login";  
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -13,13 +13,7 @@ export default function Login() {
     setError("");
 
     try {
-      const response = await api.post("/auth", {
-        type: "login",
-        email: email,
-        password: password,
-      });
-
-      const data = response.data;
+      const data = await loginUser(email, password); 
 
       localStorage.setItem(
         "user",
@@ -36,13 +30,13 @@ export default function Login() {
     }
   };
 
-
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-50 font-['Baloo_2'] px-4">
       <div className="bg-white shadow-lg rounded-2xl w-full max-w-md p-6 sm:p-8">
         <h2 className="text-2xl sm:text-3xl font-semibold text-gray-900 text-center mb-6">
           Welcome Back
         </h2>
+
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
             <label className="block text-sm font-medium text-gray-700">
@@ -56,6 +50,7 @@ export default function Login() {
               className="mt-2 w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-400 outline-none"
             />
           </div>
+
           <div>
             <label className="block text-sm font-medium text-gray-700">
               Password
@@ -68,11 +63,13 @@ export default function Login() {
               className="mt-2 w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-400 outline-none"
             />
           </div>
+
           {error && (
             <div className="text-red-500 text-sm text-center -mt-2">
               {error}
             </div>
           )}
+
           <button
             type="submit"
             className="w-full py-3.5 rounded-xl text-white font-medium shadow-sm 
@@ -85,6 +82,7 @@ export default function Login() {
             Login
           </button>
         </form>
+
         <p className="text-center text-sm text-gray-600 mt-5">
           Don’t have an account?{" "}
           <span
