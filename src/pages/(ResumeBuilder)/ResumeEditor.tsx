@@ -45,6 +45,8 @@ export const ResumeEditor: React.FC = () => {
   const [searchParams] = useSearchParams();
   const templateId = searchParams.get("templateId");
   const resumeId = searchParams.get("resumeId");
+  const [currentPreviewPage, setCurrentPreviewPage] = useState(0);
+
 
   const [currentStep, setCurrentStep] = useState(0);
   const [resumeData, setResumeData] = useState<ResumeData>(initialResumeData);
@@ -167,6 +169,23 @@ export const ResumeEditor: React.FC = () => {
     }
   };
 
+
+  const handlePageChange = (direction: "next" | "prev") => {
+    if (!selectedTemplate) return;
+    const totalPages = selectedTemplate.pageCount || 1;
+
+    if (direction === "next") {
+      setCurrentPreviewPage((prev) =>
+        prev < totalPages - 1 ? prev + 1 : prev
+      );
+    } else {
+      setCurrentPreviewPage((prev) =>
+        prev > 0 ? prev - 1 : prev
+      );
+    }
+  };
+
+
   // Render template preview
   const renderTemplatePreview = () => {
     if (!selectedTemplate) {
@@ -178,7 +197,13 @@ export const ResumeEditor: React.FC = () => {
     }
 
     const TemplateComponent = selectedTemplate.component;
-    return <TemplateComponent data={resumeData} />;
+      return (
+        <TemplateComponent
+          data={resumeData}
+          page={currentPreviewPage}   // pass page number
+        />
+      );
+
   };
 
   return (
@@ -233,11 +258,41 @@ export const ResumeEditor: React.FC = () => {
             {/* Resume Preview Panel */}
             <div className="hidden lg:flex lg:w-[50%] bg-white overflow-auto scrollbar-hide">
               <div className="flex-1 p-4 overflow-auto scrollbar-hide border border-gray-300 m-4 rounded-lg">
-                <div className="flex items-start justify-center">
-                  <div className="transform scale-75 origin-top">
-                    {renderTemplatePreview()}
+                <div className="relative w-full h-full flex items-start justify-center">
+  
+                {/* Pagination Top Right */}
+                {selectedTemplate && (
+                  <div className="absolute top-2 right-4 flex items-center gap-3 bg-white px-3 py-1 rounded-full shadow-md text-sm font-medium">
+                    <button
+                      onClick={() => handlePageChange("prev")}
+                      className="px-2 py-1 disabled:opacity-30"
+                      disabled={currentPreviewPage === 0}
+                    >
+                      ◀
+                    </button>
+
+                    <div>
+                      {currentPreviewPage + 1} / {selectedTemplate.pageCount || 1}
+                    </div>
+
+                    <button
+                      onClick={() => handlePageChange("next")}
+                      className="px-2 py-1 disabled:opacity-30"
+                      disabled={
+                        currentPreviewPage === (selectedTemplate.pageCount || 1) - 1
+                      }
+                    >
+                      ▶
+                    </button>
                   </div>
+                )}
+
+                {/* Render Resume Template */}
+                <div className="transform scale-75 origin-top mt-8">
+                  {renderTemplatePreview()}
                 </div>
+              </div>
+
               </div>
             </div>
           </div>

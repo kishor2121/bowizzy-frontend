@@ -1,6 +1,7 @@
-import  { useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../api";
+import Bowizzy from "../assets/bowizzy.png";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -36,64 +37,95 @@ export default function Login() {
     }
   };
 
-
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-50 font-['Baloo_2'] px-4">
-      <div className="bg-white shadow-lg rounded-2xl w-full max-w-md p-6 sm:p-8">
-        <h2 className="text-2xl sm:text-3xl font-semibold text-gray-900 text-center mb-6">
-          Welcome Back
-        </h2>
-        <form onSubmit={handleSubmit} className="space-y-5">
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Email
-            </label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              className="mt-2 w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-400 outline-none"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Password
-            </label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              className="mt-2 w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-400 outline-none"
-            />
-          </div>
-          {error && (
-            <div className="text-red-500 text-sm text-center -mt-2">
-              {error}
-            </div>
-          )}
-          <button
-            type="submit"
-            className="w-full py-3.5 rounded-xl text-white font-medium shadow-sm 
-            transition-all duration-300 hover:opacity-90"
-            style={{
-              background:
-                "linear-gradient(180deg, #FF9D48 0%, #FF8251 100%)",
-            }}
-          >
-            Login
-          </button>
-        </form>
-        <p className="text-center text-sm text-gray-600 mt-5">
-          Don’t have an account?{" "}
-          <span
-            onClick={() => navigate("/register")}
-            className="text-orange-500 cursor-pointer font-medium hover:underline"
-          >
-            Sign Up
-          </span>
+    <div className="min-h-screen grid grid-cols-1 md:grid-cols-2 font-['Baloo_2']">
+
+      {/* LEFT ORANGE PANEL */}
+      <div className="hidden md:flex flex-col justify-between bg-[#FFE9D6] p-12">
+        <div>
+          <img src={Bowizzy} alt="Logo" className="w-32" />
+        </div>
+
+        <h1 className="text-4xl md:text-5xl font-semibold text-orange-700 leading-snug">
+          Prep for interviews. <br /> Grow your career.
+        </h1>
+
+        <p className="text-sm text-gray-600">
+          Ready to get started? Sign up for free.
         </p>
+      </div>
+
+      {/* RIGHT LOGIN FORM */}
+      <div className="flex items-center justify-center bg-white px-6 py-10">
+        <div className="w-full max-w-md">
+          <h2 className="text-3xl font-semibold text-gray-900 text-center mb-8">
+            Sign In
+          </h2>
+
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div>
+              <label className="block text-sm font-medium text-gray-700">
+                Email
+              </label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                className="mt-2 w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-400 outline-none"
+                placeholder="Enter your email"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700">
+                Password
+              </label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                className="mt-2 w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-400 outline-none"
+                placeholder="Enter your password"
+              />
+            </div>
+
+            {error && (
+              <p className="text-red-500 text-sm text-center">{error}</p>
+            )}
+
+            <button
+              type="submit"
+              className="w-full py-3 rounded-lg text-white font-medium"
+              style={{
+                background:
+                  "linear-gradient(180deg, #FF9D48 0%, #FF8251 100%)",
+              }}
+            >
+              Login
+            </button>
+
+            <div className="text-right text-sm">
+              <button
+                type="button"
+                className="text-orange-500 hover:underline"
+              >
+                Forgot Password?
+              </button>
+            </div>
+
+            <p className="text-center text-sm text-gray-600">
+              Don’t have an account?{" "}
+              <span
+                onClick={() => navigate("/signup")}
+                className="text-orange-500 cursor-pointer font-medium hover:underline"
+              >
+                Sign Up
+              </span>
+            </p>
+          </form>
+        </div>
       </div>
     </div>
   );

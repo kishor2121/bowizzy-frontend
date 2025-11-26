@@ -6,6 +6,7 @@ import {
 } from "react-router-dom";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
+import Register from "./pages/Register";
 import {
   Sidebar,
   SidebarFooter,
@@ -270,6 +271,10 @@ function App() {
     {
       path: "login",
       Component: () => <Login />,                  // ⬅ LOGIN ROUTE ADDED
+    },
+    {
+      path: "signup",
+      Component: () => <Register />,
     },
     {
       path: "/",
