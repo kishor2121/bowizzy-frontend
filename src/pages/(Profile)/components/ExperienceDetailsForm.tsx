@@ -1,15 +1,22 @@
-import React, { useState } from "react";
-import { ChevronDown, RotateCcw, Trash2, Plus } from "lucide-react";
+import React, { useState, useEffect, useRef } from "react";
+import { ChevronDown, RotateCcw, Trash2, Plus, Save } from "lucide-react";
+import { 
+  updateExperienceDetails, 
+  saveExperienceDetails, 
+  deleteExperience,
+  updateJobRole // NEW IMPORT
+} from "@/services/experienceService";
 
 interface ExperienceDetailsFormProps {
   onNext: (data: any) => void;
   onBack: () => void;
   initialData?: any;
+  userId: string;
+  token: string;
 }
 
 interface WorkExperience {
   id: string;
-  jobRole: string;
   companyName: string;
   jobTitle: string;
   employmentType: string;
@@ -19,23 +26,31 @@ interface WorkExperience {
   endDate: string;
   description: string;
   currentlyWorking: boolean;
-  isExpanded?: boolean;
+  isExpanded: boolean;
+  experience_id?: number;
 }
 
 export default function ExperienceDetailsForm({
   onNext,
   onBack,
   initialData = {},
+  userId,
+  token,
 }: ExperienceDetailsFormProps) {
+  // State for Job Role (single value)
   const [jobRole, setJobRole] = useState(initialData.jobRole || "");
   const [jobRoleExpanded, setJobRoleExpanded] = useState(true);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
-  const [workExperiences, setWorkExperiences] = useState<WorkExperience[]>(
-    initialData.workExperiences || [
-      {
+  // Initialize work experiences, ensuring at least one card is present
+  const initialExperiences: WorkExperience[] = initialData.workExperiences && initialData.workExperiences.length > 0 
+    ? initialData.workExperiences.map((exp: any) => ({
+        ...exp,
+        id: exp.id || exp.experience_id?.toString() || Date.now().toString(),
+        isExpanded: exp.isExpanded ?? false,
+      }))
+    : [{
         id: "1",
-        jobRole: "",
         companyName: "",
         jobTitle: "",
         employmentType: "",
@@ -45,10 +60,61 @@ export default function ExperienceDetailsForm({
         endDate: "",
         description: "",
         currentlyWorking: false,
-        isExpanded: true,
-      },
-    ]
-  );
+        isExpanded: true, // Expand first empty card
+      }];
+
+  const [workExperiences, setWorkExperiences] = useState<WorkExperience[]>(initialExperiences);
+  
+  // State for tracking changes and feedback
+  const [jobRoleChanged, setJobRoleChanged] = useState(false);
+  const [jobRoleFeedback, setJobRoleFeedback] = useState("");
+  const [experienceChanges, setExperienceChanges] = useState<Record<string, string[]>>({});
+  const [experienceFeedback, setExperienceFeedback] = useState<Record<string, string>>({});
+  
+  // Refs for tracking initial data and deleted IDs
+  const initialJobRole = useRef(jobRole);
+  const initialExperiencesRef = useRef<Record<string, WorkExperience>>({});
+  const deletedExperienceIds = useRef<number[]>([]);
+
+  // Initialize refs on mount
+  useEffect(() => {
+    workExperiences.forEach(exp => {
+      initialExperiencesRef.current[exp.id] = { ...exp };
+    });
+  }, []);
+
+  // Check Job Role change
+  useEffect(() => {
+    setJobRoleChanged(jobRole !== initialJobRole.current);
+  }, [jobRole]);
+
+  // Check Work Experience changes
+  useEffect(() => {
+    const changes: Record<string, string[]> = {};
+    workExperiences.forEach(current => {
+      const initial = initialExperiencesRef.current[current.id];
+      const changedFields: string[] = [];
+      
+      // Compare fields (handling undefined/null/empty string)
+      if (current.companyName !== (initial?.companyName || "")) changedFields.push('companyName');
+      if (current.jobTitle !== (initial?.jobTitle || "")) changedFields.push('jobTitle');
+      if (current.employmentType !== (initial?.employmentType || "")) changedFields.push('employmentType');
+      if (current.location !== (initial?.location || "")) changedFields.push('location');
+      if (current.workMode !== (initial?.workMode || "")) changedFields.push('workMode');
+      if (current.startDate !== (initial?.startDate || "")) changedFields.push('startDate');
+      if (current.endDate !== (initial?.endDate || "")) changedFields.push('endDate');
+      if (current.description !== (initial?.description || "")) changedFields.push('description');
+      if (current.currentlyWorking !== (initial?.currentlyWorking || false)) changedFields.push('currentlyWorking');
+      
+      if (changedFields.length > 0) {
+        changes[current.id] = changedFields;
+      } else if (!current.experience_id && (current.companyName || current.jobTitle)) {
+         // Treat new/unsaved card as 'changed' if fields are filled
+         changes[current.id] = ['new'];
+      }
+    });
+    setExperienceChanges(changes);
+  }, [workExperiences]);
 
   // Validation functions
   const validateCompanyName = (value: string) => {
@@ -73,21 +139,64 @@ export default function ExperienceDetailsForm({
     }
     return "";
   };
+  
+  // Helper to format date for API payload (YYYY-MM to YYYY-MM-01)
+  const normalizeMonthToDate = (val: string): string | null => {
+    if (!val) return null;
+    if (typeof val === "string" && /^\d{4}-\d{2}$/.test(val)) return `${val}-01`;
+    return val;
+  };
 
+  // Handler for Job Role change
   const handleJobRoleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setJobRole(e.target.value);
   };
 
+  // Handler for saving Job Role (PUT call to new endpoint)
+  const handleSaveJobRole = async () => {
+    if (!jobRoleChanged) {
+      setJobRoleFeedback("No changes to save.");
+      setTimeout(() => setJobRoleFeedback(""), 3000);
+      return;
+    }
+    
+    try {
+        // Use the new dedicated API for job role update
+        await updateJobRole(userId, token, { job_role: jobRole });
+        
+        initialJobRole.current = jobRole;
+        setJobRoleChanged(false);
+        setJobRoleFeedback("Job Role updated successfully!");
+        setTimeout(() => setJobRoleFeedback(""), 3000);
+    } catch (error) {
+        console.error("Error saving Job Role:", error);
+        setJobRoleFeedback("Failed to update Job Role.");
+        setTimeout(() => setJobRoleFeedback(""), 3000);
+    }
+  };
+
+  // Handler for individual Work Experience card changes
   const handleExperienceChange = (
     index: number,
     field: string,
     value: string | boolean
   ) => {
     const updated = [...workExperiences];
-    updated[index] = { ...updated[index], [field]: value };
+    updated[index] = { ...updated[index], [field]: value, isExpanded: true };
+    
+    // Special handling for currentlyWorking toggling endDate
+    if (field === 'currentlyWorking' && value === true) {
+        updated[index].endDate = "";
+        setErrors((prevErrors) => {
+            const newErrors = { ...prevErrors };
+            delete newErrors[`exp-${index}-endDate`];
+            return newErrors;
+        });
+    }
+
     setWorkExperiences(updated);
 
-    // Validate fields
+    // Validation logic
     if (field === "companyName" && typeof value === "string") {
       const error = validateCompanyName(value);
       setErrors((prev) => ({ ...prev, [`exp-${index}-companyName`]: error }));
@@ -103,6 +212,121 @@ export default function ExperienceDetailsForm({
     }
   };
 
+  // Handler for saving individual Work Experience card (PUT/POST call)
+  const handleSaveExperience = async (exp: WorkExperience) => {
+    const isNew = !exp.experience_id; 
+    const expChanges = experienceChanges[exp.id];
+    const index = workExperiences.findIndex(e => e.id === exp.id);
+    const prefix = `exp-${index}`;
+    
+    // Check local validation errors
+    if (errors[`${prefix}-companyName`] || errors[`${prefix}-jobTitle`] || errors[`${prefix}-endDate`]) return;
+
+    try {
+      let payload: Record<string, any> = {};
+
+      if (isNew) {
+        // New record, construct full payload for bulk POST
+        payload = {
+            job_role: jobRole,
+            experiences: [{
+                company_name: exp.companyName || "",
+                job_title: exp.jobTitle || "",
+                employment_type: exp.employmentType || "",
+                location: exp.location || "",
+                work_mode: exp.workMode || "",
+                start_date: normalizeMonthToDate(exp.startDate),
+                end_date: normalizeMonthToDate(exp.endDate),
+                currently_working_here: exp.currentlyWorking,
+                description: exp.description || "",
+            }]
+        };
+
+        // Skip saving empty new cards
+        if (!exp.companyName || !exp.jobTitle) {
+            setExperienceFeedback(prev => ({ ...prev, [exp.id]: "Company Name and Job Title are required to save." }));
+            setTimeout(() => setExperienceFeedback(prev => { const updated = { ...prev }; delete updated[exp.id]; return updated; }), 3000);
+            return;
+        }
+
+        const response = await saveExperienceDetails(userId, token, payload);
+        
+        // Correctly extract the experience_id from the POST response structure
+        const newExperienceId = response?.experiences?.[0]?.experience_id;
+
+        if (newExperienceId) {
+            const updatedExp: WorkExperience = { ...exp, experience_id: newExperienceId };
+            
+            // Update local state and refs
+            setWorkExperiences(prev => prev.map(e => e.id === exp.id ? updatedExp : e));
+            initialExperiencesRef.current[exp.id] = updatedExp;
+            
+            setExperienceFeedback(prev => ({ ...prev, [exp.id]: "Saved successfully!" }));
+        } else {
+            console.warn("POST successful but failed to retrieve new experience_id. Relying on local state sync.");
+            setExperienceFeedback(prev => ({ ...prev, [exp.id]: "Saved successfully, but ID retrieval failed (relying on next step sync)." }));
+        }
+
+        setExperienceChanges(prev => { const updated = { ...prev }; delete updated[exp.id]; return updated; });
+        
+
+      } else {
+        // Existing record (PUT logic)
+        if (!expChanges || expChanges.length === 0) {
+            setExperienceFeedback(prev => ({ ...prev, [exp.id]: "No changes to save." }));
+            setTimeout(() => setExperienceFeedback(prev => { const updated = { ...prev }; delete updated[exp.id]; return updated; }), 3000);
+            return;
+        }
+
+        const minimalPayload: Record<string, any> = {};
+        
+        // FIX: EXCLUDE job_role from the PUT payload to avoid 500 Internal Server Error
+        // minimalPayload.job_role = jobRole; // REMOVED
+
+        expChanges.forEach(field => {
+          switch(field) {
+            case 'companyName': minimalPayload.company_name = exp.companyName; break;
+            case 'jobTitle': minimalPayload.job_title = exp.jobTitle; break;
+            case 'employmentType': minimalPayload.employment_type = exp.employmentType; break;
+            case 'location': minimalPayload.location = exp.location; break;
+            case 'workMode': minimalPayload.work_mode = exp.workMode; break;
+            case 'startDate': minimalPayload.start_date = normalizeMonthToDate(exp.startDate); break;
+            case 'endDate': minimalPayload.end_date = normalizeMonthToDate(exp.endDate); break;
+            case 'description': minimalPayload.description = exp.description; break;
+            case 'currentlyWorking': minimalPayload.currently_working_here = exp.currentlyWorking; break;
+          }
+        });
+        
+        // Check if only the currently_working_here field changed, requiring end_date to be removed if true
+        if (minimalPayload.currently_working_here === true) {
+             minimalPayload.end_date = null;
+        } else if (minimalPayload.currently_working_here === false) {
+             // If currently_working_here changed to false, ensure end_date is set to the current end date value
+             minimalPayload.end_date = normalizeMonthToDate(exp.endDate);
+        }
+        
+        await updateExperienceDetails(userId, token, exp.experience_id!, minimalPayload);
+        
+        // Update local state and refs
+        initialExperiencesRef.current[exp.id] = { ...exp };
+        setExperienceChanges(prev => { const updated = { ...prev }; delete updated[exp.id]; return updated; });
+        setExperienceFeedback(prev => ({ ...prev, [exp.id]: "Updated successfully!" }));
+      }
+
+      // Clear general feedback after 3 seconds
+      setTimeout(() => {
+        setExperienceFeedback(prev => { const updated = { ...prev }; delete updated[exp.id]; return updated; });
+      }, 3000);
+
+    } catch (error) {
+      console.error("Error saving experience:", error);
+      const feedback = isNew ? "Failed to save." : "Failed to update.";
+      setExperienceFeedback(prev => ({ ...prev, [exp.id]: feedback }));
+      setTimeout(() => setExperienceFeedback(prev => { const updated = { ...prev }; delete updated[exp.id]; return updated; }), 3000);
+    }
+  };
+
+  // Handler for expanding/collapsing individual card
   const toggleExperienceExpanded = (index: number) => {
     const updated = [...workExperiences];
     updated[index] = {
@@ -112,10 +336,40 @@ export default function ExperienceDetailsForm({
     setWorkExperiences(updated);
   };
 
+  // Handler for clearing individual card data (reverting to initial values)
   const resetExperience = (index: number) => {
+    const exp = workExperiences[index];
     const updated = [...workExperiences];
     updated[index] = {
-      ...updated[index],
+      ...exp,
+      companyName: initialExperiencesRef.current[exp.id]?.companyName || "",
+      jobTitle: initialExperiencesRef.current[exp.id]?.jobTitle || "",
+      employmentType: initialExperiencesRef.current[exp.id]?.employmentType || "",
+      location: initialExperiencesRef.current[exp.id]?.location || "",
+      workMode: initialExperiencesRef.current[exp.id]?.workMode || "",
+      startDate: initialExperiencesRef.current[exp.id]?.startDate || "",
+      endDate: initialExperiencesRef.current[exp.id]?.endDate || "",
+      description: initialExperiencesRef.current[exp.id]?.description || "",
+      currentlyWorking: initialExperiencesRef.current[exp.id]?.currentlyWorking || false,
+    };
+    setWorkExperiences(updated);
+
+    // Clear changes and errors for this experience
+    setExperienceChanges(prev => { const updatedChanges = { ...prev }; delete updatedChanges[exp.id]; return updatedChanges; });
+    setErrors((prev) => {
+      const newErrors = { ...prev };
+      delete newErrors[`exp-${index}-companyName`];
+      delete newErrors[`exp-${index}-jobTitle`];
+      delete newErrors[`exp-${index}-endDate`];
+      return newErrors;
+    });
+    setExperienceFeedback(prev => { const updated = { ...prev }; delete updated[exp.id]; return updated; });
+  };
+  
+  // Handler for creating a new empty card
+  const addWorkExperience = () => {
+    const newExp: WorkExperience = {
+      id: Date.now().toString(),
       companyName: "",
       jobTitle: "",
       employmentType: "",
@@ -125,67 +379,84 @@ export default function ExperienceDetailsForm({
       endDate: "",
       description: "",
       currentlyWorking: false,
+      isExpanded: true,
     };
-    setWorkExperiences(updated);
+    setWorkExperiences([...workExperiences, newExp]);
+  };
 
-    // Clear errors for this experience
+  // Handler for removing an experience card and performing DELETE API call if necessary
+  const removeWorkExperience = async (index: number) => {
+    const exp = workExperiences[index];
+    
+    if (workExperiences.length === 1) return; // Cannot delete the last one
+
+    if (exp.experience_id) {
+      try {
+        await deleteExperience(userId, token, exp.experience_id);
+        deletedExperienceIds.current.push(exp.experience_id);
+        setExperienceFeedback(prev => ({ ...prev, [exp.id]: "Deleted successfully!" }));
+        setTimeout(() => setExperienceFeedback(prev => { const updated = { ...prev }; delete updated[exp.id]; return updated; }), 3000);
+      } catch (error) {
+        console.error("Error deleting experience:", error);
+        setExperienceFeedback(prev => ({ ...prev, [exp.id]: "Failed to delete." }));
+        setTimeout(() => setExperienceFeedback(prev => { const updated = { ...prev }; delete updated[exp.id]; return updated; }), 3000);
+        return; // Stop removal if API call fails
+      }
+    }
+    
+    // Remove from state and clear associated data/errors
+    const id = exp.id;
+    setWorkExperiences(workExperiences.filter((_, i) => i !== index));
+    delete initialExperiencesRef.current[id];
+    setExperienceChanges(prev => { const updated = { ...prev }; delete updated[id]; return updated; });
+    
+    // Clear errors for removed experience
     setErrors((prev) => {
       const newErrors = { ...prev };
-      delete newErrors[`exp-${index}-companyName`];
-      delete newErrors[`exp-${index}-jobTitle`];
-      delete newErrors[`exp-${index}-endDate`];
+      Object.keys(newErrors).forEach(key => {
+          if (key.startsWith(`exp-${index}-`)) {
+              delete newErrors[key];
+          }
+      });
       return newErrors;
     });
   };
 
-  const addWorkExperience = () => {
-    setWorkExperiences([
-      ...workExperiences,
-      {
-        id: Date.now().toString(),
-        jobRole: "",
-        companyName: "",
-        jobTitle: "",
-        employmentType: "",
-        location: "",
-        workMode: "",
-        startDate: "",
-        endDate: "",
-        description: "",
-        currentlyWorking: false,
-        isExpanded: true,
-      },
-    ]);
-  };
-
-  const removeWorkExperience = (index: number) => {
-    if (workExperiences.length > 1) {
-      setWorkExperiences(workExperiences.filter((_, i) => i !== index));
-      
-      // Clear errors for removed experience
-      setErrors((prev) => {
-        const newErrors = { ...prev };
-        delete newErrors[`exp-${index}-companyName`];
-        delete newErrors[`exp-${index}-jobTitle`];
-        delete newErrors[`exp-${index}-endDate`];
-        return newErrors;
-      });
-    }
-  };
-
+  // Check if there are any unsaved changes in any section
+  const hasUnsavedChanges = jobRoleChanged || Object.keys(experienceChanges).length > 0;
+  
+  // Final submission handler
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (hasUnsavedChanges) {
+        setJobRoleFeedback(jobRoleChanged ? "Please save your Job Role changes before proceeding" : "");
+        Object.keys(experienceChanges).forEach(id => {
+            setExperienceFeedback(prev => ({ ...prev, [id]: "Please save your changes before proceeding" }));
+            setTimeout(() => setExperienceFeedback(prev => { const updated = { ...prev }; delete updated[id]; return updated; }), 3000);
+        });
+        return;
+    }
+    
+    // Filter out completely empty cards before sending to next step
+    const validExperiences = workExperiences.filter(exp => exp.companyName || exp.experience_id);
+    
     onNext({
       jobRole,
-      workExperiences,
+      workExperiences: validExperiences,
+      deletedExperienceIds: deletedExperienceIds.current,
     });
   };
 
+  // Render function for all experience cards
   const renderExperienceCard = (
     experience: WorkExperience,
     index: number,
     showDelete: boolean = false
   ) => {
+    const changed = experienceChanges[experience.id]?.length > 0;
+    const feedback = experienceFeedback[experience.id];
+
     return (
       <div
         key={experience.id}
@@ -194,9 +465,22 @@ export default function ExperienceDetailsForm({
         {/* Header */}
         <div className="flex items-center justify-between px-4 sm:px-5 md:px-6 py-3 md:py-4 border-b border-gray-200">
           <h3 className="text-sm sm:text-base md:text-lg font-semibold text-gray-900">
-            Work Experience
+            Work Experience {index + 1}
           </h3>
           <div className="flex gap-2 items-center">
+            {changed && (
+                <button
+                    type="button"
+                    onClick={() => handleSaveExperience(experience)}
+                    className="w-5 h-5 flex items-center justify-center rounded-full border-2 border-green-600 hover:bg-green-50 transition-colors"
+                    title="Save changes"
+                >
+                    <Save
+                        className="w-3 h-3 text-green-600 cursor-pointer"
+                        strokeWidth={2.5}
+                    />
+                </button>
+            )}
             <button
               type="button"
               onClick={() => toggleExperienceExpanded(index)}
@@ -224,6 +508,7 @@ export default function ExperienceDetailsForm({
                 type="button"
                 onClick={() => removeWorkExperience(index)}
                 className="w-5 h-5 flex items-center justify-center rounded border-2 border-red-500 hover:bg-red-50 transition-colors"
+                title="Delete this experience"
               >
                 <Trash2
                   className="w-3 h-3 text-red-500 cursor-pointer"
@@ -233,6 +518,14 @@ export default function ExperienceDetailsForm({
             )}
           </div>
         </div>
+        
+        {feedback && (
+          <div className={`p-4 text-sm ${
+            feedback.includes("successfully") ? "bg-green-50 text-green-700 border border-green-200" : "bg-red-50 text-red-700 border border-red-200"
+          }`}>
+            {feedback}
+          </div>
+        )}
 
         {/* Content */}
         {experience.isExpanded && (
@@ -453,7 +746,7 @@ export default function ExperienceDetailsForm({
   };
 
   return (
-    <div className="px-3 sm:px-4 md:px-6 lg:px-8 py-4 md:py-6">
+    <form onSubmit={handleSubmit} className="px-3 sm:px-4 md:px-6 lg:px-8 py-4 md:py-6">
       <div className="max-w-6xl mx-auto">
         {/* Step Header */}
         <div className="mb-4 md:mb-6">
@@ -475,6 +768,19 @@ export default function ExperienceDetailsForm({
               Job Role*
             </h3>
             <div className="flex gap-2 items-center">
+              {jobRoleChanged && (
+                <button
+                    type="button"
+                    onClick={handleSaveJobRole}
+                    className="w-5 h-5 flex items-center justify-center rounded-full border-2 border-green-600 hover:bg-green-50 transition-colors"
+                    title="Save changes"
+                >
+                    <Save
+                        className="w-3 h-3 text-green-600 cursor-pointer"
+                        strokeWidth={2.5}
+                    />
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => setJobRoleExpanded(!jobRoleExpanded)}
@@ -489,7 +795,7 @@ export default function ExperienceDetailsForm({
               </button>
               <button
                 type="button"
-                onClick={() => setJobRole("")}
+                onClick={() => setJobRole(initialJobRole.current)} // Revert to initial state
                 className="w-5 h-5 flex items-center justify-center rounded-full border-2 border-gray-600 hover:bg-gray-100 transition-colors"
               >
                 <RotateCcw
@@ -499,6 +805,14 @@ export default function ExperienceDetailsForm({
               </button>
             </div>
           </div>
+          
+          {jobRoleFeedback && (
+            <div className={`p-4 text-sm ${
+              jobRoleFeedback.includes("successfully") ? "bg-green-50 text-green-700 border border-green-200" : "bg-red-50 text-red-700 border border-red-200"
+            }`}>
+              {jobRoleFeedback}
+            </div>
+          )}
 
           {/* Content */}
           {jobRoleExpanded && (
@@ -566,17 +880,17 @@ export default function ExperienceDetailsForm({
             Previous
           </button>
           <button
-            type="button"
-            onClick={handleSubmit}
+            type="submit"
+            disabled={hasUnsavedChanges}
             style={{
-              background: "linear-gradient(180deg, #FF9D48 0%, #FF8251 100%)",
+              background: hasUnsavedChanges ? "#BDBDBD" : "linear-gradient(180deg, #FF9D48 0%, #FF8251 100%)",
             }}
-            className="px-6 sm:px-8 py-2.5 sm:py-3 bg-orange-400 hover:bg-orange-500 text-white rounded-xl font-medium text-xs sm:text-sm transition-colors shadow-sm cursor-pointer"
+            className="px-6 sm:px-8 py-2.5 sm:py-3 bg-orange-400 hover:bg-orange-500 text-white rounded-xl font-medium text-xs sm:text-sm transition-colors shadow-sm cursor-pointer disabled:cursor-not-allowed"
           >
             Proceed to next
           </button>
         </div>
       </div>
-    </div>
+    </form>
   );
 }

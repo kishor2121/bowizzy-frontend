@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import api from "../api";
+import { loginUser } from "@/services/login";
 import Bowizzy from "../assets/bowizzy.png";
 
 export default function Login() {
@@ -14,7 +14,9 @@ export default function Login() {
     setError("");
 
     try {
-      const data = await loginUser(email, password); 
+      console.log(email)
+      const data = await loginUser(email, password);
+      console.log(data.token)
 
       localStorage.setItem(
         "user",
