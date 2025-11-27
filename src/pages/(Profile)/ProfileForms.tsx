@@ -396,6 +396,10 @@ export default function ProfileForm() {
         portfolioDescription: "",
         publicationUrl: "",
         publicationDescription: "",
+        link_id_linkedin: "",
+        link_id_github: "",
+        link_id_portfolio: "",
+        link_id_publication: "",
     };
 
     if (linksDataArray && Array.isArray(linksDataArray)) {

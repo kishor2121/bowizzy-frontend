@@ -522,10 +522,10 @@ export default function EducationDetailsForm({
 
     // Check for validation errors in current card
     if (errors[`${prefix}-result`] || errors[`${prefix}-institutionName`] || errors[`${prefix}-universityBoard`] || errors[`${prefix}-endYear`]) return;
-
+    const isNew = !edu.education_id;
     // Handle initial save or update
     try {
-      const isNew = !edu.education_id;
+      
       let payload: Record<string, any> = {};
 
       if (isNew) {
