@@ -141,11 +141,6 @@ export default function RichTextEditor({
         rows={rows}
         className="w-full px-3 py-2 sm:py-2.5 border border-t-0 border-gray-300 rounded-b-lg focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent text-xs sm:text-sm resize-none"
       />
-
-      {/* Helper Text */}
-      <p className="text-xs text-gray-500">
-        <strong>Tips:</strong> Use <code className="bg-gray-100 px-1 rounded">**text**</code> for bold, click the toolbar buttons for bullet points (•) and numbered lists.
-      </p>
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import React from 'react';
 import type { Project } from 'src/types/resume';
 import { FormInput, FormSelect, FormTextarea, FormSection, AddButton } from '@/pages/(ResumeBuilder)/components/ui';
+import RichTextEditor from "@/components/ui/RichTextEditor";
 
 interface ProjectsFormProps {
   data: Project[];
@@ -175,22 +176,22 @@ export const ProjectsForm: React.FC<ProjectsFormProps> = ({ data, onChange }) =>
           </div>
 
           <div className="mt-4">
-            <FormTextarea
+            <RichTextEditor
               label="Description"
-              placeholder="Provide Description of your project.."
               value={project.description}
-              onChange={(v) => updateProject(project.id, 'description', v)}
+              onChange={(v) => updateProject(project.id, "description", v)}
+              placeholder="Provide Description of your project.."
               rows={4}
               showAiButton={true}
             />
           </div>
 
           <div className="mt-4">
-            <FormTextarea
+            <RichTextEditor
               label="Roles & Responsibilities"
-              placeholder="Provide your roles & responsibilities in the project.."
               value={project.rolesResponsibilities}
-              onChange={(v) => updateProject(project.id, 'rolesResponsibilities', v)}
+              onChange={(v) => updateProject(project.id, "rolesResponsibilities", v)}
+              placeholder="Provide your roles & responsibilities..."
               rows={4}
               showAiButton={true}
             />

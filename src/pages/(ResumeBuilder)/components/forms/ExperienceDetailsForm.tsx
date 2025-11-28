@@ -1,6 +1,7 @@
 import React from 'react';
 import type { ExperienceDetails, WorkExperience } from 'src/types/resume';
 import { FormInput, FormSelect, FormTextarea, FormSection, AddButton, ToggleSwitch } from '@/pages/(ResumeBuilder)/components/ui';
+import RichTextEditor from '@/components/ui/RichTextEditor';
 import { Calendar } from 'lucide-react';
 
 interface ExperienceDetailsFormProps {
@@ -248,13 +249,14 @@ export const ExperienceDetailsForm: React.FC<ExperienceDetailsFormProps> = ({ da
           </div>
 
           <div className="mt-4">
-            <FormTextarea
-              label="Description"
-              placeholder="Provide Description / Projects of your Work"
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Description
+            </label>
+            <RichTextEditor
               value={exp.description}
               onChange={(v) => updateWorkExperience(exp.id, 'description', v)}
+              placeholder="Provide Description / Projects of your Work"
               rows={4}
-              showAiButton={true}
             />
           </div>
         </FormSection>

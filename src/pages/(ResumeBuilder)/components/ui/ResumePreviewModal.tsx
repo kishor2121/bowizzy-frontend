@@ -5,6 +5,8 @@ import { getTemplateById } from "@/templates/templateRegistry";
 import html2canvas from "html2canvas";
 import { jsPDF } from "jspdf";
 import { uploadPdfToCloudinary } from "@/utils/uploadPdfToCloudinary";
+import { PDFDownloadLink } from "@react-pdf/renderer";
+import { ResumePDF } from "@/components/ResumePDF"; 
 
 interface ResumePreviewModalProps {
   isOpen: boolean;
@@ -502,6 +504,7 @@ export const ResumePreviewModal: React.FC<ResumePreviewModalProps> = ({
       )}
 
       {/* Download Dialog with Cloudinary Link + actions */}
+            {/* Download Dialog with Cloudinary Link + actions */}
       {showDownloadDialog && (
         <>
           <div
@@ -551,35 +554,15 @@ export const ResumePreviewModal: React.FC<ResumePreviewModalProps> = ({
                         className="w-full px-4 py-3 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent pr-12"
                         placeholder="Enter resume name"
                       />
-                      <button className="absolute right-3 top-1/2 -translate-y-1/2 text-orange-500 hover:text-orange-600">
-                        <svg
-                          className="w-2 h-2"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                          />
-                        </svg>
-                      </button>
                     </div>
-                    <p className="text-xs text-gray-500 mt-2">
-                      Add resume name or edit name, then click on{" "}
-                      <strong>Save Resume</strong> to generate the Cloudinary
-                      PDF link.
-                    </p>
                   </div>
 
-                  <div className="mb-6">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                  {/* <div className="mb-6"> */}
+                    {/* <label className="block text-sm font-medium text-gray-700 mb-2">
                       Cloudinary PDF Link
-                    </label>
-                    <div className="flex items-center gap-2">
-                      <div
+                    </label> */}
+                    {/* <div className="flex items-center gap-2"> */}
+                      {/* <div
                         className={`flex-1 px-4 py-3 text-sm rounded-lg break-all font-mono text-gray-800 ${
                           cloudinaryUrl
                             ? "bg-gray-50 border border-gray-300"
@@ -594,8 +577,8 @@ export const ResumePreviewModal: React.FC<ResumePreviewModalProps> = ({
                         ) : (
                           generateResumeLinkDisplay()
                         )}
-                      </div>
-                      <button
+                      </div> */}
+                      {/* <button
                         onClick={handleCopyLink}
                         disabled={!cloudinaryUrl || isProcessing}
                         className={`p-3 rounded-lg transition-colors flex items-center justify-center ${
@@ -609,19 +592,17 @@ export const ResumePreviewModal: React.FC<ResumePreviewModalProps> = ({
                         ) : (
                           <Copy className="w-5 h-5" />
                         )}
-                      </button>
-                    </div>
-                    <p className="text-xs text-gray-500 mt-2">
-                      This is the permanent, shareable URL hosted on
-                      Cloudinary.
-                    </p>
-                  </div>
+                      </button> */}
+                    {/* </div> */}
+                  {/* </div> */}
                 </div>
               </div>
 
               {/* Action Buttons */}
               <div className="flex items-center justify-center gap-4">
-                <button
+
+                {/* SAVE RESUME (Cloudinary upload – unchanged) */}
+                {/* <button
                   onClick={handleSaveResume}
                   disabled={
                     isProcessing || !resumeName.trim() || !!cloudinaryUrl
@@ -638,24 +619,28 @@ export const ResumePreviewModal: React.FC<ResumePreviewModalProps> = ({
                       ? "Link Ready"
                       : "Save Resume (Generate Link)"}
                   </span>
-                </button>
+                </button> */}
 
-                <button
-                  onClick={handleDownloadPDF}
-                  disabled={isProcessing || !resumeName.trim()}
-                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-orange-500 rounded-lg hover:bg-orange-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                {/* DOWNLOAD PDF USING REACT-PDF */}
+                <PDFDownloadLink
+                  document={<ResumePDF data={resumeData} />}
+                  fileName={`${resumeName || "resume"}.pdf`}
                 >
-                  {isProcessing && actionType === "download" ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Download className="w-4 h-4" />
+                  {({ loading }) => (
+                    <button
+                      disabled={loading || !resumeName.trim()}
+                      className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-orange-500 rounded-lg hover:bg-orange-600 disabled:opacity-50"
+                    >
+                      {loading ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Download className="w-4 h-4" />
+                      )}
+                      <span>{loading ? "Preparing..." : "Download (.pdf)"}</span>
+                    </button>
                   )}
-                  <span>
-                    {isProcessing && actionType === "download"
-                      ? "Downloading..."
-                      : "Download (.pdf)"}
-                  </span>
-                </button>
+                </PDFDownloadLink>
+
               </div>
             </div>
           </div>
@@ -666,3 +651,4 @@ export const ResumePreviewModal: React.FC<ResumePreviewModalProps> = ({
 };
 
 export default ResumePreviewModal;
+

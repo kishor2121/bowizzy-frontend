@@ -8,6 +8,7 @@ import {
   AddButton,
 } from "@/pages/(ResumeBuilder)/components/ui";
 import { Upload, X } from "lucide-react";
+import RichTextEditor from "@/components/ui/RichTextEditor";
 
 interface CertificationsFormProps {
   data: Certificate[];
@@ -273,7 +274,7 @@ export const CertificationsForm: React.FC<CertificationsFormProps> = ({
           </div>
 
           <div className="mt-4">
-            <FormTextarea
+            <RichTextEditor
               label="Description"
               placeholder="Provide Description..."
               value={cert.description}

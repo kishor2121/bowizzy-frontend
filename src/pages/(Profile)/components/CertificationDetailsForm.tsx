@@ -40,7 +40,6 @@ interface Certificate {
   isExpanded: boolean;
   uploadedFileUrl?: string;
   uploadedFileType?: string;
-  uploadedFileDeleteToken?: string; // Cloudinary delete token
   certificate_id?: number; // DB ID
 }
 
@@ -225,7 +224,6 @@ export default function CertificationDetailsForm({
           : ""),
       uploadedFileUrl: initial?.uploadedFileUrl || "",
       uploadedFileType: initial?.uploadedFileType || "",
-      uploadedFileDeleteToken: initial?.uploadedFileDeleteToken || "",
     };
     setCertificates(updated);
 
@@ -283,7 +281,7 @@ export default function CertificationDetailsForm({
           ...prev,
           [cert.id]: "Deleted successfully!",
         }));
-      } catch {
+      } catch (error) {
         setCertFeedback((prev) => ({
           ...prev,
           [cert.id]: "Failed to delete.",
@@ -325,37 +323,24 @@ export default function CertificationDetailsForm({
       return;
     }
 
-    try {
-      // Upload to Cloudinary
-      const cloudinaryRes = await uploadToCloudinary(file);
+    const updated = [...certificates];
+    updated[index] = {
+      ...updated[index],
+      uploadedFile: file,
+      uploadedFileName: file.name,
+      uploadedFileType: file.type,
+    };
 
-      const updated = [...certificates];
-      updated[index] = {
-        ...updated[index],
-        uploadedFile: file,
-        uploadedFileName: file.name,
-        uploadedFileType: file.type,
-        uploadedFileUrl: cloudinaryRes.url, // Store Cloudinary URL
-        uploadedFileDeleteToken: cloudinaryRes.deleteToken || "", // Store delete token
-      };
-
-      setCertificates(updated);
-      setErrors((prev) => {
-        const newErrors = { ...prev };
-        delete newErrors[`cert-${index}-file`];
-        return newErrors;
-      });
-    } catch (error) {
-      console.error("Error uploading file to Cloudinary:", error);
-      setErrors((prev) => ({
-        ...prev,
-        [`cert-${index}-file`]: "Failed to upload file to cloud.",
-      }));
-    }
+    setCertificates(updated);
+    setErrors((prev) => {
+      const newErrors = { ...prev };
+      delete newErrors[`cert-${index}-file`];
+      return newErrors;
+    });
   };
 
   // Handler for dropping file (Drag and drop)
-  const handleFileDrop = async (
+  const handleFileDrop = (
     index: number,
     e: React.DragEvent<HTMLDivElement>
   ) => {
@@ -370,49 +355,24 @@ export default function CertificationDetailsForm({
       return;
     }
 
-    try {
-      // Upload to Cloudinary
-      const cloudinaryRes = await uploadToCloudinary(file);
+    const updated = [...certificates];
+    updated[index] = {
+      ...updated[index],
+      uploadedFile: file,
+      uploadedFileName: file.name,
+      uploadedFileType: file.type,
+    };
+    setCertificates(updated);
 
-      const updated = [...certificates];
-      updated[index] = {
-        ...updated[index],
-        uploadedFile: file,
-        uploadedFileName: file.name,
-        uploadedFileType: file.type,
-        uploadedFileUrl: cloudinaryRes.url, // Store Cloudinary URL
-        uploadedFileDeleteToken: cloudinaryRes.deleteToken || "", // Store delete token
-      };
-      setCertificates(updated);
-
-      setErrors((prev) => {
-        const newErrors = { ...prev };
-        delete newErrors[`cert-${index}-file`];
-        return newErrors;
-      });
-    } catch (error) {
-      console.error("Error uploading file to Cloudinary:", error);
-      setErrors((prev) => ({
-        ...prev,
-        [`cert-${index}-file`]: "Failed to upload file to cloud.",
-      }));
-    }
+    setErrors((prev) => {
+      const newErrors = { ...prev };
+      delete newErrors[`cert-${index}-file`];
+      return newErrors;
+    });
   };
 
   // Handler for removing attached file
   const clearFile = async (index: number) => {
-    const cert = certificates[index];
-
-    try {
-      // Delete from Cloudinary if delete token exists
-      if (cert.uploadedFileDeleteToken) {
-        await deleteFromCloudinary(cert.uploadedFileDeleteToken);
-        console.log("File deleted from Cloudinary");
-      }
-    } catch (error) {
-      console.error("Error deleting file from Cloudinary:", error);
-    }
-
     const updated = [...certificates];
     updated[index] = {
       ...updated[index],
@@ -420,7 +380,6 @@ export default function CertificationDetailsForm({
       uploadedFileName: "",
       uploadedFileUrl: "",
       uploadedFileType: "",
-      uploadedFileDeleteToken: "",
     };
 
     setCertificates(updated);
@@ -459,7 +418,7 @@ export default function CertificationDetailsForm({
     }
 
     // --- 1. Construct FormData ---
-    const formDataToSend = new FormData();
+    let formDataToSend = new FormData();
 
     // Append all text fields
     formDataToSend.append("certificate_type", cert.certificateType || "");
@@ -474,10 +433,35 @@ export default function CertificationDetailsForm({
 
     // --- 2. Handle File Logic ---
 
-    // If Cloudinary URL exists, send it to backend
-    if (cert.uploadedFileUrl) {
-      formDataToSend.append("file_url", cert.uploadedFileUrl);
-      console.log("Sending Cloudinary URL to backend:", cert.uploadedFileUrl);
+    // If a new local File object exists, append it
+    if (cert.uploadedFile && changes.includes("fileUpload")) {
+      try {
+        // Append the file object directly for the API to handle upload
+        formDataToSend.append("file", cert.uploadedFile);
+      } catch (error) {
+        setCertFeedback((prev) => ({
+          ...prev,
+          [certId]: "File processing failed.",
+        }));
+        setTimeout(
+          () =>
+            setCertFeedback((prev) => {
+              const updated = { ...prev };
+              delete updated[certId];
+              return updated;
+            }),
+          3000
+        );
+        return;
+      }
+    }
+
+    // If URL changed (cleared or new value due to save) or if other fields changed, send file_url
+    if (
+      changes.includes("uploadedFileUrl") ||
+      (cert.uploadedFileUrl && !cert.uploadedFile)
+    ) {
+      formDataToSend.append("file_url", cert.uploadedFileUrl || "");
     }
 
     // --- 3. API Call ---

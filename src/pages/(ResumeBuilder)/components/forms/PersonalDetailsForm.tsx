@@ -7,6 +7,7 @@ import {
   TagInput,
   FormSection,
 } from "@/pages/(ResumeBuilder)/components/ui";
+import RichTextEditor from "@/components/ui/RichTextEditor";
 import { Lock } from "lucide-react";
 
 interface PersonalDetailsFormProps {
@@ -265,12 +266,11 @@ export const PersonalDetailsForm: React.FC<PersonalDetailsFormProps> = ({
         }
       >
         {!careerObjectiveCollapsed && (
-          <FormTextarea
-            placeholder="Provide Career Objective"
+          <RichTextEditor
             value={data.aboutCareerObjective}
             onChange={(v) => updateField("aboutCareerObjective", v)}
+            placeholder="Provide Career Objective"
             rows={5}
-            showAiButton={true}
           />
         )}
       </FormSection>

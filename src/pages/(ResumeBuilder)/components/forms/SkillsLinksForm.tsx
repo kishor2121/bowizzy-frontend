@@ -2,6 +2,7 @@ import React from 'react';
 import type { SkillsLinksDetails, Skill } from 'src/types/resume';
 import { FormInput, FormSelect, FormTextarea, FormSection, ToggleSwitch } from '@/pages/(ResumeBuilder)/components/ui';
 import { X } from 'lucide-react';
+import RichTextEditor from "@/components/ui/RichTextEditor";
 
 interface SkillsLinksFormProps {
   data: SkillsLinksDetails;
@@ -236,14 +237,13 @@ export const SkillsLinksForm: React.FC<SkillsLinksFormProps> = ({ data, onChange
             </div>
           </div>
 
-          <FormTextarea
+          <RichTextEditor
             label="Portfolio Description"
             placeholder="Provide Portfolio Description..."
             value={data.links.portfolioDescription}
             onChange={(v) => updateLink('portfolioDescription', v)}
             rows={3}
           />
-
           {/* Publication */}
           <div className="flex items-center gap-3">
             <div className="flex-1">
@@ -263,7 +263,7 @@ export const SkillsLinksForm: React.FC<SkillsLinksFormProps> = ({ data, onChange
             </div>
           </div>
 
-          <FormTextarea
+          <RichTextEditor
             label="Publication Description"
             placeholder="Provide Portfolio Description..."
             value={data.links.publicationDescription}
@@ -284,7 +284,7 @@ export const SkillsLinksForm: React.FC<SkillsLinksFormProps> = ({ data, onChange
         isCollapsed={technicalSummaryCollapsed}
         onCollapseToggle={() => setTechnicalSummaryCollapsed(!technicalSummaryCollapsed)}
       >
-        <FormTextarea
+        <RichTextEditor
           placeholder="Provide Career Objective"
           value={data.technicalSummary}
           onChange={(v) => onChange({ ...data, technicalSummary: v })}
