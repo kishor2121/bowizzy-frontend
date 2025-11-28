@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import ProfileStepper from "./components/ProfileStepper";
 import PersonalDetailsForm from "./components/forms/PersonalDetailsForm";
@@ -8,11 +8,16 @@ import ProjectsForm from "./components/forms/ProjectsForm";
 import SkillsLinksForm from "./components/forms/SkillsLinksForm";
 import CertificationsForm from "./components/forms/CertificationsForm";
 import { initialResumeData } from "../../types/resume";
-import type { ResumeData } from "../../types/resume";
+import type {
+  ResumeData,
+  EducationDetails,
+  HigherEducation,
+} from "../../types/resume";
 import DashNav from "@/components/dashnav/dashnav";
 import { getTemplateById } from "@/templates/templateRegistry";
 import ResumePreviewModal from "./components/ui/ResumePreviewModal";
 import { getPersonalDetailsByUserId } from "@/services/personalService";
+import { getEducationByUserId } from "@/services/educationService";
 
 const steps = [
   "Personal",
@@ -41,6 +46,77 @@ const nextButtonLabels = [
   "Preview Resume",
 ];
 
+const mapEducationApiToLocal = (
+  apiData: any[]
+): {
+  educationData: EducationDetails;
+  idMap: Record<string, number>;
+  deleteIds: number[];
+} => {
+  const educationData: EducationDetails = JSON.parse(
+    JSON.stringify(initialResumeData.education)
+  );
+  const idMap: Record<string, number> = {};
+  const higherEducations: HigherEducation[] = [];
+
+  apiData.forEach((item) => {
+    const localId = item.education_id.toString();
+    idMap[localId] = item.education_id;
+
+    const baseData = {
+      education_id: item.education_id,
+      instituteName: item.institution_name || "",
+      boardType: item.board_type || "",
+      resultFormat: item.result_format
+        ? item.result_format.charAt(0).toUpperCase() +
+          item.result_format.slice(1)
+        : "",
+      result: item.result?.toString() || "",
+    };
+
+    if (item.education_type === "sslc") {
+      educationData.sslc = {
+        ...educationData.sslc,
+        ...baseData,
+        yearOfPassing: item.end_year || "",
+      };
+      educationData.sslcEnabled = true;
+    } else if (item.education_type === "puc") {
+      educationData.preUniversity = {
+        ...educationData.preUniversity,
+        ...baseData,
+        subjectStream: item.subject_stream || "",
+        yearOfPassing: item.end_year || "",
+      };
+      educationData.preUniversityEnabled = true;
+    } else if (item.education_type === "higher") {
+      higherEducations.push({
+        id: localId,
+        education_id: item.education_id,
+        degree: item.degree || "",
+        fieldOfStudy: item.field_of_study || "",
+        instituteName: item.institution_name || "",
+        universityBoard: item.university_name || "",
+
+        startYear: item.start_year || "",
+        endYear: item.end_year || "",
+        resultFormat: item.result_format
+          ? item.result_format.charAt(0).toUpperCase() +
+            item.result_format.slice(1)
+          : "",
+        result: item.result?.toString() || "",
+        currentlyPursuing: item.currently_pursuing || false,
+      });
+
+      educationData.higherEducationEnabled = true;
+    }
+  });
+
+  educationData.higherEducation = higherEducations;
+
+  return { educationData, idMap, deleteIds: [] };
+};
+
 export const ResumeEditor: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -56,14 +132,19 @@ export const ResumeEditor: React.FC = () => {
   const [selectedTemplate, setSelectedTemplate] = useState<any>(null);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [loading, setLoading] = useState(true);
-  
-  // Auth data from localStorage
+
   const [userId, setUserId] = useState<string>("");
   const [token, setToken] = useState<string>("");
-  const [personalDetailsId, setPersonalDetailsId] = useState<string | null>(null);
+  const [personalDetailsId, setPersonalDetailsId] = useState<string | null>(
+    null
+  );
+
+  const [educationDataIdMap, setEducationDataIdMap] = useState<
+    Record<string, number>
+  >({});
+  const [deleteEducationIds, setDeleteEducationIds] = useState<number[]>([]);
 
   useEffect(() => {
-    // Get user data from localStorage
     const userDataStr = localStorage.getItem("user");
     if (userDataStr) {
       try {
@@ -80,7 +161,6 @@ export const ResumeEditor: React.FC = () => {
   }, [navigate]);
 
   useEffect(() => {
-    // Load template
     if (templateId) {
       const template = getTemplateById(templateId);
       setSelectedTemplate(template);
@@ -88,17 +168,15 @@ export const ResumeEditor: React.FC = () => {
   }, [templateId]);
 
   useEffect(() => {
-    // Fetch personal details when userId and token are available
     const fetchPersonalDetails = async () => {
       if (!userId || !token) return;
 
       try {
         setLoading(true);
-        
+
         const response = await getPersonalDetailsByUserId(userId, token);
-        console.log(response)
+        console.log("Fetched Personal Details:", response);
         if (response) {
-          // Map backend response to frontend structure
           const personalData = {
             profilePhotoUrl: response.profile_photo_url || "",
             firstName: response.first_name || "",
@@ -107,7 +185,10 @@ export const ResumeEditor: React.FC = () => {
             email: response.email || "",
             mobileNumber: response.mobile_number || "",
             dateOfBirth: response.date_of_birth || "",
-            gender: response.gender ? response.gender.charAt(0).toUpperCase() + response.gender.slice(1) : "",
+            gender: response.gender
+              ? response.gender.charAt(0).toUpperCase() +
+                response.gender.slice(1)
+              : "",
             languagesKnown: response.languages_known || [],
             address: response.address || "",
             country: response.country || "India",
@@ -124,14 +205,10 @@ export const ResumeEditor: React.FC = () => {
             personal: personalData,
           }));
 
-          // console.log(personalData);
-
-          // Store personal_details_id for future updates
           setPersonalDetailsId(response.personal_id || null);
         }
       } catch (error) {
         console.error("Error fetching personal details:", error);
-        // If 404, it means no data exists yet - that's okay
       } finally {
         setLoading(false);
       }
@@ -140,15 +217,59 @@ export const ResumeEditor: React.FC = () => {
     fetchPersonalDetails();
   }, [userId, token]);
 
+  useEffect(() => {
+    const fetchEducationDetails = async () => {
+      if (!userId || !token) return;
+
+      try {
+        setLoading(true);
+        const apiResponse = await getEducationByUserId(userId, token);
+        console.log("Fetched Education Details:", apiResponse);
+
+        if (apiResponse && apiResponse.length > 0) {
+          const { educationData, idMap } = mapEducationApiToLocal(apiResponse);
+          setResumeData((prev) => ({ ...prev, education: educationData }));
+          setEducationDataIdMap(idMap);
+        } else {
+          setResumeData((prev) => ({
+            ...prev,
+            education: initialResumeData.education,
+          }));
+          setEducationDataIdMap({});
+        }
+      } catch (error) {
+        console.error("Error fetching education details:", error);
+        setResumeData((prev) => ({
+          ...prev,
+          education: initialResumeData.education,
+        }));
+        setEducationDataIdMap({});
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (currentStep === 1) {
+      fetchEducationDetails();
+    }
+  }, [userId, token, currentStep]);
+
   const handleStepClick = (stepIndex: number) => {
+    if (stepIndex === 1) {
+      setLoading(true);
+    } else {
+      setLoading(false);
+    }
     setCurrentStep(stepIndex);
   };
 
   const handleNext = () => {
     if (currentStep < steps.length - 1) {
       setCurrentStep(currentStep + 1);
+      if (currentStep + 1 === 1) {
+        setLoading(true);
+      }
     } else {
-      // Last step - Open Preview Modal
       setShowPreviewModal(true);
     }
   };
@@ -156,13 +277,14 @@ export const ResumeEditor: React.FC = () => {
   const handlePrevious = () => {
     if (currentStep > 0) {
       setCurrentStep(currentStep - 1);
+      if (currentStep - 1 === 1) {
+        setLoading(true);
+      }
     }
   };
 
   const handleSaveResume = () => {
-    // TODO: Save resume to backend
     console.log("Saving resume:", resumeData);
-    // After save, you can navigate or show success message
   };
 
   const updatePersonalData = (data: typeof resumeData.personal) => {
@@ -190,13 +312,12 @@ export const ResumeEditor: React.FC = () => {
   };
 
   const renderCurrentForm = () => {
-    // Show loading state while fetching data
-    if (loading && currentStep === 0) {
+    if (loading && (currentStep === 0 || currentStep === 1)) {
       return (
         <div className="flex items-center justify-center py-12">
           <div className="text-center">
             <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-gray-300 border-t-orange-400"></div>
-            <p className="mt-4 text-gray-600">Loading personal details...</p>
+            <p className="mt-4 text-gray-600">Loading details...</p>
           </div>
         </div>
       );
@@ -218,6 +339,12 @@ export const ResumeEditor: React.FC = () => {
           <EducationDetailsForm
             data={resumeData.education}
             onChange={updateEducationData}
+            userId={userId}
+            token={token}
+            educationDataIdMap={educationDataIdMap}
+            setEducationDataIdMap={setEducationDataIdMap}
+            deleteEducationIds={deleteEducationIds}
+            setDeleteEducationIds={setDeleteEducationIds}
           />
         );
       case 2:
@@ -258,13 +385,14 @@ export const ResumeEditor: React.FC = () => {
     const totalPages = selectedTemplate.pageCount || 1;
 
     if (direction === "next") {
-      setCurrentPreviewPage((prev) => (prev < totalPages - 1 ? prev + 1 : prev));
+      setCurrentPreviewPage((prev) =>
+        prev < totalPages - 1 ? prev + 1 : prev
+      );
     } else {
       setCurrentPreviewPage((prev) => (prev > 0 ? prev - 1 : prev));
     }
   };
 
-  // Render template preview
   const renderTemplatePreview = () => {
     if (!selectedTemplate) {
       return (
@@ -284,7 +412,6 @@ export const ResumeEditor: React.FC = () => {
 
       <div className="flex-1 flex flex-col overflow-hidden p-4">
         <div className="flex-1 flex flex-col bg-white rounded-lg overflow-hidden">
-          {/* Stepper */}
           <div className="bg-white">
             <ProfileStepper
               steps={steps}
@@ -294,9 +421,7 @@ export const ResumeEditor: React.FC = () => {
             />
           </div>
 
-          {/* Main Content */}
           <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
-            {/* Form Panel */}
             <div className="flex-1 lg:w-[50%] overflow-auto scrollbar-hide">
               <div className="p-4 md:p-6">
                 <h2 className="text-lg font-semibold text-[#1A1A43] mb-5">
@@ -305,7 +430,6 @@ export const ResumeEditor: React.FC = () => {
 
                 <div className="mb-6">{renderCurrentForm()}</div>
 
-                {/* Navigation Buttons */}
                 <div className="flex items-center justify-center gap-4 py-4">
                   {currentStep > 0 && (
                     <button
@@ -320,18 +444,17 @@ export const ResumeEditor: React.FC = () => {
                     type="button"
                     onClick={handleNext}
                     className="px-6 py-2.5 text-sm font-medium text-white bg-orange-400 rounded-full hover:bg-orange-500 transition-colors"
+                    disabled={loading}
                   >
-                    {nextButtonLabels[currentStep]}
+                    {loading ? "Loading..." : nextButtonLabels[currentStep]}
                   </button>
                 </div>
               </div>
             </div>
 
-            {/* Resume Preview Panel */}
             <div className="hidden lg:flex lg:w-[50%] bg-white overflow-auto scrollbar-hide">
               <div className="flex-1 p-4 overflow-auto scrollbar-hide border border-gray-300 m-4 rounded-lg">
                 <div className="relative w-full h-full flex items-start justify-center">
-                  {/* Pagination Top Right */}
                   {selectedTemplate && (
                     <div className="absolute top-2 right-4 flex items-center gap-3 bg-white px-3 py-1 rounded-full shadow-md text-sm font-medium">
                       <button
@@ -360,7 +483,6 @@ export const ResumeEditor: React.FC = () => {
                     </div>
                   )}
 
-                  {/* Render Resume Template */}
                   <div className="transform scale-75 origin-top mt-8">
                     {renderTemplatePreview()}
                   </div>
@@ -371,7 +493,6 @@ export const ResumeEditor: React.FC = () => {
         </div>
       </div>
 
-      {/* Hide scrollbar styles */}
       <style>{`
         .scrollbar-hide::-webkit-scrollbar {
           display: none;
