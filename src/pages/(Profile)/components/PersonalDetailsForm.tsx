@@ -199,7 +199,7 @@ export default function PersonalDetailsForm({
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const previewURL = URL.createObjectURL(file);
+    // Revoke previous blob URL if exists
     const prev = formData.profilePhotoPreview;
     if (prev && typeof prev === "string" && prev.startsWith("blob:")) {
       try {
@@ -212,23 +212,24 @@ export default function PersonalDetailsForm({
     try {
       const cloudinaryRes = await uploadToCloudinary(file);
 
-      // Immediately save to backend - Send only profile photo URL
-      if (personalDetailsId) {
-        const payload = {
-          profile_photo_url: cloudinaryRes.url,
-        };
-        console.log("Updating profile photo with payload:", payload);
-        await updatePersonalDetails(userId, token, personalDetailsId, payload);
-      }
-
+      // Update form state with cloudinary response
       setFormData((prev) => ({
         ...prev,
         profilePhoto: file,
-        profilePhotoPreview: previewURL,
+        profilePhotoPreview: cloudinaryRes.url, // Use cloudinary URL directly
         uploadedPhotoURL: cloudinaryRes.url,
         uploadedPublicId: cloudinaryRes.publicId,
         uploadedDeleteToken: cloudinaryRes.deleteToken || "",
       }));
+
+      // Immediately save to backend with cloudinary URL
+      if (personalDetailsId) {
+        const payload = {
+          uploadedPhotoURL: cloudinaryRes.url,
+        };
+        console.log("Updating profile photo with payload:", payload);
+        await updatePersonalDetails(userId, token, personalDetailsId, payload);
+      }
 
       if (fileInputRef.current) fileInputRef.current.value = "";
     } catch (error) {
@@ -475,17 +476,20 @@ export default function PersonalDetailsForm({
                   <div className="flex flex-col items-center">
                     <div
                       onClick={handlePhotoClick}
-                      className="relative w-28 h-28 sm:w-32 sm:h-32 md:w-36 md:h-36 lg:w-40 lg:h-40 bg-gray-100 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center overflow-hidden cursor-pointer hover:border-orange-400 transition-colors group"
+                      className={`relative w-28 h-28 sm:w-32 sm:h-32 md:w-36 md:h-36 lg:w-40 lg:h-40 bg-gray-100 rounded-lg border-2 ${
+                        formData.profilePhotoPreview || formData.uploadedPhotoURL
+                          ? "border-gray-300"
+                          : "border-dashed border-gray-300"
+                      } flex items-center justify-center overflow-hidden ${
+                        !formData.profilePhotoPreview && !formData.uploadedPhotoURL
+                          ? "cursor-pointer hover:border-orange-400 transition-colors group"
+                          : ""
+                      }`}
                     >
-                      {formData.profilePhoto ? (
+                      {formData.profilePhotoPreview || formData.uploadedPhotoURL ? (
                         <>
                           <img
-                            src={
-                              formData.profilePhotoPreview ||
-                              (typeof formData.profilePhoto === "string"
-                                ? `/uploads/${formData.profilePhoto}`
-                                : "")
-                            }
+                            src={formData.profilePhotoPreview || formData.uploadedPhotoURL}
                             alt="Profile"
                             className="w-full h-full object-cover"
                           />
@@ -494,25 +498,39 @@ export default function PersonalDetailsForm({
                             onClick={async (e) => {
                               e.stopPropagation();
 
-                              if (formData.uploadedDeleteToken) {
-                                await deleteFromCloudinary(
-                                  formData.uploadedDeleteToken
-                                );
-                              }
-
                               try {
-                                const prev = formData.profilePhotoPreview;
-                                if (
-                                  prev &&
-                                  typeof prev === "string" &&
-                                  prev.startsWith("blob:")
-                                ) {
-                                  URL.revokeObjectURL(prev);
+                                // Delete from Cloudinary if delete token exists
+                                if (formData.uploadedDeleteToken) {
+                                  const deleteSuccess = await deleteFromCloudinary(
+                                    formData.uploadedDeleteToken
+                                  );
+                                  console.log(
+                                    "Cloudinary delete result:",
+                                    deleteSuccess
+                                  );
                                 }
-                              } catch (e) {
-                                console.warn("Failed to revoke object URL", e);
+
+                                // Update backend to clear the photo URL
+                                if (personalDetailsId) {
+                                  const payload = {
+                                    uploadedPhotoURL: "",
+                                  };
+                                  console.log(
+                                    "Updating profile photo to empty:",
+                                    payload
+                                  );
+                                  await updatePersonalDetails(
+                                    userId,
+                                    token,
+                                    personalDetailsId,
+                                    payload
+                                  );
+                                }
+                              } catch (error) {
+                                console.error("Error deleting photo:", error);
                               }
 
+                              // Clear form state
                               setFormData((prev) => ({
                                 ...prev,
                                 profilePhoto: null,
@@ -525,9 +543,10 @@ export default function PersonalDetailsForm({
                               if (fileInputRef.current)
                                 fileInputRef.current.value = "";
                             }}
-                            className="absolute top-2 right-2 p-1 bg-white rounded-full shadow-md hover:bg-red-50 z-10"
+                            className="absolute top-2 right-2 p-1 bg-white rounded-full shadow-md hover:bg-red-100 z-10 transition-colors"
+                            title="Delete photo"
                           >
-                            <X className="w-3.5 h-3.5 text-red-500 cursor-pointer" />
+                            <X className="w-4 h-4 text-red-500 cursor-pointer" />
                           </button>
                         </>
                       ) : (
