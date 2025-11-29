@@ -14,6 +14,7 @@ import type {
   HigherEducation,
   WorkExperience,
   Project,
+  Certificate,
 } from "../../types/resume";
 import DashNav from "@/components/dashnav/dashnav";
 import { getTemplateById } from "@/templates/templateRegistry";
@@ -22,6 +23,7 @@ import { getPersonalDetailsByUserId } from "@/services/personalService";
 import { getEducationByUserId } from "@/services/educationService";
 import { getExperienceByUserId } from "@/services/experienceService";
 import { getProjectsByUserId } from "@/services/projectService";
+import { getCertificatesByUserId } from "@/services/certificateService";
 
 const steps = [
   "Personal",
@@ -165,6 +167,7 @@ const mapProjectsApiToLocal = (apiData: any[]): Project[] => {
     return [
       {
         id: "1",
+        project_id: undefined,
         projectTitle: "",
         projectType: "",
         startDate: "",
@@ -187,6 +190,40 @@ const mapProjectsApiToLocal = (apiData: any[]): Project[] => {
     currentlyWorking: item.currently_working || false,
     description: item.description || "",
     rolesResponsibilities: item.roles_responsibilities || "",
+    enabled: true,
+  }));
+};
+
+const mapCertificatesApiToLocal = (apiData: any[]): Certificate[] => {
+  if (!apiData || apiData.length === 0) {
+    return [
+      {
+        id: "1",
+        certificate_id: undefined,
+        certificateType: "",
+        certificateTitle: "",
+        domain: "",
+        providedBy: "",
+        date: "",
+        description: "",
+        certificateUrl: "",
+        uploadedFileName: "",
+        enabled: true,
+      },
+    ];
+  }
+
+  return apiData.map((item) => ({
+    id: item.certificate_id.toString(),
+    certificate_id: item.certificate_id,
+    certificateType: item.certificate_type || "",
+    certificateTitle: item.certificate_title || "",
+    domain: item.domain || "",
+    providedBy: item.certificate_provided_by || "",
+    date: item.date ? item.date.substring(0, 7) : "",
+    description: item.description || "",
+    certificateUrl: item.file_url || "",
+    uploadedFileName: item.file_url ? item.file_url.split("/").pop() : "",
     enabled: true,
   }));
 };
@@ -223,6 +260,7 @@ export const ResumeEditor: React.FC = () => {
   >({});
   const [deleteExperienceIds, setDeleteExperienceIds] = useState<number[]>([]);
 
+  // 1. Initial user and token check
   useEffect(() => {
     const userDataStr = localStorage.getItem("user");
     if (userDataStr) {
@@ -239,6 +277,7 @@ export const ResumeEditor: React.FC = () => {
     }
   }, [navigate]);
 
+  // 2. Template loading
   useEffect(() => {
     if (templateId) {
       const template = getTemplateById(templateId);
@@ -246,185 +285,153 @@ export const ResumeEditor: React.FC = () => {
     }
   }, [templateId]);
 
-  useEffect(() => {
-    const fetchPersonalDetails = async () => {
-      if (!userId || !token) return;
+  // Function to fetch all data on mount
+  const fetchAllData = useCallback(async (currentUserId: string, currentToken: string) => {
+    if (!currentUserId || !currentToken) return;
 
-      try {
-        setLoading(true);
+    setLoading(true);
+    let isError = false;
 
-        const response = await getPersonalDetailsByUserId(userId, token);
-        console.log("Fetched Personal Details:", response);
-        if (response) {
-          const personalData = {
-            profilePhotoUrl: response.profile_photo_url || "",
-            firstName: response.first_name || "",
-            middleName: response.middle_name || "",
-            lastName: response.last_name || "",
-            email: response.email || "",
-            mobileNumber: response.mobile_number || "",
-            dateOfBirth: response.date_of_birth || "",
-            gender: response.gender
-              ? response.gender.charAt(0).toUpperCase() +
-                response.gender.slice(1)
-              : "",
-            languagesKnown: response.languages_known || [],
-            address: response.address || "",
-            country: response.country || "India",
-            state: response.state || "",
-            city: response.city || "",
-            pincode: response.pincode || "",
-            nationality: response.nationality || "",
-            passportNumber: response.passport_number || "",
-            aboutCareerObjective: response.about || "",
-          };
+    // --- Personal Details ---
+    try {
+      const response = await getPersonalDetailsByUserId(currentUserId, currentToken);
+      console.log("Fetched Personal Details:", response);
+      if (response) {
+        const personalData = {
+          profilePhotoUrl: response.profile_photo_url || "",
+          firstName: response.first_name || "",
+          middleName: response.middle_name || "",
+          lastName: response.last_name || "",
+          email: response.email || "",
+          mobileNumber: response.mobile_number || "",
+          dateOfBirth: response.date_of_birth || "",
+          gender: response.gender
+            ? response.gender.charAt(0).toUpperCase() +
+              response.gender.slice(1)
+            : "",
+          languagesKnown: response.languages_known || [],
+          address: response.address || "",
+          country: response.country || "India",
+          state: response.state || "",
+          city: response.city || "",
+          pincode: response.pincode || "",
+          nationality: response.nationality || "",
+          passportNumber: response.passport_number || "",
+          aboutCareerObjective: response.about || "",
+        };
 
-          setResumeData((prev) => ({
-            ...prev,
-            personal: personalData,
-          }));
+        setResumeData((prev) => ({
+          ...prev,
+          personal: personalData,
+        }));
 
-          setPersonalDetailsId(response.personal_id || null);
-        }
-      } catch (error) {
-        console.error("Error fetching personal details:", error);
-      } finally {
-        setLoading(false);
+        setPersonalDetailsId(response.personal_id || null);
       }
-    };
+    } catch (error) {
+      console.error("Error fetching personal details:", error);
+      isError = true;
+    }
 
-    fetchPersonalDetails();
-  }, [userId, token]);
+    // --- Education Details ---
+    try {
+      const apiResponse = await getEducationByUserId(currentUserId, currentToken);
+      console.log("Fetched Education Details:", apiResponse);
 
-  useEffect(() => {
-    const fetchEducationDetails = async () => {
-      if (!userId || !token) return;
-
-      try {
-        setLoading(true);
-        const apiResponse = await getEducationByUserId(userId, token);
-        console.log("Fetched Education Details:", apiResponse);
-
-        if (apiResponse && apiResponse.length > 0) {
-          const { educationData, idMap } = mapEducationApiToLocal(apiResponse);
-          setResumeData((prev) => ({ ...prev, education: educationData }));
-          setEducationDataIdMap(idMap);
-        } else {
-          setResumeData((prev) => ({
-            ...prev,
-            education: initialResumeData.education,
-          }));
-          setEducationDataIdMap({});
-        }
-      } catch (error) {
-        console.error("Error fetching education details:", error);
+      if (apiResponse && apiResponse.length > 0) {
+        const { educationData, idMap } = mapEducationApiToLocal(apiResponse);
+        setResumeData((prev) => ({ ...prev, education: educationData }));
+        setEducationDataIdMap(idMap);
+      } else {
         setResumeData((prev) => ({
           ...prev,
           education: initialResumeData.education,
         }));
         setEducationDataIdMap({});
-      } finally {
-        setLoading(false);
       }
-    };
-
-    if (currentStep === 1) {
-      fetchEducationDetails();
+    } catch (error) {
+      console.error("Error fetching education details:", error);
+      isError = true;
     }
-  }, [userId, token, currentStep]);
 
-  useEffect(() => {
-    const fetchExperienceDetails = async () => {
-      if (!userId || !token) return;
+    // --- Experience Details ---
+    try {
+      const apiResponse = await getExperienceByUserId(currentUserId, currentToken);
+      console.log("Fetched Experience Details:", apiResponse);
 
-      try {
-        setLoading(true);
-        const apiResponse = await getExperienceByUserId(userId, token);
-        console.log("Fetched Experience Details:", apiResponse);
-
-        if (apiResponse && apiResponse.experiences) {
-          const { experienceData, idMap } =
-            mapExperienceApiToLocal(apiResponse);
-          setResumeData((prev) => ({ ...prev, experience: experienceData }));
-          setExperienceDataIdMap(idMap);
-        } else {
-          setResumeData((prev) => ({
-            ...prev,
-            experience: initialResumeData.experience,
-          }));
-          setExperienceDataIdMap({});
-        }
-      } catch (error) {
-        console.error("Error fetching experience details:", error);
+      if (apiResponse && apiResponse.experiences) {
+        const { experienceData, idMap } =
+          mapExperienceApiToLocal(apiResponse);
+        setResumeData((prev) => ({ ...prev, experience: experienceData }));
+        setExperienceDataIdMap(idMap);
+      } else {
         setResumeData((prev) => ({
           ...prev,
           experience: initialResumeData.experience,
         }));
         setExperienceDataIdMap({});
-      } finally {
-        setLoading(false);
       }
-    };
-
-    if (currentStep === 2) {
-      fetchExperienceDetails();
+    } catch (error) {
+      console.error("Error fetching experience details:", error);
+      isError = true;
     }
-  }, [userId, token, currentStep]);
 
+    // --- Projects Details ---
+    try {
+      const apiResponse = await getProjectsByUserId(currentUserId, currentToken);
+      console.log("Fetched Projects Details:", apiResponse);
+
+      const projectsData = mapProjectsApiToLocal(apiResponse);
+      setResumeData((prev) => ({ ...prev, projects: projectsData }));
+    } catch (error) {
+      console.error("Error fetching projects details:", error);
+      isError = true;
+      setResumeData((prev) => ({
+        ...prev,
+        projects: initialResumeData.projects,
+      }));
+    }
+
+    // --- Certificates Details ---
+    try {
+      const apiResponse = await getCertificatesByUserId(currentUserId, currentToken);
+      console.log("Fetched Certificates Details:", apiResponse);
+
+      const certificatesData = mapCertificatesApiToLocal(apiResponse);
+      setResumeData((prev) => ({ ...prev, certifications: certificatesData }));
+    } catch (error) {
+      console.error("Error fetching certificates details:", error);
+      isError = true;
+      setResumeData((prev) => ({
+        ...prev,
+        certifications: initialResumeData.certifications,
+      }));
+    }
+
+    // --- Skills & Links (No API call, using initial data or relying on local state for now) ---
+    // Assuming Skills & Links data is handled client-side if no dedicated API exists.
+    // If there was an API, it would be called here.
+
+    setLoading(false);
+  }, []);
+
+  // 3. Effect to call fetchAllData when userId and token are available
   useEffect(() => {
-    const fetchProjectsDetails = async () => {
-      if (!userId || !token) return;
-
-      try {
-        setLoading(true);
-        const apiResponse = await getProjectsByUserId(userId, token);
-        console.log("Fetched Projects Details:", apiResponse);
-
-        const projectsData = mapProjectsApiToLocal(apiResponse);
-        setResumeData((prev) => ({ ...prev, projects: projectsData }));
-      } catch (error) {
-        console.error("Error fetching projects details:", error);
-        setResumeData((prev) => ({
-          ...prev,
-          projects: [
-            {
-              id: "1",
-              projectTitle: "",
-              projectType: "",
-              startDate: "",
-              endDate: "",
-              currentlyWorking: false,
-              description: "",
-              rolesResponsibilities: "",
-              enabled: true,
-            },
-          ],
-        }));
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (currentStep === 3) {
-      fetchProjectsDetails();
+    if (userId && token) {
+      fetchAllData(userId, token);
     }
-  }, [userId, token, currentStep]);
+  }, [userId, token, fetchAllData]);
+
+  // Removed individual fetch effects that were dependent on currentStep, as all data is fetched on mount now.
 
   const handleStepClick = (stepIndex: number) => {
-    if (stepIndex === 1 || stepIndex === 2 || stepIndex === 3) {
-      setLoading(true);
-    } else {
-      setLoading(false);
-    }
+    // We can still set loading briefly if navigating to a step that involves significant rendering or if we add a debounce/throttle to the form logic.
+    // However, since data is already fetched, we primarily just change the step.
     setCurrentStep(stepIndex);
   };
 
   const handleNext = () => {
     if (currentStep < steps.length - 1) {
       setCurrentStep(currentStep + 1);
-      if (currentStep + 1 === 1 || currentStep + 1 === 2 || currentStep + 1 === 3) {
-        setLoading(true);
-      }
     } else {
       setShowPreviewModal(true);
     }
@@ -433,9 +440,6 @@ export const ResumeEditor: React.FC = () => {
   const handlePrevious = () => {
     if (currentStep > 0) {
       setCurrentStep(currentStep - 1);
-      if (currentStep - 1 === 1 || currentStep - 1 === 2 || currentStep - 1 === 3) {
-        setLoading(true);
-      }
     }
   };
 
@@ -468,10 +472,7 @@ export const ResumeEditor: React.FC = () => {
   };
 
   const renderCurrentForm = () => {
-    if (
-      loading &&
-      (currentStep === 0 || currentStep === 1 || currentStep === 2 || currentStep === 3)
-    ) {
+    if (loading) {
       return (
         <div className="flex items-center justify-center py-12">
           <div className="text-center">
@@ -540,6 +541,8 @@ export const ResumeEditor: React.FC = () => {
           <CertificationsForm
             data={resumeData.certifications}
             onChange={updateCertificationsData}
+            userId={userId}
+            token={token}
           />
         );
       default:
