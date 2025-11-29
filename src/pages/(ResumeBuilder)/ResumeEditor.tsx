@@ -12,12 +12,14 @@ import type {
   ResumeData,
   EducationDetails,
   HigherEducation,
+  WorkExperience,
 } from "../../types/resume";
 import DashNav from "@/components/dashnav/dashnav";
 import { getTemplateById } from "@/templates/templateRegistry";
 import ResumePreviewModal from "./components/ui/ResumePreviewModal";
 import { getPersonalDetailsByUserId } from "@/services/personalService";
 import { getEducationByUserId } from "@/services/educationService";
+import { getExperienceByUserId } from "@/services/experienceService";
 
 const steps = [
   "Personal",
@@ -97,7 +99,6 @@ const mapEducationApiToLocal = (
         fieldOfStudy: item.field_of_study || "",
         instituteName: item.institution_name || "",
         universityBoard: item.university_name || "",
-
         startYear: item.start_year || "",
         endYear: item.end_year || "",
         resultFormat: item.result_format
@@ -105,7 +106,7 @@ const mapEducationApiToLocal = (
             item.result_format.slice(1)
           : "",
         result: item.result?.toString() || "",
-        currentlyPursuing: item.currently_pursuing || false,
+        currentlyPursuing: item.currently_working_here || false,
       });
 
       educationData.higherEducationEnabled = true;
@@ -115,6 +116,46 @@ const mapEducationApiToLocal = (
   educationData.higherEducation = higherEducations;
 
   return { educationData, idMap, deleteIds: [] };
+};
+
+const mapExperienceApiToLocal = (apiData: {
+  job_role: string;
+  experiences: any[];
+}): {
+  experienceData: typeof initialResumeData.experience;
+  idMap: Record<string, number>;
+} => {
+  const experiences: WorkExperience[] = apiData.experiences.map((item) => ({
+    id: item.experience_id.toString(),
+    experience_id: item.experience_id,
+    companyName: item.company_name || "",
+    jobTitle: item.job_title || "",
+    employmentType: item.employment_type || "",
+    location: item.location || "",
+    workMode: item.work_mode || "",
+    startDate: item.start_date ? item.start_date.substring(0, 7) : "",
+    endDate: item.end_date ? item.end_date.substring(0, 7) : "",
+    currentlyWorking: item.currently_working_here || false,
+    description: item.description || "",
+    enabled: true,
+  }));
+
+  const idMap = experiences.reduce((acc, exp) => {
+    acc[exp.id] = exp.experience_id as number;
+    return acc;
+  }, {} as Record<string, number>);
+
+  return {
+    experienceData: {
+      jobRole: apiData.job_role || "",
+      workExperiences:
+        experiences.length > 0
+          ? experiences
+          : initialResumeData.experience.workExperiences,
+      experienceEnabled: true,
+    },
+    idMap,
+  };
 };
 
 export const ResumeEditor: React.FC = () => {
@@ -143,6 +184,11 @@ export const ResumeEditor: React.FC = () => {
     Record<string, number>
   >({});
   const [deleteEducationIds, setDeleteEducationIds] = useState<number[]>([]);
+
+  const [experienceDataIdMap, setExperienceDataIdMap] = useState<
+    Record<string, number>
+  >({});
+  const [deleteExperienceIds, setDeleteExperienceIds] = useState<number[]>([]);
 
   useEffect(() => {
     const userDataStr = localStorage.getItem("user");
@@ -254,8 +300,46 @@ export const ResumeEditor: React.FC = () => {
     }
   }, [userId, token, currentStep]);
 
+  useEffect(() => {
+    const fetchExperienceDetails = async () => {
+      if (!userId || !token) return;
+
+      try {
+        setLoading(true);
+        const apiResponse = await getExperienceByUserId(userId, token);
+        console.log("Fetched Experience Details:", apiResponse);
+
+        if (apiResponse && apiResponse.experiences) {
+          const { experienceData, idMap } =
+            mapExperienceApiToLocal(apiResponse);
+          setResumeData((prev) => ({ ...prev, experience: experienceData }));
+          setExperienceDataIdMap(idMap);
+        } else {
+          setResumeData((prev) => ({
+            ...prev,
+            experience: initialResumeData.experience,
+          }));
+          setExperienceDataIdMap({});
+        }
+      } catch (error) {
+        console.error("Error fetching experience details:", error);
+        setResumeData((prev) => ({
+          ...prev,
+          experience: initialResumeData.experience,
+        }));
+        setExperienceDataIdMap({});
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (currentStep === 2) {
+      fetchExperienceDetails();
+    }
+  }, [userId, token, currentStep]);
+
   const handleStepClick = (stepIndex: number) => {
-    if (stepIndex === 1) {
+    if (stepIndex === 1 || stepIndex === 2) {
       setLoading(true);
     } else {
       setLoading(false);
@@ -266,7 +350,7 @@ export const ResumeEditor: React.FC = () => {
   const handleNext = () => {
     if (currentStep < steps.length - 1) {
       setCurrentStep(currentStep + 1);
-      if (currentStep + 1 === 1) {
+      if (currentStep + 1 === 1 || currentStep + 1 === 2) {
         setLoading(true);
       }
     } else {
@@ -277,7 +361,7 @@ export const ResumeEditor: React.FC = () => {
   const handlePrevious = () => {
     if (currentStep > 0) {
       setCurrentStep(currentStep - 1);
-      if (currentStep - 1 === 1) {
+      if (currentStep - 1 === 1 || currentStep - 1 === 2) {
         setLoading(true);
       }
     }
@@ -312,7 +396,10 @@ export const ResumeEditor: React.FC = () => {
   };
 
   const renderCurrentForm = () => {
-    if (loading && (currentStep === 0 || currentStep === 1)) {
+    if (
+      loading &&
+      (currentStep === 0 || currentStep === 1 || currentStep === 2)
+    ) {
       return (
         <div className="flex items-center justify-center py-12">
           <div className="text-center">
@@ -352,6 +439,12 @@ export const ResumeEditor: React.FC = () => {
           <ExperienceDetailsForm
             data={resumeData.experience}
             onChange={updateExperienceData}
+            userId={userId}
+            token={token}
+            experienceDataIdMap={experienceDataIdMap}
+            setExperienceDataIdMap={setExperienceDataIdMap}
+            deleteExperienceIds={deleteExperienceIds}
+            setDeleteExperienceIds={setDeleteExperienceIds}
           />
         );
       case 3:
