@@ -14,7 +14,6 @@ import type {
   HigherEducation,
   WorkExperience,
   Project,
-  Certificate,
 } from "../../types/resume";
 import DashNav from "@/components/dashnav/dashnav";
 import { getTemplateById } from "@/templates/templateRegistry";
@@ -23,7 +22,6 @@ import { getPersonalDetailsByUserId } from "@/services/personalService";
 import { getEducationByUserId } from "@/services/educationService";
 import { getExperienceByUserId } from "@/services/experienceService";
 import { getProjectsByUserId } from "@/services/projectService";
-import { getCertificatesByUserId } from "@/services/certificateService";
 
 const steps = [
   "Personal",
@@ -189,38 +187,6 @@ const mapProjectsApiToLocal = (apiData: any[]): Project[] => {
     currentlyWorking: item.currently_working || false,
     description: item.description || "",
     rolesResponsibilities: item.roles_responsibilities || "",
-    enabled: true,
-  }));
-};
-
-const mapCertificatesApiToLocal = (apiData: any[]): Certificate[] => {
-  if (!apiData || apiData.length === 0) {
-    return [
-      {
-        id: "1",
-        certificateType: "",
-        certificateTitle: "",
-        domain: "",
-        providedBy: "",
-        date: "",
-        description: "",
-        certificateUrl: "",
-        enabled: true,
-      },
-    ];
-  }
-
-  return apiData.map((item) => ({
-    id: item.certificate_id.toString(),
-    certificate_id: item.certificate_id,
-    certificateType: item.certificate_type || "",
-    certificateTitle: item.certificate_title || "",
-    domain: item.domain || "",
-    providedBy: item.certificate_provided_by || "",
-    date: item.date ? item.date.substring(0, 7) : "",
-    description: item.description || "",
-    certificateUrl: item.file_url || "",
-    uploadedFileName: item.file_url ? item.file_url.split("/").pop() : "",
     enabled: true,
   }));
 };
@@ -444,47 +410,8 @@ export const ResumeEditor: React.FC = () => {
     }
   }, [userId, token, currentStep]);
 
-  useEffect(() => {
-    const fetchCertificatesDetails = async () => {
-      if (!userId || !token) return;
-
-      try {
-        setLoading(true);
-        const apiResponse = await getCertificatesByUserId(userId, token);
-        console.log("Fetched Certificates Details:", apiResponse);
-
-        const certificatesData = mapCertificatesApiToLocal(apiResponse);
-        setResumeData((prev) => ({ ...prev, certifications: certificatesData }));
-      } catch (error) {
-        console.error("Error fetching certificates details:", error);
-        setResumeData((prev) => ({
-          ...prev,
-          certifications: [
-            {
-              id: "1",
-              certificateType: "",
-              certificateTitle: "",
-              domain: "",
-              providedBy: "",
-              date: "",
-              description: "",
-              certificateUrl: "",
-              enabled: true,
-            },
-          ],
-        }));
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (currentStep === 5) {
-      fetchCertificatesDetails();
-    }
-  }, [userId, token, currentStep]);
-
   const handleStepClick = (stepIndex: number) => {
-    if (stepIndex === 1 || stepIndex === 2 || stepIndex === 3 || stepIndex === 5) {
+    if (stepIndex === 1 || stepIndex === 2 || stepIndex === 3) {
       setLoading(true);
     } else {
       setLoading(false);
@@ -495,7 +422,7 @@ export const ResumeEditor: React.FC = () => {
   const handleNext = () => {
     if (currentStep < steps.length - 1) {
       setCurrentStep(currentStep + 1);
-      if (currentStep + 1 === 1 || currentStep + 1 === 2 || currentStep + 1 === 3 || currentStep + 1 === 5) {
+      if (currentStep + 1 === 1 || currentStep + 1 === 2 || currentStep + 1 === 3) {
         setLoading(true);
       }
     } else {
@@ -506,7 +433,7 @@ export const ResumeEditor: React.FC = () => {
   const handlePrevious = () => {
     if (currentStep > 0) {
       setCurrentStep(currentStep - 1);
-      if (currentStep - 1 === 1 || currentStep - 1 === 2 || currentStep - 1 === 3 || currentStep - 1 === 5) {
+      if (currentStep - 1 === 1 || currentStep - 1 === 2 || currentStep - 1 === 3) {
         setLoading(true);
       }
     }
@@ -543,7 +470,7 @@ export const ResumeEditor: React.FC = () => {
   const renderCurrentForm = () => {
     if (
       loading &&
-      (currentStep === 0 || currentStep === 1 || currentStep === 2 || currentStep === 3 || currentStep === 5)
+      (currentStep === 0 || currentStep === 1 || currentStep === 2 || currentStep === 3)
     ) {
       return (
         <div className="flex items-center justify-center py-12">
@@ -613,8 +540,6 @@ export const ResumeEditor: React.FC = () => {
           <CertificationsForm
             data={resumeData.certifications}
             onChange={updateCertificationsData}
-            userId={userId}
-            token={token}
           />
         );
       default:
