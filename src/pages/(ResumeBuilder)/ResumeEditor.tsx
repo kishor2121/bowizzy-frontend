@@ -13,6 +13,7 @@ import type {
   EducationDetails,
   HigherEducation,
   WorkExperience,
+  Project,
 } from "../../types/resume";
 import DashNav from "@/components/dashnav/dashnav";
 import { getTemplateById } from "@/templates/templateRegistry";
@@ -20,6 +21,7 @@ import ResumePreviewModal from "./components/ui/ResumePreviewModal";
 import { getPersonalDetailsByUserId } from "@/services/personalService";
 import { getEducationByUserId } from "@/services/educationService";
 import { getExperienceByUserId } from "@/services/experienceService";
+import { getProjectsByUserId } from "@/services/projectService";
 
 const steps = [
   "Personal",
@@ -156,6 +158,37 @@ const mapExperienceApiToLocal = (apiData: {
     },
     idMap,
   };
+};
+
+const mapProjectsApiToLocal = (apiData: any[]): Project[] => {
+  if (!apiData || apiData.length === 0) {
+    return [
+      {
+        id: "1",
+        projectTitle: "",
+        projectType: "",
+        startDate: "",
+        endDate: "",
+        currentlyWorking: false,
+        description: "",
+        rolesResponsibilities: "",
+        enabled: true,
+      },
+    ];
+  }
+
+  return apiData.map((item) => ({
+    id: item.project_id.toString(),
+    project_id: item.project_id,
+    projectTitle: item.project_title || "",
+    projectType: item.project_type || "",
+    startDate: item.start_date ? item.start_date.substring(0, 7) : "",
+    endDate: item.end_date ? item.end_date.substring(0, 7) : "",
+    currentlyWorking: item.currently_working || false,
+    description: item.description || "",
+    rolesResponsibilities: item.roles_responsibilities || "",
+    enabled: true,
+  }));
 };
 
 export const ResumeEditor: React.FC = () => {
@@ -338,8 +371,47 @@ export const ResumeEditor: React.FC = () => {
     }
   }, [userId, token, currentStep]);
 
+  useEffect(() => {
+    const fetchProjectsDetails = async () => {
+      if (!userId || !token) return;
+
+      try {
+        setLoading(true);
+        const apiResponse = await getProjectsByUserId(userId, token);
+        console.log("Fetched Projects Details:", apiResponse);
+
+        const projectsData = mapProjectsApiToLocal(apiResponse);
+        setResumeData((prev) => ({ ...prev, projects: projectsData }));
+      } catch (error) {
+        console.error("Error fetching projects details:", error);
+        setResumeData((prev) => ({
+          ...prev,
+          projects: [
+            {
+              id: "1",
+              projectTitle: "",
+              projectType: "",
+              startDate: "",
+              endDate: "",
+              currentlyWorking: false,
+              description: "",
+              rolesResponsibilities: "",
+              enabled: true,
+            },
+          ],
+        }));
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (currentStep === 3) {
+      fetchProjectsDetails();
+    }
+  }, [userId, token, currentStep]);
+
   const handleStepClick = (stepIndex: number) => {
-    if (stepIndex === 1 || stepIndex === 2) {
+    if (stepIndex === 1 || stepIndex === 2 || stepIndex === 3) {
       setLoading(true);
     } else {
       setLoading(false);
@@ -350,7 +422,7 @@ export const ResumeEditor: React.FC = () => {
   const handleNext = () => {
     if (currentStep < steps.length - 1) {
       setCurrentStep(currentStep + 1);
-      if (currentStep + 1 === 1 || currentStep + 1 === 2) {
+      if (currentStep + 1 === 1 || currentStep + 1 === 2 || currentStep + 1 === 3) {
         setLoading(true);
       }
     } else {
@@ -361,7 +433,7 @@ export const ResumeEditor: React.FC = () => {
   const handlePrevious = () => {
     if (currentStep > 0) {
       setCurrentStep(currentStep - 1);
-      if (currentStep - 1 === 1 || currentStep - 1 === 2) {
+      if (currentStep - 1 === 1 || currentStep - 1 === 2 || currentStep - 1 === 3) {
         setLoading(true);
       }
     }
@@ -398,7 +470,7 @@ export const ResumeEditor: React.FC = () => {
   const renderCurrentForm = () => {
     if (
       loading &&
-      (currentStep === 0 || currentStep === 1 || currentStep === 2)
+      (currentStep === 0 || currentStep === 1 || currentStep === 2 || currentStep === 3)
     ) {
       return (
         <div className="flex items-center justify-center py-12">
@@ -452,6 +524,8 @@ export const ResumeEditor: React.FC = () => {
           <ProjectsForm
             data={resumeData.projects}
             onChange={updateProjectsData}
+            userId={userId}
+            token={token}
           />
         );
       case 4:
