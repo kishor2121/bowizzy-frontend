@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect, useRef } from "react";
 import type { SkillsLinksDetails, Skill } from "src/types/resume";
 import {
   FormInput,
@@ -7,12 +7,22 @@ import {
   FormSection,
   ToggleSwitch,
 } from "@/pages/(ResumeBuilder)/components/ui";
-import { X } from "lucide-react";
+import { X, Save, RotateCcw } from "lucide-react";
 import RichTextEditor from "@/pages/(ResumeBuilder)/components/ui/RichTextEditor";
+import {
+  updateSkillDetails,
+  saveSkillsDetails,
+  deleteSkill,
+  updateLinkDetails,
+  saveLinksDetails,
+  deleteLink,
+} from "@/services/skillsLinksService";
 
 interface SkillsLinksFormProps {
   data: SkillsLinksDetails;
   onChange: (data: SkillsLinksDetails) => void;
+  userId: string;
+  token: string;
 }
 
 const skillLevels = [
@@ -25,12 +35,71 @@ const skillLevels = [
 export const SkillsLinksForm: React.FC<SkillsLinksFormProps> = ({
   data,
   onChange,
+  userId,
+  token,
 }) => {
-  const [skillsCollapsed, setSkillsCollapsed] = React.useState(false);
-  const [linksCollapsed, setLinksCollapsed] = React.useState(false);
+  const [skillsCollapsed, setSkillsCollapsed] = useState(false);
+  const [linksCollapsed, setLinksCollapsed] = useState(false);
   const [technicalSummaryCollapsed, setTechnicalSummaryCollapsed] =
-    React.useState(false);
-  const [errors, setErrors] = React.useState<{ [key: string]: string }>({});
+    useState(false);
+  const [errors, setErrors] = useState<{ [key: string]: string }>({});
+
+  // State for tracking changes and feedback
+  const [skillChanges, setSkillChanges] = useState<Record<string, string[]>>({});
+  const [linkChanges, setLinkChanges] = useState<boolean>(false);
+  const [skillFeedback, setSkillFeedback] = useState<Record<string, string>>({});
+  const [linkFeedback, setLinkFeedback] = useState<string>("");
+
+  // Refs for tracking initial data
+  const initialSkillsRef = useRef<Record<string, Skill>>({});
+  const initialLinksRef = useRef(data.links);
+  const deletedSkillIds = useRef<number[]>([]);
+  const deletedLinkIds = useRef<string[]>([]);
+
+  // Initialize refs on mount
+  useEffect(() => {
+    data.skills.forEach((s) => {
+      initialSkillsRef.current[s.id] = { ...s };
+    });
+    initialLinksRef.current = { ...data.links };
+  }, []);
+
+  // Check Skill changes
+  useEffect(() => {
+    const changes: Record<string, string[]> = {};
+    data.skills.forEach((current) => {
+      const initial = initialSkillsRef.current[current.id];
+      const changedFields: string[] = [];
+
+      if (current.skillName !== (initial?.skillName || ""))
+        changedFields.push("skillName");
+      if (current.skillLevel !== (initial?.skillLevel || ""))
+        changedFields.push("skillLevel");
+
+      if (changedFields.length > 0) {
+        changes[current.id] = changedFields;
+      } else if (!current.skill_id && current.skillName) {
+        changes[current.id] = ["new"];
+      }
+    });
+    setSkillChanges(changes);
+  }, [data.skills]);
+
+  // Check Link changes
+  useEffect(() => {
+    const initial = initialLinksRef.current;
+    const current = data.links;
+
+    const hasChanged =
+      current.linkedinProfile !== (initial.linkedinProfile || "") ||
+      current.githubProfile !== (initial.githubProfile || "") ||
+      current.portfolioUrl !== (initial.portfolioUrl || "") ||
+      current.portfolioDescription !== (initial.portfolioDescription || "") ||
+      current.publicationUrl !== (initial.publicationUrl || "") ||
+      current.publicationDescription !== (initial.publicationDescription || "");
+
+    setLinkChanges(hasChanged);
+  }, [data.links]);
 
   const validateSkillName = (value: string) => {
     if (value && !/^[a-zA-Z0-9\s.+#-]+$/.test(value)) {
@@ -51,6 +120,252 @@ export const SkillsLinksForm: React.FC<SkillsLinksFormProps> = ({
     if (type === "GitHub" && !value.includes("github.com"))
       return "Please enter a valid GitHub URL";
     return "";
+  };
+
+  // Handler for saving all skills
+  const handleSaveAllSkills = async () => {
+    const changesToSave = Object.keys(skillChanges);
+    if (changesToSave.length === 0) {
+      setSkillFeedback({ ["all"]: "No changes to save." });
+      setTimeout(() => setSkillFeedback({}), 3000);
+      return;
+    }
+
+    const updatePromises = [];
+    const createPayloads = [];
+    let successCount = 0;
+    let failCount = 0;
+
+    for (const skill of data.skills) {
+      const changes = skillChanges[skill.id];
+      const isNew = !skill.skill_id;
+      const index = data.skills.indexOf(skill);
+
+      if (!changes && !isNew) continue;
+      if (isNew && !skill.skillName) continue;
+      if (errors[`skill-${skill.id}-skillName`]) {
+        failCount++;
+        continue;
+      }
+
+      if (isNew) {
+        createPayloads.push({
+          skill_name: skill.skillName,
+          skill_level: skill.skillLevel,
+        });
+      } else {
+        const minimalPayload: Record<string, any> = {};
+        if (changes) {
+          changes.forEach((field) => {
+            if (field === "skillName")
+              minimalPayload.skill_name = skill.skillName;
+            if (field === "skillLevel")
+              minimalPayload.skill_level = skill.skillLevel;
+          });
+        }
+        updatePromises.push(
+          updateSkillDetails(userId, token, skill.skill_id!, minimalPayload)
+            .then(() => {
+              successCount++;
+              initialSkillsRef.current[skill.id] = { ...skill };
+            })
+            .catch(() => failCount++)
+        );
+      }
+    }
+
+    // Execute updates
+    await Promise.all(updatePromises);
+
+    // Execute creates
+    if (createPayloads.length > 0) {
+      try {
+        const response = await saveSkillsDetails(userId, token, createPayloads);
+        if (response && Array.isArray(response)) {
+          const updatedSkills = [...data.skills];
+          response.forEach((newSkill, idx) => {
+            const skillIndex = updatedSkills.findIndex(
+              (s) => s.skillName === newSkill.skill_name && !s.skill_id
+            );
+            if (skillIndex !== -1) {
+              updatedSkills[skillIndex] = {
+                ...updatedSkills[skillIndex],
+                skill_id: newSkill.skill_id,
+              };
+              initialSkillsRef.current[updatedSkills[skillIndex].id] =
+                updatedSkills[skillIndex];
+              successCount++;
+            }
+          });
+          onChange({ ...data, skills: updatedSkills });
+        }
+      } catch {
+        failCount += createPayloads.length;
+      }
+    }
+
+    const finalMessage =
+      failCount === 0
+        ? "All skills updated successfully!"
+        : "Skills update failed for some entries.";
+
+    setSkillChanges({});
+    setSkillFeedback({ ["all"]: finalMessage });
+    setTimeout(() => setSkillFeedback({}), 3000);
+  };
+
+  // Handler for resetting all skills
+  const handleResetAllSkills = () => {
+    const initialValues = Object.values(initialSkillsRef.current);
+    if (initialValues.length > 0) {
+      onChange({ ...data, skills: initialValues.map((s) => ({ ...s })) });
+    }
+    setSkillChanges({});
+    setSkillFeedback({});
+    setErrors((prev) => {
+      const newErrors = { ...prev };
+      Object.keys(newErrors).forEach((key) => {
+        if (key.startsWith("skill-")) {
+          delete newErrors[key];
+        }
+      });
+      return newErrors;
+    });
+  };
+
+  // Handler for saving all links
+  const handleSaveAllLinks = async () => {
+    if (!linkChanges) {
+      setLinkFeedback("No changes to save.");
+      setTimeout(() => setLinkFeedback(""), 3000);
+      return;
+    }
+
+    let successCount = 0;
+    let failCount = 0;
+    const promises = [];
+    const link = data.links;
+
+    const fieldsToSync = [
+      {
+        field: "linkedinProfile",
+        dbId: "link_id_linkedin",
+        apiType: "linkedin",
+      },
+      { field: "githubProfile", dbId: "link_id_github", apiType: "github" },
+      {
+        field: "portfolioUrl",
+        dbId: "link_id_portfolio",
+        apiType: "portfolio",
+        descField: "portfolioDescription",
+      },
+      {
+        field: "publicationUrl",
+        dbId: "link_id_publication",
+        apiType: "publication",
+        descField: "publicationDescription",
+      },
+    ];
+
+    for (const { field, dbId, apiType, descField } of fieldsToSync) {
+      const url = link[field as keyof typeof link] as string;
+      const dbIdValue = link[dbId as keyof typeof link];
+      const description = descField
+        ? (link[descField as keyof typeof link] as string)
+        : null;
+
+      if (errors[`link-${field}`]) {
+        failCount++;
+        continue;
+      }
+
+      if (url) {
+        const payload = {
+          url,
+          link_type: apiType,
+          description: description || null,
+        };
+        if (dbIdValue) {
+          // PUT (Update)
+          promises.push(
+            updateLinkDetails(userId, token, dbIdValue as string, payload)
+              .then(() => {
+                successCount++;
+                initialLinksRef.current = { ...link };
+              })
+              .catch(() => failCount++)
+          );
+        } else {
+          // POST (Create)
+          promises.push(
+            saveLinksDetails(userId, token, [payload])
+              .then((response) => {
+                const newLinkId = response?.[0]?.link_id;
+                if (newLinkId) {
+                  const updatedLinks = {
+                    ...link,
+                    [dbId]: newLinkId.toString(),
+                  };
+                  onChange({ ...data, links: updatedLinks });
+                  initialLinksRef.current = updatedLinks;
+                  successCount++;
+                }
+              })
+              .catch(() => failCount++)
+          );
+        }
+      } else if (!url && dbIdValue) {
+        // DELETE
+        promises.push(
+          deleteLink(userId, token, dbIdValue as string)
+            .then(() => {
+              const updatedLinks = {
+                ...link,
+                [dbId]: undefined,
+                [field]: "",
+              };
+              if (descField) {
+                updatedLinks[descField as keyof typeof link] = "" as any;
+              }
+              onChange({ ...data, links: updatedLinks });
+              deletedLinkIds.current.push(dbIdValue as string);
+              successCount++;
+            })
+            .catch(() => failCount++)
+        );
+      }
+    }
+
+    await Promise.all(promises);
+
+    const finalMessage =
+      failCount === 0
+        ? "All links updated successfully!"
+        : "Link update failed for some entries.";
+
+    setLinkChanges(false);
+    setLinkFeedback(finalMessage);
+    setTimeout(() => setLinkFeedback(""), 3000);
+  };
+
+  // Handler for resetting all links
+  const handleResetAllLinks = () => {
+    const initial = initialLinksRef.current;
+    onChange({
+      ...data,
+      links: { ...initial },
+    });
+    setLinkChanges(false);
+    setLinkFeedback("");
+    setErrors((prev) => {
+      const newErrors = { ...prev };
+      Object.keys(newErrors).forEach((key) => {
+        if (key.startsWith("link-")) {
+          delete newErrors[key];
+        }
+      });
+      return newErrors;
+    });
   };
 
   const updateSkill = (id: string, field: string, value: string | boolean) => {
@@ -80,18 +395,58 @@ export const SkillsLinksForm: React.FC<SkillsLinksFormProps> = ({
     });
   };
 
-  const removeSkill = (id: string) => {
-    if (data.skills.length > 1) {
-      onChange({
-        ...data,
-        skills: data.skills.filter((skill) => skill.id !== id),
-      });
-      setErrors((prev) => {
-        const newErrors = { ...prev };
-        delete newErrors[`skill-${id}-skillName`];
-        return newErrors;
-      });
+  const removeSkill = async (id: string) => {
+    const skill = data.skills.find((s) => s.id === id);
+    if (!skill || data.skills.length <= 1) return;
+
+    if (skill.skill_id) {
+      try {
+        await deleteSkill(userId, token, skill.skill_id);
+        deletedSkillIds.current.push(skill.skill_id);
+        setSkillFeedback((prev) => ({
+          ...prev,
+          [id]: "Deleted successfully!",
+        }));
+        setTimeout(
+          () =>
+            setSkillFeedback((prev) => {
+              const updated = { ...prev };
+              delete updated[id];
+              return updated;
+            }),
+          3000
+        );
+      } catch (error) {
+        console.error("Error deleting skill:", error);
+        setSkillFeedback((prev) => ({ ...prev, [id]: "Failed to delete." }));
+        setTimeout(
+          () =>
+            setSkillFeedback((prev) => {
+              const updated = { ...prev };
+              delete updated[id];
+              return updated;
+            }),
+          3000
+        );
+        return;
+      }
     }
+
+    onChange({
+      ...data,
+      skills: data.skills.filter((skill) => skill.id !== id),
+    });
+    delete initialSkillsRef.current[id];
+    setSkillChanges((prev) => {
+      const updated = { ...prev };
+      delete updated[id];
+      return updated;
+    });
+    setErrors((prev) => {
+      const newErrors = { ...prev };
+      delete newErrors[`skill-${id}-skillName`];
+      return newErrors;
+    });
   };
 
   const updateLink = (field: string, value: string | boolean) => {
@@ -124,22 +479,70 @@ export const SkillsLinksForm: React.FC<SkillsLinksFormProps> = ({
     }
   };
 
+  const hasSkillChanges = Object.keys(skillChanges).length > 0;
+
   return (
     <div className="flex flex-col gap-5">
-      {/*  SKILLS SECTION with MASTER TOGGLE */}
+      {/*  SKILLS SECTION */}
       <FormSection
         title="Skills"
         required
-        // showToggle={true}
-        // enabled={data.skillsEnabled}
-        // onToggle={(enabled) => onChange({ ...data, skillsEnabled: enabled })}
         showToggle={false}
         showActions={true}
         isCollapsed={skillsCollapsed}
         onCollapseToggle={() => setSkillsCollapsed(!skillsCollapsed)}
       >
+        <div className="flex items-center justify-end gap-2 mb-4">
+          {skillFeedback["all"] && (
+            <span
+              className={`text-xs px-2 py-1 rounded-full ${
+                skillFeedback["all"].includes("successfully")
+                  ? "bg-green-100 text-green-700"
+                  : "bg-red-100 text-red-700"
+              }`}
+            >
+              {skillFeedback["all"]}
+            </span>
+          )}
+          {hasSkillChanges && (
+            <button
+              type="button"
+              onClick={handleSaveAllSkills}
+              className="w-6 h-6 flex items-center justify-center rounded-full border-2 border-green-600 hover:bg-green-50 transition-colors"
+              title="Save all skill changes"
+            >
+              <Save
+                className="w-3 h-3 text-green-600 cursor-pointer"
+                strokeWidth={2.5}
+              />
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={handleResetAllSkills}
+            className="w-6 h-6 flex items-center justify-center rounded-full border-2 border-gray-600 hover:bg-gray-100 transition-colors"
+            title="Reset to saved values"
+          >
+            <RotateCcw
+              className="w-3 h-3 text-gray-600 cursor-pointer"
+              strokeWidth={2.5}
+            />
+          </button>
+        </div>
+
         {data.skills.map((skill, index) => (
           <div key={skill.id} className={`${index > 0 ? "mt-4" : ""}`}>
+            {skillFeedback[skill.id] && (
+              <p
+                className={`mb-2 text-xs px-2 py-1 rounded-full ${
+                  skillFeedback[skill.id].includes("successfully")
+                    ? "bg-green-100 text-green-700"
+                    : "bg-red-100 text-red-700"
+                }`}
+              >
+                {skillFeedback[skill.id]}
+              </p>
+            )}
             <div className="flex items-end gap-3">
               <div className="flex-1">
                 <FormInput
@@ -202,6 +605,44 @@ export const SkillsLinksForm: React.FC<SkillsLinksFormProps> = ({
         isCollapsed={linksCollapsed}
         onCollapseToggle={() => setLinksCollapsed(!linksCollapsed)}
       >
+        <div className="flex items-center justify-end gap-2 mb-4">
+          {linkFeedback && (
+            <span
+              className={`text-xs px-2 py-1 rounded-full ${
+                linkFeedback.includes("successfully")
+                  ? "bg-green-100 text-green-700"
+                  : "bg-red-100 text-red-700"
+              }`}
+            >
+              {linkFeedback}
+            </span>
+          )}
+          {linkChanges && (
+            <button
+              type="button"
+              onClick={handleSaveAllLinks}
+              className="w-6 h-6 flex items-center justify-center rounded-full border-2 border-green-600 hover:bg-green-50 transition-colors"
+              title="Save all link changes"
+            >
+              <Save
+                className="w-3 h-3 text-green-600 cursor-pointer"
+                strokeWidth={2.5}
+              />
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={handleResetAllLinks}
+            className="w-6 h-6 flex items-center justify-center rounded-full border-2 border-gray-600 hover:bg-gray-100 transition-colors"
+            title="Reset to saved values"
+          >
+            <RotateCcw
+              className="w-3 h-3 text-gray-600 cursor-pointer"
+              strokeWidth={2.5}
+            />
+          </button>
+        </div>
+
         <div className="space-y-4">
           {/* LinkedIn */}
           <div className="flex items-center gap-3">
@@ -267,6 +708,7 @@ export const SkillsLinksForm: React.FC<SkillsLinksFormProps> = ({
             onChange={(v) => updateLink("portfolioDescription", v)}
             rows={3}
           />
+
           {/* Publication */}
           <div className="flex items-center gap-3">
             <div className="flex-1">

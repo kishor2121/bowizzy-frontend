@@ -9,7 +9,7 @@ import {
   FormSection,
   AddButton,
 } from "@/pages/(ResumeBuilder)/components/ui";
-import { Save, ChevronDown, Trash2 } from "lucide-react";
+import { Save, ChevronDown, Trash2, RotateCcw } from "lucide-react";
 import {
   updateEducationDetails,
   saveEducationDetails,
@@ -32,6 +32,7 @@ interface EducationDetailsFormProps {
   deleteEducationIds: number[];
   setDeleteEducationIds: React.Dispatch<React.SetStateAction<number[]>>;
 }
+
 
 const boardTypes = [
   { value: "CBSE", label: "CBSE" },
@@ -101,9 +102,8 @@ export const EducationDetailsForm: React.FC<EducationDetailsFormProps> = ({
 
   const [sslcFeedback, setSslcFeedback] = useState("");
   const [puFeedback, setPuFeedback] = useState("");
-  const [higherEduFeedback, setHigherEduFeedback] = useState<
-    Record<string, string>
-  >({});
+  const [higherEduFeedback, setHigherEduFeedback] = useState<Record<string, string>>({});
+
 
   const initialDataRef = useRef(data);
 
@@ -237,6 +237,70 @@ export const EducationDetailsForm: React.FC<EducationDetailsFormProps> = ({
     return "";
   };
 
+  // NEW: Reset SSLC to initial values
+  const handleResetSslc = () => {
+    const initial = initialDataRef.current.sslc;
+    onChange({
+      ...data,
+      sslc: { ...initial },
+      sslcEnabled: initialDataRef.current.sslcEnabled,
+    });
+    setErrors((prev) => {
+      const updated = { ...prev };
+      delete updated["sslc.result"];
+      delete updated["sslc.instituteName"];
+      return updated;
+    });
+    setSslcFeedback("");
+  };
+
+  // NEW: Reset Pre-University to initial values
+  const handleResetPu = () => {
+    const initial = initialDataRef.current.preUniversity;
+    onChange({
+      ...data,
+      preUniversity: { ...initial },
+      preUniversityEnabled: initialDataRef.current.preUniversityEnabled,
+    });
+    setErrors((prev) => {
+      const updated = { ...prev };
+      delete updated["preUniversity.result"];
+      delete updated["preUniversity.instituteName"];
+      return updated;
+    });
+    setPuFeedback("");
+  };
+
+  // NEW: Reset Higher Education to initial values
+  const handleResetHigherEducation = (id: string) => {
+    const initial = initialDataRef.current.higherEducation.find(
+      (e) => e.id === id
+    );
+    if (!initial) return;
+
+    onChange({
+      ...data,
+      higherEducation: data.higherEducation.map((edu) =>
+        edu.id === id ? { ...initial } : edu
+      ),
+    });
+
+    setErrors((prev) => {
+      const updated = { ...prev };
+      delete updated[`higherEducation.${id}.result`];
+      delete updated[`higherEducation.${id}.instituteName`];
+      delete updated[`higherEducation.${id}.universityBoard`];
+      delete updated[`higherEducation.${id}.endYear`];
+      delete updated[`higherEducation.${id}.fieldOfStudy`];
+      return updated;
+    });
+    setHigherEduFeedback((prev) => {
+      const updated = { ...prev };
+      delete updated[id];
+      return updated;
+    });
+  };
+
   const handleSaveSslc = async () => {
     const currentData = data.sslc;
     const initialData = initialDataRef.current.sslc;
@@ -248,17 +312,26 @@ export const EducationDetailsForm: React.FC<EducationDetailsFormProps> = ({
     try {
       if (education_id && !isEnabled && !hasSslcChanged()) {
         await deleteEducation(userId, token, education_id);
+        const clearedData = {
+          instituteName: "",
+          boardType: "",
+          resultFormat: "",
+          yearOfPassing: "",
+          result: "",
+          education_id: null,
+        };
         onChange({
           ...data,
-          sslc: { ...initialResumeData.education.sslc, education_id: null },
+          sslc: clearedData,
           sslcEnabled: false,
         });
         initialDataRef.current = {
           ...initialDataRef.current,
-          sslc: { ...initialResumeData.education.sslc, education_id: null },
+          sslc: clearedData,
           sslcEnabled: false,
         };
         setSslcFeedback("SSLC details cleared successfully!");
+        setTimeout(() => setSslcFeedback(""), 3000);
         return;
       }
 
@@ -316,18 +389,19 @@ export const EducationDetailsForm: React.FC<EducationDetailsFormProps> = ({
       }
 
       initialDataRef.current = {
-        ...data,
+        ...initialDataRef.current,
         sslc: {
           ...currentData,
           education_id: education_id || response?.[0]?.education_id || null,
         },
+        sslcEnabled: data.sslcEnabled,
       };
       setSslcFeedback(feedbackMessage);
 
       setTimeout(() => setSslcFeedback(""), 3000);
     } catch (error) {
       console.error("Error saving SSLC:", error);
-      setSslcFeedback("Failed to save SSLC details ");
+      setSslcFeedback("Failed to save SSLC details");
       setTimeout(() => setSslcFeedback(""), 3000);
     }
   };
@@ -344,23 +418,27 @@ export const EducationDetailsForm: React.FC<EducationDetailsFormProps> = ({
     try {
       if (education_id && !isEnabled && !hasPuChanged()) {
         await deleteEducation(userId, token, education_id);
+        const clearedData = {
+          instituteName: "",
+          boardType: "",
+          subjectStream: "",
+          resultFormat: "",
+          yearOfPassing: "",
+          result: "",
+          education_id: null,
+        };
         onChange({
           ...data,
-          preUniversity: {
-            ...initialResumeData.education.preUniversity,
-            education_id: null,
-          },
+          preUniversity: clearedData,
           preUniversityEnabled: false,
         });
         initialDataRef.current = {
           ...initialDataRef.current,
-          preUniversity: {
-            ...initialResumeData.education.preUniversity,
-            education_id: null,
-          },
+          preUniversity: clearedData,
           preUniversityEnabled: false,
         };
         setPuFeedback("Pre University details cleared successfully!");
+        setTimeout(() => setPuFeedback(""), 3000);
         return;
       }
 
@@ -424,18 +502,19 @@ export const EducationDetailsForm: React.FC<EducationDetailsFormProps> = ({
       }
 
       initialDataRef.current = {
-        ...data,
+        ...initialDataRef.current,
         preUniversity: {
           ...currentData,
           education_id: education_id || response?.[0]?.education_id || null,
         },
+        preUniversityEnabled: data.preUniversityEnabled,
       };
       setPuFeedback(feedbackMessage);
 
       setTimeout(() => setPuFeedback(""), 3000);
     } catch (error) {
       console.error("Error saving PU:", error);
-      setPuFeedback("Failed to save Pre University details ");
+      setPuFeedback("Failed to save Pre University details");
       setTimeout(() => setPuFeedback(""), 3000);
     }
   };
@@ -533,7 +612,7 @@ export const EducationDetailsForm: React.FC<EducationDetailsFormProps> = ({
           };
         }
 
-        feedbackMessage = "Saved successfully! ";
+        feedbackMessage = "Saved successfully!";
       } else {
         const initial =
           initialDataRef.current.higherEducation.find((i) => i.id === edu.id) ||
@@ -574,7 +653,7 @@ export const EducationDetailsForm: React.FC<EducationDetailsFormProps> = ({
             higherEducation: updatedRefEducation,
           };
 
-          feedbackMessage = "Updated successfully! ";
+          feedbackMessage = "Updated successfully!";
         }
       }
 
@@ -592,7 +671,7 @@ export const EducationDetailsForm: React.FC<EducationDetailsFormProps> = ({
       console.error(`Error saving higher education ${edu.id}:`, error);
       setHigherEduFeedback((prev) => ({
         ...prev,
-        [edu.id]: `Failed to ${isNew ? "save" : "update"} `,
+        [edu.id]: `Failed to ${isNew ? "save" : "update"}`,
       }));
       setTimeout(
         () =>
@@ -725,7 +804,7 @@ export const EducationDetailsForm: React.FC<EducationDetailsFormProps> = ({
         ]);
         setHigherEduFeedback((prev) => ({
           ...prev,
-          [id]: "Deleted successfully! ",
+          [id]: "Deleted successfully!",
         }));
         setTimeout(
           () =>
@@ -740,7 +819,7 @@ export const EducationDetailsForm: React.FC<EducationDetailsFormProps> = ({
         console.error("Error deleting education:", error);
         setHigherEduFeedback((prev) => ({
           ...prev,
-          [id]: "Failed to delete ",
+          [id]: "Failed to delete",
         }));
         setTimeout(
           () =>
@@ -777,75 +856,11 @@ export const EducationDetailsForm: React.FC<EducationDetailsFormProps> = ({
     });
   };
 
-  const handleClearEducationSSLC = () => {
-    const clearedData = {
-      ...initialResumeData.education.sslc,
-      education_id: data.sslc.education_id,
-    };
-    onChange((prev) => ({ ...prev, sslc: clearedData }));
-    setErrors((prev) => {
-      const updated = { ...prev };
-      delete updated["sslc.result"];
-      delete updated["sslc.instituteName"];
-      return updated;
-    });
-    setSslcFeedback("");
-  };
-
-  const handleClearEducationPreUniversity = () => {
-    const clearedData = {
-      ...initialResumeData.education.preUniversity,
-      education_id: data.preUniversity.education_id,
-    };
-    onChange((prev) => ({ ...prev, preUniversity: clearedData }));
-    setErrors((prev) => {
-      const updated = { ...prev };
-      delete updated["preUniversity.result"];
-      delete updated["preUniversity.instituteName"];
-      return updated;
-    });
-    setPuFeedback("");
-  };
-
-  const handleClearHigherEducation = (id: string) => {
-    const eduIndex = data.higherEducation.findIndex((e) => e.id === id);
-    if (eduIndex === -1) return;
-
-    const clearedData: HigherEducation = {
-      ...initialResumeData.education.higherEducation[0],
-      id: id,
-      education_id: data.higherEducation[eduIndex].education_id,
-    };
-
-    onChange((prev) => ({
-      ...prev,
-      higherEducation: prev.higherEducation.map((edu) =>
-        edu.id === id ? clearedData : edu
-      ),
-    }));
-
-    setErrors((prev) => {
-      const updated = { ...prev };
-      delete updated[`higherEducation.${id}.result`];
-      delete updated[`higherEducation.${id}.instituteName`];
-      delete updated[`higherEducation.${id}.universityBoard`];
-      delete updated[`higherEducation.${id}.endYear`];
-      return updated;
-    });
-    setHigherEduFeedback((prev) => {
-      const updated = { ...prev };
-      delete updated[id];
-      return updated;
-    });
-  };
-
   const renderEducationCard = (education: HigherEducation, index: number) => {
     const id = education.id;
     const hasChanged = getHigherEduChangedStatus(education);
     const feedback = higherEduFeedback[id];
     const isNewCard = !education.education_id;
-
-    const isCollapsed = higherEducationCollapsed;
 
     return (
       <div
@@ -893,6 +908,17 @@ export const EducationDetailsForm: React.FC<EducationDetailsFormProps> = ({
               />
             </button>
           )}
+          <button
+            type="button"
+            onClick={() => handleResetHigherEducation(id)}
+            className="w-6 h-6 flex items-center justify-center rounded-full border-2 border-gray-600 hover:bg-gray-100 transition-colors"
+            title="Reset to saved values"
+          >
+            <RotateCcw
+              className="w-3 h-3 text-gray-600 cursor-pointer"
+              strokeWidth={2.5}
+            />
+          </button>
         </div>
 
         <div className="space-y-4">
@@ -1044,6 +1070,17 @@ export const EducationDetailsForm: React.FC<EducationDetailsFormProps> = ({
               />
             </button>
           )}
+          <button
+            type="button"
+            onClick={handleResetSslc}
+            className="w-6 h-6 flex items-center justify-center rounded-full border-2 border-gray-600 hover:bg-gray-100 transition-colors"
+            title="Reset to saved values"
+          >
+            <RotateCcw
+              className="w-3 h-3 text-gray-600 cursor-pointer"
+              strokeWidth={2.5}
+            />
+          </button>
         </div>
 
         <FormInput
@@ -1135,6 +1172,17 @@ export const EducationDetailsForm: React.FC<EducationDetailsFormProps> = ({
               />
             </button>
           )}
+          <button
+            type="button"
+            onClick={handleResetPu}
+            className="w-6 h-6 flex items-center justify-center rounded-full border-2 border-gray-600 hover:bg-gray-100 transition-colors"
+            title="Reset to saved values"
+          >
+            <RotateCcw
+              className="w-3 h-3 text-gray-600 cursor-pointer"
+              strokeWidth={2.5}
+            />
+          </button>
         </div>
 
         <FormInput
