@@ -6,16 +6,7 @@ import React, {
   useRef,
 } from "react";
 import type { ResumeData } from "@/types/resume";
-
-// ✅ react-pdf imports
-import {
-  PDFDownloadLink,
-  Document,
-  Page,
-  Text,
-  View,
-  StyleSheet,
-} from "@react-pdf/renderer";
+import { Document, Page, Text, View, StyleSheet } from "@react-pdf/renderer";
 
 interface ModernProfessionalTemplateProps {
   data: ResumeData;
@@ -26,7 +17,8 @@ interface Section {
   content: React.ReactNode;
 }
 
-// ✅ PDF styles for A4 auto-pagination
+// ---------------- PDF STYLES (for react-pdf) ----------------
+
 const pdfStyles = StyleSheet.create({
   page: {
     padding: 20,
@@ -60,7 +52,8 @@ const pdfStyles = StyleSheet.create({
   },
 });
 
-// ✅ PDF document component (react-pdf handles page breaks automatically)
+// ---------------- PDF DOCUMENT (for download) ----------------
+
 const ResumePDF: React.FC<{ data: ResumeData }> = ({ data }) => {
   const fullName = [
     data.personal.firstName,
@@ -82,9 +75,8 @@ const ResumePDF: React.FC<{ data: ResumeData }> = ({ data }) => {
   return (
     <Document>
       <Page size="A4" style={pdfStyles.page} wrap>
-        {/* LEFT COLUMN */}
+        {/* LEFT COLUMN - PDF */}
         <View style={pdfStyles.left}>
-          {/* Contact */}
           {(data.personal.address ||
             data.personal.email ||
             data.personal.mobileNumber) && (
@@ -111,7 +103,6 @@ const ResumePDF: React.FC<{ data: ResumeData }> = ({ data }) => {
             </View>
           )}
 
-          {/* About Me */}
           {data.personal.aboutCareerObjective && (
             <View style={pdfStyles.section}>
               <Text style={pdfStyles.heading}>About Me</Text>
@@ -121,7 +112,6 @@ const ResumePDF: React.FC<{ data: ResumeData }> = ({ data }) => {
             </View>
           )}
 
-          {/* Skills */}
           {data.skillsLinks.skills &&
             data.skillsLinks.skills.some(
               (s) => s.enabled && s.skillName.trim()
@@ -139,7 +129,6 @@ const ResumePDF: React.FC<{ data: ResumeData }> = ({ data }) => {
               </View>
             )}
 
-          {/* Languages */}
           {data.personal.languagesKnown &&
             data.personal.languagesKnown.length > 0 && (
               <View style={pdfStyles.section}>
@@ -152,7 +141,6 @@ const ResumePDF: React.FC<{ data: ResumeData }> = ({ data }) => {
               </View>
             )}
 
-          {/* Links */}
           {data.skillsLinks.linksEnabled &&
             (data.skillsLinks.links.linkedinProfile ||
               data.skillsLinks.links.githubProfile ||
@@ -190,9 +178,8 @@ const ResumePDF: React.FC<{ data: ResumeData }> = ({ data }) => {
             )}
         </View>
 
-        {/* RIGHT COLUMN */}
+        {/* RIGHT COLUMN - PDF */}
         <View style={pdfStyles.right}>
-          {/* Header */}
           <View>
             <Text style={{ fontSize: 22, fontWeight: 700 }}>{fullName}</Text>
             {data.experience.jobRole && (
@@ -202,7 +189,6 @@ const ResumePDF: React.FC<{ data: ResumeData }> = ({ data }) => {
             )}
           </View>
 
-          {/* Education */}
           {(data.education.higherEducationEnabled &&
             data.education.higherEducation.length > 0) ||
           (data.education.preUniversityEnabled &&
@@ -278,7 +264,6 @@ const ResumePDF: React.FC<{ data: ResumeData }> = ({ data }) => {
             </View>
           ) : null}
 
-          {/* Experience */}
           {data.experience.workExperiences &&
             data.experience.workExperiences.some(
               (exp) => exp.enabled && (exp.companyName || exp.jobTitle)
@@ -286,7 +271,9 @@ const ResumePDF: React.FC<{ data: ResumeData }> = ({ data }) => {
               <View style={pdfStyles.section} wrap>
                 <Text style={pdfStyles.heading}>Experience</Text>
                 {data.experience.workExperiences
-                  .filter((exp) => exp.enabled && (exp.companyName || exp.jobTitle))
+                  .filter(
+                    (exp) => exp.enabled && (exp.companyName || exp.jobTitle)
+                  )
                   .map((exp, i) => (
                     <View key={exp.id || i} wrap>
                       {exp.jobTitle && (
@@ -302,7 +289,8 @@ const ResumePDF: React.FC<{ data: ResumeData }> = ({ data }) => {
                         exp.endDate ||
                         exp.currentlyWorking) && (
                         <Text style={pdfStyles.text}>
-                          {exp.startDate ? formatMonthYear(exp.startDate) : ""} -{" "}
+                          {exp.startDate ? formatMonthYear(exp.startDate) : ""}{" "}
+                          -{" "}
                           {exp.currentlyWorking
                             ? "Present"
                             : exp.endDate
@@ -310,15 +298,19 @@ const ResumePDF: React.FC<{ data: ResumeData }> = ({ data }) => {
                             : ""}
                         </Text>
                       )}
-                      {exp.description && (
-                        <Text style={pdfStyles.text}>{exp.description}</Text>
-                      )}
+                      {exp.description &&
+                        exp.description.split("•").map((line, j) =>
+                          line.trim() ? (
+                            <Text key={j} style={pdfStyles.text} wrap>
+                              • {line.trim()}
+                            </Text>
+                          ) : null
+                        )}
                     </View>
                   ))}
               </View>
             )}
 
-          {/* Projects */}
           {data.projects &&
             data.projects.some((proj) => proj.enabled && proj.projectTitle) && (
               <View style={pdfStyles.section} wrap>
@@ -356,7 +348,6 @@ const ResumePDF: React.FC<{ data: ResumeData }> = ({ data }) => {
               </View>
             )}
 
-          {/* Certifications */}
           {data.certifications &&
             data.certifications.some(
               (cert) => cert.enabled && cert.certificateTitle
@@ -383,7 +374,6 @@ const ResumePDF: React.FC<{ data: ResumeData }> = ({ data }) => {
               </View>
             )}
 
-          {/* Personal Details */}
           {(data.personal.dateOfBirth ||
             data.personal.gender ||
             data.personal.nationality ||
@@ -421,6 +411,8 @@ const ResumePDF: React.FC<{ data: ResumeData }> = ({ data }) => {
   );
 };
 
+// ---------------- WEB PREVIEW (multi-page A4) ----------------
+
 export const ModernProfessionalTemplate: React.FC<
   ModernProfessionalTemplateProps
 > = ({ data }) => {
@@ -432,7 +424,6 @@ export const ModernProfessionalTemplate: React.FC<
   const leftMeasureRef = useRef<HTMLDivElement | null>(null);
   const rightMeasureRef = useRef<HTMLDivElement | null>(null);
 
-  // Helper functions
   const fullName = useMemo(
     () =>
       [
@@ -478,7 +469,6 @@ export const ModernProfessionalTemplate: React.FC<
     return "";
   }, [data.experience]);
 
-  // Split long text into smaller chunks so sections can be paginated
   const splitText = (text?: string, chunkSize = 400): string[] => {
     if (!text) return [];
     const words = text.split(/\s+/);
@@ -496,7 +486,8 @@ export const ModernProfessionalTemplate: React.FC<
     return chunks;
   };
 
-  // 🔹 Build LEFT sections (logical blocks)
+  // -------- LEFT SECTIONS (web preview) --------
+
   const leftSections: Section[] = useMemo(() => {
     const sections: Section[] = [];
 
@@ -534,9 +525,7 @@ export const ModernProfessionalTemplate: React.FC<
                   {data.personal.email}
                 </p>
               )}
-              {data.personal.mobileNumber && (
-                <p>{data.personal.mobileNumber}</p>
-              )}
+              {data.personal.mobileNumber && <p>{data.personal.mobileNumber}</p>}
             </div>
           </div>
         ),
@@ -784,7 +773,8 @@ export const ModernProfessionalTemplate: React.FC<
     return sections;
   }, [address, data.personal, data.skillsLinks]);
 
-  // 🔹 Build RIGHT sections (logical blocks)
+  // -------- RIGHT SECTIONS (web preview) --------
+
   const rightSections: Section[] = useMemo(() => {
     const sections: Section[] = [];
 
@@ -1035,7 +1025,6 @@ export const ModernProfessionalTemplate: React.FC<
         (exp) => exp.enabled && (exp.companyName || exp.jobTitle)
       )
     ) {
-      // Add a header section for Experience
       sections.push({
         key: "right-experience-header",
         content: (
@@ -1063,7 +1052,6 @@ export const ModernProfessionalTemplate: React.FC<
       exps.forEach((exp, idx) => {
         const descChunks = splitText(exp.description, 700);
 
-        // First chunk includes the header + first chunk of description
         sections.push({
           key: `right-experience-${idx}-0`,
           content: (
@@ -1146,7 +1134,6 @@ export const ModernProfessionalTemplate: React.FC<
           ),
         });
 
-        // Remaining description chunks become separate sections to allow split
         for (let c = 1; c < descChunks.length; c++) {
           sections.push({
             key: `right-experience-${idx}-desc-${c}`,
@@ -1193,10 +1180,13 @@ export const ModernProfessionalTemplate: React.FC<
         ),
       });
 
-      const projs = data.projects.filter((proj) => proj.enabled && proj.projectTitle);
+      const projs = data.projects.filter(
+        (proj) => proj.enabled && proj.projectTitle
+      );
+
       projs.forEach((proj, idx) => {
         const descChunks = splitText(proj.description, 700);
-        // first chunk with header
+
         sections.push({
           key: `right-project-${idx}-0`,
           content: (
@@ -1564,7 +1554,8 @@ export const ModernProfessionalTemplate: React.FC<
     return sections;
   }, [data, fullName, formatMonthYear, getJobTitle]);
 
-  // 🔥 Build pages based on REAL DOM heights
+  // -------- PAGE SPLITTING BASED ON HEIGHT --------
+
   useEffect(() => {
     const buildPagesFromHeights = (heights: number[], pageHeight: number) => {
       const pages: number[][] = [];
@@ -1591,30 +1582,29 @@ export const ModernProfessionalTemplate: React.FC<
     const leftContainer = leftMeasureRef.current;
     const rightContainer = rightMeasureRef.current;
 
-    if (!leftContainer && !rightContainer) return;
+    if (!leftContainer || !rightContainer) return;
 
-    const A4_HEIGHT_PX = 1122; // Approx height of A4 at 96dpi (tweak if needed)
+    // A4 height at 96dpi in px
+    const pageHeight = 1122;
 
-    // LEFT heights
     const leftHeights: number[] = leftSections.map((_, idx) => {
-      const el = leftContainer?.children[idx] as HTMLElement | undefined;
+      const el = leftContainer.children[idx] as HTMLElement | undefined;
       return el ? el.offsetHeight : 0;
     });
 
-    // RIGHT heights
     const rightHeights: number[] = rightSections.map((_, idx) => {
-      const el = rightContainer?.children[idx] as HTMLElement | undefined;
+      const el = rightContainer.children[idx] as HTMLElement | undefined;
       return el ? el.offsetHeight : 0;
     });
 
     const leftPagesLocal =
       leftSections.length > 0
-        ? buildPagesFromHeights(leftHeights, A4_HEIGHT_PX)
+        ? buildPagesFromHeights(leftHeights, pageHeight)
         : [[]];
 
     const rightPagesLocal =
       rightSections.length > 0
-        ? buildPagesFromHeights(rightHeights, A4_HEIGHT_PX)
+        ? buildPagesFromHeights(rightHeights, pageHeight)
         : [[]];
 
     const pagesCount = Math.max(
@@ -1623,12 +1613,12 @@ export const ModernProfessionalTemplate: React.FC<
     );
 
     setTotalPages(pagesCount);
-
-
     setLeftPages(leftPagesLocal);
     setRightPages(rightPagesLocal);
     setCurrentPage(0);
   }, [leftSections, rightSections]);
+
+  // -------- RENDER A SINGLE PAGE (web preview) --------
 
   const renderPage = (pageIndex: number) => {
     const leftIndexes = leftPages[pageIndex] || [];
@@ -1644,11 +1634,10 @@ export const ModernProfessionalTemplate: React.FC<
           boxShadow: "0 0 8px rgba(0,0,0,0.15)",
           display: "flex",
           position: "relative",
-          overflow: "hidden",
           flexShrink: 0,
         }}
       >
-        {/* LEFT COLUMN */}
+        {/* LEFT COLUMN PREVIEW */}
         <div
           style={{
             width: "35%",
@@ -1656,53 +1645,45 @@ export const ModernProfessionalTemplate: React.FC<
             padding: "1.5rem",
             boxSizing: "border-box",
             height: "297mm",
-            overflow: "hidden",
             display: "flex",
             flexDirection: "column",
           }}
         >
-          <div style={{ flex: 1, overflow: "hidden" }}>
+          <div style={{ flex: 1 }}>
             {leftIndexes.map((idx) => {
               const section = leftSections[idx];
-              if (!section) return null; // <-- FIX
-              return (
-                <div key={section.key} style={{ marginBottom: "1rem" }}>
-                  {section.content}
-                </div>
-              );
+              if (!section) return null;
+              // NOTE: no marginBottom here; spacing comes from "gap" in measurement
+              return <div key={section.key}>{section.content}</div>;
             })}
-
           </div>
         </div>
 
-        {/* RIGHT COLUMN */}
+        {/* RIGHT COLUMN PREVIEW */}
         <div
           style={{
             width: "65%",
             padding: "1.5rem",
             boxSizing: "border-box",
             height: "297mm",
-            overflow: "hidden",
             display: "flex",
             flexDirection: "column",
           }}
         >
-          <div style={{ flex: 1, overflow: "hidden" }}>
+          <div style={{ flex: 1 }}>
             {rightIndexes.map((idx) => {
               const section = rightSections[idx];
-              if (!section) return null; // <-- FIX
-              return (
-                <div key={section.key} style={{ marginBottom: "1rem" }}>
-                  {section.content}
-                </div>
-              );
+              if (!section) return null;
+              // same here – no marginBottom
+              return <div key={section.key}>{section.content}</div>;
             })}
-
           </div>
         </div>
       </div>
     );
   };
+
+  // -------- MAIN RENDER (hidden measurer + visible preview + pagination) --------
 
   return (
     <div
@@ -1715,65 +1696,67 @@ export const ModernProfessionalTemplate: React.FC<
         padding: "1.5rem",
       }}
     >
-      {/* 🔍 HIDDEN MEASUREMENT AREA */}
+      {/* Hidden measurement container */}
       <div
         style={{
           position: "absolute",
-          visibility: "hidden",
+          top: 0,
+          left: -9999,
+          opacity: 0,
           pointerEvents: "none",
-          height: 0,
-          overflow: "hidden",
         }}
       >
         <div
-          ref={leftMeasureRef}
           style={{
             width: "210mm",
-            padding: "1.5rem",
-            boxSizing: "border-box",
+            height: "297mm",
+            display: "flex",
+            flexDirection: "row",
           }}
         >
-          {leftSections.map((section) => (
-            <div key={section.key} style={{ marginBottom: "1rem" }}>
-              {section.content}
-            </div>
-          ))}
-        </div>
+          <div
+            ref={leftMeasureRef}
+            style={{
+              width: "35%",
+              padding: "1.5rem",
+              backgroundColor: "#F5E6D3",
+              display: "flex",
+              height: "297mm",
+              flexDirection: "column",
+              gap: "1rem",
+              boxSizing: "border-box",
+            }}
+          >
+            {leftSections.map((section) => (
+              <div key={section.key}>{section.content}</div>
+            ))}
+          </div>
 
-        <div
-          ref={rightMeasureRef}
-          style={{
-            width: "210mm",
-            padding: "1.5rem",
-            boxSizing: "border-box",
-          }}
-        >
-          {rightSections.map((section) => (
-            <div key={section.key} style={{ marginBottom: "1rem" }}>
-              {section.content}
-            </div>
-          ))}
+          <div
+            ref={rightMeasureRef}
+            style={{
+              width: "65%",
+              padding: "1.5rem",
+              display: "flex",
+              flexDirection: "column",
+              gap: "1rem",
+              height: "297mm",
+              boxSizing: "border-box",
+            }}
+          >
+            {rightSections.map((section) => (
+              <div key={section.key}>{section.content}</div>
+            ))}
+          </div>
         </div>
       </div>
 
-      {/* ✅ PDF download (react-pdf auto-pagination) */}
-      {/* <div style={{ marginBottom: "1rem" }}>
-        <PDFDownloadLink
-          document={<ResumePDF data={data} />}
-          fileName="resume.pdf"
-        >
-          {({ loading }) =>
-            loading ? "Generating PDF..." : "Download PDF (A4, auto page break)"
-          }
-        </PDFDownloadLink>
-      </div> */}
-
-      {/* Current Page Display */}
+      {/* Visible page */}
       <div style={{ width: "100%", display: "flex", justifyContent: "center" }}>
         {renderPage(currentPage)}
       </div>
 
-      {/* Page Navigation Controls */}
+      {/* Pagination controls */}
       <div
         style={{
           display: "flex",
@@ -1784,8 +1767,6 @@ export const ModernProfessionalTemplate: React.FC<
           flexWrap: "wrap",
         }}
       >
-        
-
         <button
           onClick={() => setCurrentPage((p) => Math.max(0, p - 1))}
           disabled={currentPage === 0}

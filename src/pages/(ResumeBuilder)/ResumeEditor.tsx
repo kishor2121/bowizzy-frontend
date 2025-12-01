@@ -782,7 +782,7 @@ export const ResumeEditor: React.FC = () => {
             <div className="hidden lg:flex lg:w-[50%] bg-white overflow-auto scrollbar-hide">
               <div className="flex-1 p-4 overflow-auto scrollbar-hide border border-gray-300 m-4 rounded-lg">
                 <div className="relative w-full h-full flex items-start justify-center">
-                  {selectedTemplate && (
+                  {/* {selectedTemplate && (
                     <div className="absolute top-2 right-4 flex items-center gap-3 bg-white px-3 py-1 rounded-full shadow-md text-sm font-medium">
                       <button
                         onClick={() => handlePageChange("prev")}
@@ -808,7 +808,7 @@ export const ResumeEditor: React.FC = () => {
                         ▶
                       </button>
                     </div>
-                  )}
+                  )} */}
 
                   <div className="transform scale-75 origin-top mt-8">
                     {renderTemplatePreview()}
