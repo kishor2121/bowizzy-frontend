@@ -1,4 +1,5 @@
 import ModernProfessionalTemplate from '../pages/(ResumeBuilder)/templates/ModernProfessional';
+import ModernProfessionalTemplate2 from './ModernProfessionalTemplate2';
 export interface TemplateInfo {
   id: string;
   name: string;
@@ -21,7 +22,7 @@ export const TEMPLATE_REGISTRY: TemplateInfo[] = [
     id: 'twopage',
     name: 'Professional',
     thumbnailUrl: '/resume-templates/thumbnails/modern-professional.png',
-    component: ModernProfessionalTemplate,
+    component: ModernProfessionalTemplate2,
     category: 'Professional',
     description: 'A clean two-column layout perfect for marketing and business professionals'
 
