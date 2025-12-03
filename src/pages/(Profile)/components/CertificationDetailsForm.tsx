@@ -323,15 +323,32 @@ export default function CertificationDetailsForm({
       return;
     }
 
+    const existingCert = certificates[index];
+
+    if (existingCert.cloudDeleteToken) {
+      await deleteFromCloudinary(existingCert.cloudDeleteToken);
+    }
+
+    const uploadRes = await uploadToCloudinary(file);
+
+    if (!uploadRes?.url) {
+      setErrors((prev) => ({ ...prev, [`cert-${index}-file`]: "Upload failed" }));
+      return;
+    }
+
     const updated = [...certificates];
+
     updated[index] = {
       ...updated[index],
-      uploadedFile: file,
+      uploadedFile: null,
       uploadedFileName: file.name,
+      uploadedFileUrl: uploadRes.url,
       uploadedFileType: file.type,
+      cloudDeleteToken: uploadRes.deleteToken, 
     };
 
     setCertificates(updated);
+
     setErrors((prev) => {
       const newErrors = { ...prev };
       delete newErrors[`cert-${index}-file`];
