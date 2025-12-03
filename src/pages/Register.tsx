@@ -12,7 +12,8 @@ export default function Register() {
   const [lastName, setLastName] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [email, setEmail] = useState("");
-  const [linkedinUrl, setLinkedinUrl] = useState("");
+  // Store only the LinkedIn username/handle part (the prefix is auto-filled)
+  const [linkedinUsername, setLinkedinUsername] = useState("");
   const [gender, setGender] = useState("");
   const [dateOfBirth, setDateOfBirth] = useState(""); // <-- Date Field State
   const [password, setPassword] = useState("");
@@ -22,6 +23,26 @@ export default function Register() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
 
+  // Allow only letters and spaces in name fields (prevents digits and special chars)
+  const sanitizeName = (value: string) => {
+    return value.replace(/[^A-Za-z\s]/g, "");
+  };
+
+  // Extract username from a full LinkedIn URL or sanitize a typed username
+  const extractLinkedinUsername = (value: string) => {
+    if (!value) return "";
+    // If user pasted a full linkedin URL, try to extract the username
+    const m = value.match(/linkedin\.com\/in\/([^/?#\s]+)/i);
+    if (m && m[1]) return m[1];
+    // Otherwise sanitize the value to allow letters, numbers and hyphens
+    return value.replace(/[^A-Za-z0-9-]/g, "");
+  };
+
+  // Allow only digits for phone and limit length to 10
+  const sanitizePhone = (value: string) => {
+    return value.replace(/\D/g, "").slice(0, 10);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
@@ -29,6 +50,14 @@ export default function Register() {
     if (!agree) return setError("You must agree to the terms to continue.");
     if (password !== confirmPassword)
       return setError("Passwords do not match.");
+
+    // Validate phone number: must be 10 digits and start with 6-9
+    if (!/^[6-9]\d{9}$/.test(phoneNumber))
+      return setError("Phone number must be 10 digits and start with 6, 7, 8, or 9.");
+
+    // Validate LinkedIn username
+    if (!linkedinUsername || !/^[A-Za-z0-9-]+$/.test(linkedinUsername))
+      return setError("Please enter a valid LinkedIn profile identifier.");
 
     try {
       await api.post("/auth", {
@@ -40,7 +69,7 @@ export default function Register() {
         last_name: lastName,
         phone_number: phoneNumber,
         date_of_birth: dateOfBirth, // <-- Added to Payload
-        linkedin_url: linkedinUrl,
+        linkedin_url: `https://www.linkedin.com/in/${linkedinUsername}`,
         gender,
       });
 
@@ -85,7 +114,7 @@ export default function Register() {
                 <label className="block text-sm font-medium text-gray-700">First Name*</label>
                 <input
                   value={firstName}
-                  onChange={(e) => setFirstName(e.target.value)}
+                  onChange={(e) => setFirstName(sanitizeName(e.target.value))}
                   required
                   className="mt-2 w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-400 outline-none"
                   placeholder="Enter your first name"
@@ -97,7 +126,7 @@ export default function Register() {
                 <label className="block text-sm font-medium text-gray-700">Middle Name</label>
                 <input
                   value={middleName}
-                  onChange={(e) => setMiddleName(e.target.value)}
+                  onChange={(e) => setMiddleName(sanitizeName(e.target.value))}
                   className="mt-2 w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-400 outline-none"
                   placeholder="Enter your middle name"
                 />
@@ -108,7 +137,7 @@ export default function Register() {
                 <label className="block text-sm font-medium text-gray-700">Last Name*</label>
                 <input
                   value={lastName}
-                  onChange={(e) => setLastName(e.target.value)}
+                  onChange={(e) => setLastName(sanitizeName(e.target.value))}
                   required
                   className="mt-2 w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-400 outline-none"
                   placeholder="Enter your last name"
@@ -119,9 +148,21 @@ export default function Register() {
               <div className="col-span-12">
                 <label className="block text-sm font-medium text-gray-700">Phone Number*</label>
                 <input
+                  type="tel"
+                  inputMode="numeric"
                   value={phoneNumber}
-                  onChange={(e) => setPhoneNumber(e.target.value)}
+                  onChange={(e) => {
+                    const v = sanitizePhone(e.target.value);
+                    // If there's at least one digit, ensure the first digit is 6-9.
+                    // If not, do not accept the input (prevents entering invalid starting digits).
+                    if (v.length > 0 && !/^[6-9]/.test(v)) {
+                      return;
+                    }
+                    setPhoneNumber(v);
+                  }}
                   required
+                  pattern="[6-9][0-9]{9}"
+                  maxLength={10}
                   className="mt-2 w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-400 outline-none"
                   placeholder="Enter your phone number"
                 />
@@ -155,13 +196,23 @@ export default function Register() {
               {/* LINKEDIN */}
               <div className="col-span-12">
                 <label className="block text-sm font-medium text-gray-700">LinkedIn URL*</label>
-                <input
-                  value={linkedinUrl}
-                  onChange={(e) => setLinkedinUrl(e.target.value)}
-                  required
-                  className="mt-2 w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-400 outline-none"
-                  placeholder="https://linkedin.com/in/username"
-                />
+                <div className="mt-2 flex">
+                  <span className="inline-flex items-center px-3 rounded-l-lg border border-r-0 border-gray-300 bg-gray-100 text-sm text-gray-600">
+                    https://www.linkedin.com/in/
+                  </span>
+                  <input
+                    type="text"
+                    value={linkedinUsername}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      const extracted = extractLinkedinUsername(v);
+                      setLinkedinUsername(extracted);
+                    }}
+                    required
+                    className="w-full px-4 py-3 border border-gray-300 rounded-r-lg focus:ring-2 focus:ring-orange-400 outline-none"
+                    placeholder="your-profile-identifier"
+                  />
+                </div>
               </div>
 
               {/* GENDER */}
