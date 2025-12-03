@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import { Bold, List, ListOrdered } from "lucide-react";
 
 interface RichTextEditorProps {
@@ -14,97 +14,123 @@ export default function RichTextEditor({
   placeholder = "Enter description...",
   rows = 6,
 }: RichTextEditorProps) {
-  const editorRef = useRef<HTMLTextAreaElement>(null);
+  const editorRef = useRef<HTMLDivElement | null>(null);
   const [, setActiveAction] = useState<string | null>(null);
-
-  const insertFormatting = (before: string, after: string = "") => {
-    const textarea = editorRef.current;
-    if (!textarea) return;
-
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const selectedText = value.substring(start, end);
-    const beforeText = value.substring(0, start);
-    const afterText = value.substring(end);
-
-    const newValue =
-      beforeText + before + selectedText + after + afterText;
-    onChange(newValue);
-
-    // Restore cursor position
-    setTimeout(() => {
-      const newCursorPos = start + before.length;
-      if (textarea) {
-        textarea.focus();
-        textarea.setSelectionRange(newCursorPos, newCursorPos);
-      }
-    }, 0);
+  const escapeHtml = (unsafe: string) => {
+    return unsafe
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
   };
 
-  const handleBold = () => {
-    setActiveAction("bold");
-    insertFormatting("**", "**");
+  const normalizeValueToHtml = (val: string) => {
+    if (!val) return '<div><br/></div>';
+    if (/<>|<[^>]+>/g.test(val)) return val;
+    return val
+      .split('\n')
+      .map((line) => (line === '' ? '<div><br/></div>' : `<div>${escapeHtml(line)}</div>`))
+      .join('');
   };
 
-  const handleBulletPoint = () => {
-    setActiveAction("bullet");
-    const textarea = editorRef.current;
-    if (!textarea) return;
+  useEffect(() => {
+    const el = editorRef.current;
+    if (!el) return;
+    const html = normalizeValueToHtml(value || '');
+    if (el.innerHTML !== html) el.innerHTML = html;
+  }, [value]);
 
-    const start = textarea.selectionStart;
-    const beforeText = value.substring(0, start);
-
-    // Add bullet point at the beginning of the line
-    const lastNewline = beforeText.lastIndexOf("\n");
-    const insertPos = lastNewline === -1 ? 0 : lastNewline + 1;
-    const textBefore = value.substring(0, insertPos);
-    const textAfter = value.substring(insertPos);
-
-    const newValue = textBefore + "• " + textAfter;
-    onChange(newValue);
-
-    setTimeout(() => {
-      if (textarea) {
-        const newPos = insertPos + 2;
-        textarea.focus();
-        textarea.setSelectionRange(newPos, newPos);
+  const exec = (command: string) => {
+    setActiveAction(command);
+    const el = editorRef.current;
+    if (!el) return;
+    el.focus();
+    const before = el.innerHTML;
+    document.execCommand(command, false as any, null);
+    if (el.innerHTML === before) {
+      if (command === 'insertUnorderedList') {
+        insertHtmlAtCursor('<ul><li><br></li></ul>');
+      } else if (command === 'insertOrderedList') {
+        insertHtmlAtCursor('<ol><li><br></li></ol>');
+      } else if (command === 'bold') {
+        wrapSelectionWithTag('strong');
       }
-    }, 0);
+    }
+    normalizeLists(el);
+    onChange(el.innerHTML);
   };
 
-  const handleNumberedList = () => {
-    setActiveAction("number");
-    const textarea = editorRef.current;
-    if (!textarea) return;
+  const insertHtmlAtCursor = (html: string) => {
+    const sel = document.getSelection();
+    if (!sel || !sel.rangeCount) return;
+    const range = sel.getRangeAt(0);
+    const tmp = document.createElement('div');
+    tmp.innerHTML = html;
+    const frag = document.createDocumentFragment();
+    let node;
+    let lastNode;
+    while ((node = tmp.firstChild)) {
+      lastNode = frag.appendChild(node);
+    }
+    range.deleteContents();
+    range.insertNode(frag);
+    if (lastNode) {
+      const newRange = document.createRange();
+      const li = (lastNode as HTMLElement).querySelector('li') || lastNode;
+      newRange.setStart(li, 0);
+      newRange.collapse(true);
+      sel.removeAllRanges();
+      sel.addRange(newRange);
+    }
+  };
 
-    const start = textarea.selectionStart;
-    const beforeText = value.substring(0, start);
+  const wrapSelectionWithTag = (tagName: string) => {
+    const sel = document.getSelection();
+    if (!sel || sel.rangeCount === 0) return;
+    const range = sel.getRangeAt(0);
+    if (range.collapsed) return;
+    const wrapper = document.createElement(tagName);
+    wrapper.appendChild(range.extractContents());
+    range.insertNode(wrapper);
+    const newRange = document.createRange();
+    newRange.selectNodeContents(wrapper);
+    sel.removeAllRanges();
+    sel.addRange(newRange);
+  };
 
-    // Count existing numbered items in the text
-    const matches = value.match(/^\d+\.\s/gm) || [];
-    const nextNumber = matches.length + 1;
+  const handleBold = () => exec('bold');
+  const handleBulletPoint = () => exec('insertUnorderedList');
+  const handleNumberedList = () => exec('insertOrderedList');
 
-    // Add numbered item at the beginning of the line
-    const lastNewline = beforeText.lastIndexOf("\n");
-    const insertPos = lastNewline === -1 ? 0 : lastNewline + 1;
-    const textBefore = value.substring(0, insertPos);
-    const textAfter = value.substring(insertPos);
+  const onInput = () => {
+    const el = editorRef.current;
+    if (!el) return;
+    normalizeLists(el);
+    onChange(el.innerHTML);
+  };
 
-    const newValue = textBefore + `${nextNumber}. ` + textAfter;
-    onChange(newValue);
-
-    setTimeout(() => {
-      if (textarea) {
-        const newPos = insertPos + `${nextNumber}. `.length;
-        textarea.focus();
-        textarea.setSelectionRange(newPos, newPos);
-      }
-    }, 0);
+  const normalizeLists = (el: HTMLElement) => {
+    const uls = el.querySelectorAll('ul');
+    uls.forEach((u) => {
+      const list = u as HTMLElement;
+      list.style.listStyleType = list.style.listStyleType || 'disc';
+      if (!list.style.paddingLeft) list.style.paddingLeft = '1.25rem';
+      if (!list.style.marginTop) list.style.marginTop = '0.5rem';
+      if (!list.style.marginBottom) list.style.marginBottom = '0.5rem';
+    });
+    const ols = el.querySelectorAll('ol');
+    ols.forEach((o) => {
+      const list = o as HTMLElement;
+      list.style.listStyleType = list.style.listStyleType || 'decimal';
+      if (!list.style.paddingLeft) list.style.paddingLeft = '1.25rem';
+      if (!list.style.marginTop) list.style.marginTop = '0.5rem';
+      if (!list.style.marginBottom) list.style.marginBottom = '0.5rem';
+    });
   };
 
   return (
     <div className="space-y-2">
-      {/* Toolbar */}
       <div className="flex gap-2 p-2 bg-gray-50 border border-gray-200 rounded-t-lg">
         <button
           type="button"
@@ -132,14 +158,15 @@ export default function RichTextEditor({
         </button>
       </div>
 
-      {/* Editor */}
-      <textarea
+      <div
         ref={editorRef}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        rows={rows}
-        className="w-full px-3 py-2 sm:py-2.5 border border-t-0 border-gray-300 rounded-b-lg focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent text-xs sm:text-sm resize-none"
+        onInput={onInput}
+        contentEditable
+        suppressContentEditableWarning
+        role="textbox"
+        aria-label={placeholder}
+        style={{ minHeight: `${rows * 1.5}rem` }}
+        className="w-full px-3 py-2 sm:py-2.5 border border-t-0 border-gray-300 rounded-b-lg focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent text-xs sm:text-sm resize-none overflow-auto"
       />
     </div>
   );
