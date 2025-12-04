@@ -7,6 +7,7 @@ import React, {
 } from "react";
 import type { ResumeData } from "@/types/resume";
 import { Document, Page, Text, View, StyleSheet } from "@react-pdf/renderer";
+import { exportPagesAsPdf } from "@/pages/(ResumeBuilder)/lib/pdfExport";
 
 interface ModernProfessionalTemplateProps {
   data: ResumeData;
@@ -1454,6 +1455,7 @@ export const ModernProfessionalTemplate: React.FC<
           Page {currentPage + 1} of {totalPages}
         </span>
         <button
+          onClick={() => exportPagesAsPdf(renderPage, totalPages)}
           style={{
             padding: "0.6rem 1.2rem",
             backgroundColor: "#4F46E5",
