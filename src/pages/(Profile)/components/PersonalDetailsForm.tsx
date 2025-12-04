@@ -498,16 +498,6 @@ export default function PersonalDetailsForm({
       return;
     }
 
-    // Check required fields before proceeding (optional, but good practice)
-    if (
-      (formData.pincode && formData.pincode.length !== 6) ||
-      (formData.passportNumber && formData.passportNumber.length !== 8)
-    ) {
-      alert(
-        "Please complete required fields/fix length errors before proceeding."
-      );
-      return;
-    }
 
     onNext(formData);
   };
