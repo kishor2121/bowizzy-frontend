@@ -195,6 +195,14 @@ export default function SkillsLinksDetailsForm({
       return "Please enter a valid GitHub URL";
     }
 
+    if (
+      type === "Portfolio" &&
+      value &&
+      !value.toLowerCase().includes("portfolio")
+    ) {
+      return "Please enter a valid Portfolio URL";
+    }
+
     return "";
   };
 
