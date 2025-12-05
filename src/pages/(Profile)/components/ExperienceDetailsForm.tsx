@@ -182,6 +182,14 @@ export default function ExperienceDetailsForm({
     return "";
   };
 
+  // Helper to get current month in YYYY-MM format (for blocking future dates)
+  const getCurrentMonth = (): string => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    return `${year}-${month}`;
+  };
+
   // Helper to format date for API payload (YYYY-MM to YYYY-MM-01)
   const normalizeMonthToDate = (val: string): string | null => {
     if (!val) return null;
@@ -855,6 +863,7 @@ export default function ExperienceDetailsForm({
                     onChange={(e) =>
                       handleExperienceChange(index, "startDate", e.target.value)
                     }
+                    max={getCurrentMonth()}
                     placeholder="Select Start Date"
                     className="w-full px-3 py-2 sm:py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent text-xs sm:text-sm pr-8"
                   />
@@ -873,6 +882,7 @@ export default function ExperienceDetailsForm({
                     onChange={(e) =>
                       handleExperienceChange(index, "endDate", e.target.value)
                     }
+                    max={getCurrentMonth()}
                     placeholder="Select End Date"
                     disabled={experience.currentlyWorking}
                     className={`w-full px-3 py-2 sm:py-2.5 border rounded-lg focus:outline-none focus:ring-2 text-xs sm:text-sm pr-8 disabled:bg-gray-100 ${
