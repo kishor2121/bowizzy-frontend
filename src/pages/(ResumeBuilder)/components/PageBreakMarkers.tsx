@@ -14,22 +14,6 @@ export const PageBreakMarkers: React.FC<PageBreakMarkersProps> = ({ markers }) =
     <>
       {markers.map((marker, index) => (
         <React.Fragment key={index}>
-          {/* White overlay ABOVE the line - covers content (2px) */}
-          {/* <div
-            className="page-break-spacer-top print:hidden"
-            style={{
-              position: 'absolute',
-              left: 0,
-              right: 0,
-              top: `${marker.position - 2}px`,
-              height: '2px',
-              // backgroundColor: '#f3f4f6', // Light gray background
-              borderTop: '1px solid #e5e7eb',
-              borderBottom: '1px solid #e5e7eb',
-              pointerEvents: 'none',
-              zIndex: 1001, // Higher than content
-            }}
-          /> */}
           
           {/* The actual page break line (2px) */}
           <div
@@ -65,22 +49,6 @@ export const PageBreakMarkers: React.FC<PageBreakMarkersProps> = ({ markers }) =
             </div>
           </div>
           
-          {/* White overlay BELOW the line - covers content (2px) */}
-          {/* <div
-            className="page-break-spacer-bottom print:hidden"
-            style={{
-              position: 'absolute',
-              left: 0,
-              right: 0,
-              top: `${marker.position + 2}px`,
-              height: '2px',
-              // backgroundColor: '#f3f4f6', // Light gray background
-              borderTop: '1px solid #e5e7eb',
-              borderBottom: '1px solid #e5e7eb',
-              pointerEvents: 'none',
-              zIndex: 1001, // Higher than content
-            }}
-          /> */}
         </React.Fragment>
       ))}
     </>
