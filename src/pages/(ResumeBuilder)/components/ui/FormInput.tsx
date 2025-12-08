@@ -21,6 +21,15 @@ export const FormInput: React.FC<FormInputProps> = ({
   disabled = false,
   error,
 }) => {
+  const sanitizeMonthValue = (val: string) => {
+    if (!val) return "";
+    const cleaned = val.replace(/[^0-9-]/g, "");
+    if (cleaned.includes("-")) return cleaned.slice(0, 7);
+    return cleaned.slice(0, 4);
+  };
+
+  const displayValue = type === "month" ? sanitizeMonthValue(value) : value;
+
   return (
     <div className={`flex flex-col gap-1 ${className}`}>
       {label && (
@@ -32,8 +41,29 @@ export const FormInput: React.FC<FormInputProps> = ({
       <input
         type={type}
         placeholder={placeholder}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
+        value={displayValue}
+        onChange={(e) => {
+          const val = e.target.value as string;
+          if (type === "month") {
+            const cleaned = val.replace(/[^0-9-]/g, "");
+            if (cleaned.includes("-")) {
+              onChange(cleaned.slice(0, 7));
+            } else {
+              onChange(cleaned.slice(0, 4));
+            }
+            return;
+          }
+          onChange(val);
+        }}
+        onPaste={(e) => {
+          if (type !== "month") return;
+          const paste = (e.clipboardData || (window as any).clipboardData).getData("text") as string;
+          if (!paste) return;
+          e.preventDefault();
+          const cleaned = paste.replace(/[^0-9-]/g, "");
+          if (cleaned.includes("-")) onChange(cleaned.slice(0, 7));
+          else onChange(cleaned.slice(0, 4));
+        }}
         disabled={disabled}
         className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none 
           ${error ? "border-red-500" : "border-gray-200 focus:border-orange-400"}

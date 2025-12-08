@@ -21,7 +21,7 @@ interface Interview {
 
 const TakeMockInterview = () => {
   const [currentStep, setCurrentStep] = useState(1);
-  const [isVerified, setIsVerified] = useState(true); // Set to false for verification flow
+  const [isVerified, setIsVerified] = useState(false); // Set to false for verification flow
   const [selectedInterview, setSelectedInterview] = useState<Interview | null>(null);
   const [viewType, setViewType] = useState<'scheduled' | 'available' | 'saved' | null>(null);
   const [formData, setFormData] = useState({

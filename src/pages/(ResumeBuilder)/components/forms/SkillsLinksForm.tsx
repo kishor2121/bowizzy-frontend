@@ -50,12 +50,18 @@ export const SkillsLinksForm: React.FC<SkillsLinksFormProps> = ({
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
   // State for tracking changes and feedback
-  const [skillChanges, setSkillChanges] = useState<Record<string, string[]>>({});
+  const [skillChanges, setSkillChanges] = useState<Record<string, string[]>>(
+    {}
+  );
   const [linkChanges, setLinkChanges] = useState<boolean>(false);
-  const [technicalSummaryChanges, setTechnicalSummaryChanges] = useState<boolean>(false);
-  const [skillFeedback, setSkillFeedback] = useState<Record<string, string>>({});
+  const [technicalSummaryChanges, setTechnicalSummaryChanges] =
+    useState<boolean>(false);
+  const [skillFeedback, setSkillFeedback] = useState<Record<string, string>>(
+    {}
+  );
   const [linkFeedback, setLinkFeedback] = useState<string>("");
-  const [technicalSummaryFeedback, setTechnicalSummaryFeedback] = useState<string>("");
+  const [technicalSummaryFeedback, setTechnicalSummaryFeedback] =
+    useState<string>("");
 
   // Refs for tracking initial data
   const initialSkillsRef = useRef<Record<string, Skill>>({});
@@ -121,7 +127,8 @@ export const SkillsLinksForm: React.FC<SkillsLinksFormProps> = ({
 
   // Check Technical Summary changes
   useEffect(() => {
-    const hasChanged = data.technicalSummary !== initialTechnicalSummaryRef.current;
+    const hasChanged =
+      data.technicalSummary !== initialTechnicalSummaryRef.current;
     setTechnicalSummaryChanges(hasChanged);
   }, [data.technicalSummary]);
 
@@ -129,20 +136,43 @@ export const SkillsLinksForm: React.FC<SkillsLinksFormProps> = ({
     if (value && !/^[a-zA-Z0-9\s.+#-]+$/.test(value)) {
       return "Invalid characters in skill name";
     }
+    if (value && (!/[a-zA-Z]/.test(value) || !/\d/.test(value))) {
+      return "Skill must include both letters and numbers";
+    }
     return "";
   };
 
   const validateUrl = (value: string, type: string) => {
     if (!value) return "";
+
     const urlPattern =
-      /^(https?:\/\/)?([\w\-]+(\.[\w\-]+)+)([\w\-\.,@?^=%&:/~\+#]*[\w\-@?^=%&/~\+#])?$/;
+      /^(https?:\/\/)?([\w\-]+(\.[\w\-]+)+)([\w\-\.,@?^=%&:/~\+#]*[\w\-@?^=%&/~\+#])?$/i;
+
     if (!urlPattern.test(value)) {
       return `Invalid ${type} URL format`;
     }
-    if (type === "LinkedIn" && !value.includes("linkedin.com"))
+
+    if (
+      type === "LinkedIn" &&
+      value &&
+      !value.toLowerCase().includes("linkedin.com")
+    )
       return "Please enter a valid LinkedIn URL";
-    if (type === "GitHub" && !value.includes("github.com"))
+
+    if (
+      type === "GitHub" &&
+      value &&
+      !value.toLowerCase().includes("github.com")
+    )
       return "Please enter a valid GitHub URL";
+
+    if (
+      type === "Portfolio" &&
+      value &&
+      !value.toLowerCase().includes("portfolio")
+    )
+      return "Please enter a valid Portfolio URL";
+
     return "";
   };
 
@@ -349,7 +379,7 @@ export const SkillsLinksForm: React.FC<SkillsLinksFormProps> = ({
                 [field]: "",
               };
               if (descField) {
-                updatedLinks[descField as keyof typeof link] = "" as any;
+                (updatedLinks as any)[descField] = "";
               }
               onChange({ ...data, links: updatedLinks });
               deletedLinkIds.current.push(dbIdValue as string);
@@ -403,15 +433,24 @@ export const SkillsLinksForm: React.FC<SkillsLinksFormProps> = ({
     try {
       if (technicalSummaryId) {
         // Update existing
-        await updateTechnicalSummary(userId, token, technicalSummaryId, data.technicalSummary);
+        await updateTechnicalSummary(
+          userId,
+          token,
+          technicalSummaryId,
+          data.technicalSummary
+        );
       } else {
         // Create new
-        const response = await saveTechnicalSummary(userId, token, data.technicalSummary);
+        const response = await saveTechnicalSummary(
+          userId,
+          token,
+          data.technicalSummary
+        );
         if (response && response.summary_id) {
           setTechnicalSummaryId(response.summary_id);
         }
       }
-      
+
       initialTechnicalSummaryRef.current = data.technicalSummary;
       setTechnicalSummaryChanges(false);
       setTechnicalSummaryFeedback("Technical summary saved successfully!");
@@ -766,13 +805,15 @@ export const SkillsLinksForm: React.FC<SkillsLinksFormProps> = ({
             </div>
           </div>
 
-          <RichTextEditor
-            label="Portfolio Description"
-            placeholder="Provide Portfolio Description..."
-            value={data.links.portfolioDescription}
-            onChange={(v) => updateLink("portfolioDescription", v)}
-            rows={3}
-          />
+          <div className="flex flex-col gap-1 mt-4">
+            <label className="font-medium">Portfolio Description</label>
+            <RichTextEditor
+              placeholder="Provide Portfolio Description..."
+              value={data.links.portfolioDescription}
+              onChange={(v) => updateLink("portfolioDescription", v)}
+              rows={3}
+            />
+          </div>
 
           {/* Publication */}
           <div className="flex items-center gap-3">
@@ -793,13 +834,15 @@ export const SkillsLinksForm: React.FC<SkillsLinksFormProps> = ({
             </div>
           </div>
 
-          <RichTextEditor
-            label="Publication Description"
-            placeholder="Provide Portfolio Description..."
-            value={data.links.publicationDescription}
-            onChange={(v) => updateLink("publicationDescription", v)}
-            rows={3}
-          />
+          <div className="flex flex-col gap-1 mt-4">
+            <label className="font-medium">Publication Description</label>
+            <RichTextEditor
+              placeholder="Provide Publication Description..."
+              value={data.links.publicationDescription}
+              onChange={(v) => updateLink("publicationDescription", v)}
+              rows={3}
+            />
+          </div>
         </div>
       </FormSection>
 
@@ -855,13 +898,15 @@ export const SkillsLinksForm: React.FC<SkillsLinksFormProps> = ({
           </button>
         </div>
 
-        <RichTextEditor
-          placeholder="Provide Career Objective"
-          value={data.technicalSummary}
-          onChange={(v) => onChange({ ...data, technicalSummary: v })}
-          rows={5}
-          showAiButton={true}
-        />
+        <div className="flex flex-col gap-1 mt-4">
+          <label className="font-medium">Technical Summary</label>
+          <RichTextEditor
+            placeholder="Provide Career Objective"
+            value={data.technicalSummary}
+            onChange={(v) => onChange({ ...data, technicalSummary: v })}
+            rows={5}
+          />
+        </div>
       </FormSection>
     </div>
   );

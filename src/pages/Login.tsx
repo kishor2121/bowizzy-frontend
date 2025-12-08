@@ -2,21 +2,31 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { loginUser } from "@/services/login";
 import Bowizzy from "../assets/bowizzy.png";
+import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
+
 
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError("");
+  e.preventDefault();
+  setError("");
+
+  // --- EMAIL FORMAT VALIDATION ---
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setError("Please enter a valid email address");
+      return;
+    }
 
     try {
-      console.log(email)
+      console.log(email);
       const data = await loginUser(email, password);
-      console.log(data.token)
+      console.log(data.token);
 
       localStorage.setItem(
         "user",
@@ -32,6 +42,7 @@ export default function Login() {
       setError(err.response?.data?.message || "Login error");
     }
   };
+
 
   return (
     <div className="min-h-screen grid grid-cols-1 md:grid-cols-2 font-['Baloo_2']">
@@ -66,26 +77,45 @@ export default function Login() {
               <input
                 type="email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                  if (!emailPattern.test(e.target.value)) {
+                    setError("Invalid email format");
+                  } else {
+                    setError("");
+                  }
+                }}
                 required
                 className="mt-2 w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-400 outline-none"
                 placeholder="Enter your email"
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700">
-                Password
-              </label>
+          <div>
+            <label className="block text-sm font-medium text-gray-700">
+              Password
+            </label>
+
+            <div className="relative">
               <input
-                type="password"
+                type={showPassword ? "text" : "password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 className="mt-2 w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-400 outline-none"
                 placeholder="Enter your password"
               />
+
+              <span
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer text-gray-600 text-xl"
+              >
+                {showPassword ? <AiOutlineEyeInvisible /> : <AiOutlineEye />}
+              </span>
             </div>
+          </div>
+
 
             {error && (
               <p className="text-red-500 text-sm text-center">{error}</p>

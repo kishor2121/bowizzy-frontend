@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from "react";
 import { ChevronDown, RotateCcw, Trash2, Plus, Save } from "lucide-react";
-import { 
-  updateEducationDetails, 
-  saveEducationDetails, 
-  deleteEducation 
+import {
+  updateEducationDetails,
+  saveEducationDetails,
+  deleteEducation,
 } from "@/services/educationService";
 
 interface EducationDetailsFormProps {
@@ -96,27 +96,37 @@ export default function EducationDetailsForm({
   const getInitialExpanded = (array: HigherEducation[]) =>
     array.reduce((acc, edu) => ({ ...acc, [edu.id]: true }), {});
 
-  const [higherEducations, setHigherEducations] = useState<HigherEducation[]>(initialHigherEdu);
-  const [extraEducations, setExtraEducations] = useState<HigherEducation[]>(initialExtraEdu);
+  const [higherEducations, setHigherEducations] =
+    useState<HigherEducation[]>(initialHigherEdu);
+  const [extraEducations, setExtraEducations] =
+    useState<HigherEducation[]>(initialExtraEdu);
   const [higherExpanded, setHigherExpanded] = useState<Record<string, boolean>>(
     getInitialExpanded(initialHigherEdu)
   );
   const [extraExpanded, setExtraExpanded] = useState<Record<string, boolean>>(
     getInitialExpanded(initialExtraEdu)
   );
-  
+
   // Track changes for each education section/card
   const [sslcChanged, setSslcChanged] = useState(false);
   const [puChanged, setPuChanged] = useState(false);
-  const [higherChanges, setHigherChanges] = useState<Record<string, string[]>>({});
-  const [extraChanges, setExtraChanges] = useState<Record<string, string[]>>({});
+  const [higherChanges, setHigherChanges] = useState<Record<string, string[]>>(
+    {}
+  );
+  const [extraChanges, setExtraChanges] = useState<Record<string, string[]>>(
+    {}
+  );
 
   // Feedback messages
   const [sslcFeedback, setSslcFeedback] = useState("");
   const [puFeedback, setPuFeedback] = useState("");
-  const [higherFeedback, setHigherFeedback] = useState<Record<string, string>>({});
-  const [extraFeedback, setExtraFeedback] = useState<Record<string, string>>({});
-  
+  const [higherFeedback, setHigherFeedback] = useState<Record<string, string>>(
+    {}
+  );
+  const [extraFeedback, setExtraFeedback] = useState<Record<string, string>>(
+    {}
+  );
+
   // Track IDs of education records marked for deletion (only relevant for existing extra education cards)
   const deletedEducationIds = useRef<number[]>([]);
 
@@ -128,9 +138,9 @@ export default function EducationDetailsForm({
 
   // Initialize refs for higher and extra educations on mount
   useEffect(() => {
-    [...initialHigherEdu, ...initialExtraEdu].forEach(edu => {
+    [...initialHigherEdu, ...initialExtraEdu].forEach((edu) => {
       if (edu.id) {
-        if (initialHigherEdu.some(e => e.id === edu.id)) {
+        if (initialHigherEdu.some((e) => e.id === edu.id)) {
           initialHigher.current[edu.id] = { ...edu };
         } else {
           initialExtra.current[edu.id] = { ...edu };
@@ -141,8 +151,9 @@ export default function EducationDetailsForm({
 
   // Check SSLC changes
   useEffect(() => {
-    const hasChanged = 
-      sslcData.institutionName !== (initialSslc.current.institutionName || "") ||
+    const hasChanged =
+      sslcData.institutionName !==
+        (initialSslc.current.institutionName || "") ||
       sslcData.boardType !== (initialSslc.current.boardType || "") ||
       sslcData.resultFormat !== (initialSslc.current.resultFormat || "") ||
       sslcData.yearOfPassing !== (initialSslc.current.yearOfPassing || "") ||
@@ -152,7 +163,7 @@ export default function EducationDetailsForm({
 
   // Check PU changes
   useEffect(() => {
-    const hasChanged = 
+    const hasChanged =
       puData.institutionName !== (initialPu.current.institutionName || "") ||
       puData.boardType !== (initialPu.current.boardType || "") ||
       puData.yearOfPassing !== (initialPu.current.yearOfPassing || "") ||
@@ -165,7 +176,7 @@ export default function EducationDetailsForm({
   // Check Higher Education changes
   useEffect(() => {
     const changes: Record<string, string[]> = {};
-    higherEducations.forEach(edu => {
+    higherEducations.forEach((edu) => {
       const initial = initialHigher.current[edu.id];
       if (initial) {
         const changedFields = getEducationChangedFields(edu, initial);
@@ -174,7 +185,7 @@ export default function EducationDetailsForm({
         }
       } else if (edu.degree || edu.institutionName) {
         // Treat new/unsaved education card as 'changed' if any field is filled
-        changes[edu.id] = ['new'];
+        changes[edu.id] = ["new"];
       }
     });
     setHigherChanges(changes);
@@ -183,7 +194,7 @@ export default function EducationDetailsForm({
   // Check Extra Education changes
   useEffect(() => {
     const changes: Record<string, string[]> = {};
-    extraEducations.forEach(edu => {
+    extraEducations.forEach((edu) => {
       const initial = initialExtra.current[edu.id];
       if (initial) {
         const changedFields = getEducationChangedFields(edu, initial);
@@ -192,24 +203,34 @@ export default function EducationDetailsForm({
         }
       } else if (edu.degree || edu.institutionName) {
         // Treat new/unsaved education card as 'changed' if any field is filled
-        changes[edu.id] = ['new'];
+        changes[edu.id] = ["new"];
       }
     });
     setExtraChanges(changes);
   }, [extraEducations]);
 
   // Helper to extract changed fields between current and initial education objects
-  const getEducationChangedFields = (current: HigherEducation, initial: HigherEducation): string[] => {
+  const getEducationChangedFields = (
+    current: HigherEducation,
+    initial: HigherEducation
+  ): string[] => {
     const changedFields = [];
-    if (current.degree !== (initial.degree || "")) changedFields.push('degree');
-    if (current.institutionName !== (initial.institutionName || "")) changedFields.push('institutionName');
-    if (current.universityBoard !== (initial.universityBoard || "")) changedFields.push('universityBoard');
-    if (current.fieldOfStudy !== (initial.fieldOfStudy || "")) changedFields.push('fieldOfStudy');
-    if (current.startYear !== (initial.startYear || "")) changedFields.push('startYear');
-    if (current.endYear !== (initial.endYear || "")) changedFields.push('endYear');
-    if (current.resultFormat !== (initial.resultFormat || "")) changedFields.push('resultFormat');
-    if (current.result !== (initial.result || "")) changedFields.push('result');
-    if (current.currentlyPursuing !== (initial.currentlyPursuing || false)) changedFields.push('currentlyPursuing');
+    if (current.degree !== (initial.degree || "")) changedFields.push("degree");
+    if (current.institutionName !== (initial.institutionName || ""))
+      changedFields.push("institutionName");
+    if (current.universityBoard !== (initial.universityBoard || ""))
+      changedFields.push("universityBoard");
+    if (current.fieldOfStudy !== (initial.fieldOfStudy || ""))
+      changedFields.push("fieldOfStudy");
+    if (current.startYear !== (initial.startYear || ""))
+      changedFields.push("startYear");
+    if (current.endYear !== (initial.endYear || ""))
+      changedFields.push("endYear");
+    if (current.resultFormat !== (initial.resultFormat || ""))
+      changedFields.push("resultFormat");
+    if (current.result !== (initial.result || "")) changedFields.push("result");
+    if (current.currentlyPursuing !== (initial.currentlyPursuing || false))
+      changedFields.push("currentlyPursuing");
     return changedFields;
   };
 
@@ -217,19 +238,27 @@ export default function EducationDetailsForm({
   const validateResult = (value: string, format: string) => {
     if (!value || !format) return "";
 
+    // Ensure no negative sign is allowed if format is numeric
+    if (format === "Percentage" || format === "CGPA") {
+      if (value.startsWith("-")) return "Must be a positive number";
+    }
+
     switch (format) {
       case "Percentage":
+        if (!/^\d+(\.\d{1,2})?$/.test(value)) return "Enter valid percentage (e.g., 85 or 85.5)";
         const percentage = parseFloat(value);
         if (isNaN(percentage)) return "Must be a number";
         if (percentage < 0 || percentage > 100) return "Must be between 0-100";
         break;
       case "CGPA":
+        if (!/^\d+(\.\d{1,2})?$/.test(value)) return "Enter valid CGPA (e.g., 8.5)";
         const cgpa = parseFloat(value);
         if (isNaN(cgpa)) return "Must be a number";
         if (cgpa < 0 || cgpa > 10) return "Must be between 0-10";
         break;
       case "Grade":
-        if (!/^[A-F][+-]?$/i.test(value)) return "Enter valid grade (A, B+, etc.)";
+        if (!/^[A-F][+-]?$|^Pass$|^Fail$/i.test(value))
+          return "Enter valid grade (A, B+, C-, Pass, Fail)";
         break;
     }
     return "";
@@ -237,11 +266,21 @@ export default function EducationDetailsForm({
 
   // Helper function to validate institution/board names
   const validateInstitutionName = (value: string) => {
-    if (value && !/^[a-zA-Z0-9\s.,'-]+$/.test(value)) {
-      return "Invalid characters in name";
+    if (!value || !value.trim()) return "Institution name is required";
+
+    // allow letters, numbers, spaces, dot, comma, &, apostrophe, hyphen
+    const regex = /^[a-zA-Z0-9\s.,&'-]+$/;
+
+    if (!regex.test(value)) {
+      return "Invalid institution name";
     }
+    if (!/[a-zA-Z]/.test(value)) {
+      return "Institution name must include a letter";
+    }
+
     return "";
   };
+
 
   // Helper function to validate date range
   const validateDateRange = (startDate: string, endDate: string) => {
@@ -254,9 +293,11 @@ export default function EducationDetailsForm({
   };
 
   // Helper to format year for API payload
-  const buildYear = (val: string | null | undefined): string | number | null => {
+  const buildYear = (
+    val: string | null | undefined
+  ): string | number | null => {
     if (val === undefined || val === null || val === "") return null;
-    
+
     if (typeof val === "string") {
       if (val.includes("-")) {
         const parts = val.split("-");
@@ -266,9 +307,30 @@ export default function EducationDetailsForm({
         return parts[0];
       }
     }
-    
+
     const n = parseInt(val as string, 10);
     return isNaN(n) ? val : n;
+  };
+
+  // Helper to get current month in YYYY-MM format (for blocking future dates)
+  const getCurrentMonth = (): string => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    return `${year}-${month}`;
+  };
+
+  const validateMonthFormat = (value: string) => {
+    if (!value || value === "") return "";
+    if (!/^\d{4}-\d{2}$/.test(value)) {
+      return "Please select a valid month (YYYY-MM)";
+    }
+    const [y, m] = value.split("-");
+    if (y.length !== 4) return "Year must be 4 digits";
+    const monthNum = parseInt(m, 10);
+    if (isNaN(monthNum) || monthNum < 1 || monthNum > 12)
+      return "Invalid month";
+    return "";
   };
 
   // Handler for SSLC data changes
@@ -318,23 +380,26 @@ export default function EducationDetailsForm({
   ) => {
     const setter = isExtra ? setExtraEducations : setHigherEducations;
     const currentList = isExtra ? extraEducations : higherEducations;
-    const prefix = isExtra ? `extra-${currentList.findIndex(e => e.id === id)}` : `higher-${currentList.findIndex(e => e.id === id)}`;
-    const index = currentList.findIndex(e => e.id === id);
+    const index = currentList.findIndex((e) => e.id === id);
+    const prefix = isExtra ? `extra-${index}` : `higher-${index}`;
 
     setter((prev) => {
       const updated = [...prev];
       updated[index] = { ...updated[index], [field]: value };
-      
-      // Special handling for currentlyPursuing toggling endYear
-      if (field === 'currentlyPursuing' && value === true) {
-          updated[index].endYear = ""; // Clear end year when pursuing
-      } else if (field === 'currentlyPursuing' && value === false) {
-          // Clear validation error if checkbox is unchecked
-          setErrors((prevErrors) => {
-              const newErrors = { ...prevErrors };
-              delete newErrors[`${prefix}-endYear`];
-              return newErrors;
-          });
+
+      if (field === "currentlyPursuing" && value === true) {
+        updated[index].endYear = "";
+        setErrors((prevErrors) => {
+          const newErrors = { ...prevErrors };
+          delete newErrors[`${prefix}-endYear`];
+          return newErrors;
+        });
+      } else if (field === "currentlyPursuing" && value === false) {
+        setErrors((prevErrors) => {
+          const newErrors = { ...prevErrors };
+          delete newErrors[`${prefix}-endYear`];
+          return newErrors;
+        });
       }
 
       return updated;
@@ -356,11 +421,32 @@ export default function EducationDetailsForm({
       const error = validateInstitutionName(value);
       setErrors((prev) => ({ ...prev, [`${prefix}-universityBoard`]: error }));
     } else if (field === "startYear" && typeof value === "string") {
-      const error = validateDateRange(value, updatedEdu.endYear);
-      setErrors((prev) => ({ ...prev, [`${prefix}-endYear`]: error }));
+      const fmtError = validateMonthFormat(value);
+      if (fmtError) {
+        setErrors((prev) => ({ ...prev, [`${prefix}-startYear`]: fmtError }));
+      } else {
+        setErrors((prev) => {
+          const updated = { ...prev };
+          delete updated[`${prefix}-startYear`];
+          return updated;
+        });
+      }
+
+      const rangeError = validateDateRange(value, updatedEdu.endYear);
+      setErrors((prev) => ({ ...prev, [`${prefix}-endYear`]: rangeError }));
     } else if (field === "endYear" && typeof value === "string") {
-      const error = validateDateRange(updatedEdu.startYear, value);
-      setErrors((prev) => ({ ...prev, [`${prefix}-endYear`]: error }));
+      const fmtError = validateMonthFormat(value);
+      if (fmtError) {
+        setErrors((prev) => ({ ...prev, [`${prefix}-endYear`]: fmtError }));
+      } else {
+        setErrors((prev) => {
+          const updated = { ...prev };
+          delete updated[`${prefix}-endYear`];
+          return updated;
+        });
+        const rangeError = validateDateRange(updatedEdu.startYear, value);
+        setErrors((prev) => ({ ...prev, [`${prefix}-endYear`]: rangeError }));
+      }
     }
   };
 
@@ -368,9 +454,9 @@ export default function EducationDetailsForm({
   const handleSaveSslc = async () => {
     const currentData = sslcData;
     const initial = initialSslc.current;
-    
+
     // Check for validation errors
-    if (errors['sslc-result'] || errors['sslc-institutionName']) return;
+    if (errors["sslc-result"] || errors["sslc-institutionName"]) return;
 
     try {
       let payload: Record<string, any> = {};
@@ -406,7 +492,12 @@ export default function EducationDetailsForm({
 
       if (currentData.education_id) {
         // Update existing record (PUT)
-        await updateEducationDetails(userId, token, currentData.education_id, payload);
+        await updateEducationDetails(
+          userId,
+          token,
+          currentData.education_id,
+          payload
+        );
         initialSslc.current = { ...currentData };
         setSslcChanged(false);
         setSslcFeedback("SSLC details updated successfully!");
@@ -420,15 +511,23 @@ export default function EducationDetailsForm({
           result_format: (currentData.resultFormat || "").toLowerCase(),
           result: currentData.result || "",
         };
-        const response = await saveEducationDetails(userId, token, [fullPayload]);
+        const response = await saveEducationDetails(userId, token, [
+          fullPayload,
+        ]);
         if (response && response[0]) {
-          setSslcData(prev => ({ ...prev, education_id: response[0].education_id }));
-          initialSslc.current = { ...currentData, education_id: response[0].education_id };
+          setSslcData((prev) => ({
+            ...prev,
+            education_id: response[0].education_id,
+          }));
+          initialSslc.current = {
+            ...currentData,
+            education_id: response[0].education_id,
+          };
         }
         setSslcChanged(false);
         setSslcFeedback("SSLC details saved successfully! ");
       }
-      
+
       setTimeout(() => setSslcFeedback(""), 3000);
     } catch (error) {
       console.error("Error saving SSLC:", error);
@@ -441,9 +540,9 @@ export default function EducationDetailsForm({
   const handleSavePu = async () => {
     const currentData = puData;
     const initial = initialPu.current;
-    
+
     // Check for validation errors
-    if (errors['pu-result'] || errors['pu-institutionName']) return;
+    if (errors["pu-result"] || errors["pu-institutionName"]) return;
 
     try {
       let payload: Record<string, any> = {};
@@ -474,7 +573,7 @@ export default function EducationDetailsForm({
         payload.result = currentData.result;
         isChanged = true;
       }
-      
+
       if (!isChanged) {
         setPuFeedback("No changes to save.");
         setTimeout(() => setPuFeedback(""), 3000);
@@ -483,7 +582,12 @@ export default function EducationDetailsForm({
 
       if (currentData.education_id) {
         // Update existing record (PUT)
-        await updateEducationDetails(userId, token, currentData.education_id, payload);
+        await updateEducationDetails(
+          userId,
+          token,
+          currentData.education_id,
+          payload
+        );
         initialPu.current = { ...currentData };
         setPuChanged(false);
         setPuFeedback("PU details updated successfully! ");
@@ -498,15 +602,23 @@ export default function EducationDetailsForm({
           result_format: (currentData.resultFormat || "").toLowerCase(),
           result: currentData.result || "",
         };
-        const response = await saveEducationDetails(userId, token, [fullPayload]);
+        const response = await saveEducationDetails(userId, token, [
+          fullPayload,
+        ]);
         if (response && response[0]) {
-          setPuData(prev => ({ ...prev, education_id: response[0].education_id }));
-          initialPu.current = { ...currentData, education_id: response[0].education_id };
+          setPuData((prev) => ({
+            ...prev,
+            education_id: response[0].education_id,
+          }));
+          initialPu.current = {
+            ...currentData,
+            education_id: response[0].education_id,
+          };
         }
         setPuChanged(false);
         setPuFeedback("PU details saved successfully! ");
       }
-      
+
       setTimeout(() => setPuFeedback(""), 3000);
     } catch (error) {
       console.error("Error saving PU:", error);
@@ -516,16 +628,27 @@ export default function EducationDetailsForm({
   };
 
   // Handler for saving Higher/Extra Education card details (PUT/POST call)
-  const handleSaveHigherEducation = async (edu: HigherEducation, isExtra: boolean) => {
+  const handleSaveHigherEducation = async (
+    edu: HigherEducation,
+    isExtra: boolean
+  ) => {
     const eduChanges = isExtra ? extraChanges[edu.id] : higherChanges[edu.id];
-    const prefix = isExtra ? `extra-${extraEducations.findIndex(e => e.id === edu.id)}` : `higher-${higherEducations.findIndex(e => e.id === edu.id)}`;
+    const prefix = isExtra
+      ? `extra-${extraEducations.findIndex((e) => e.id === edu.id)}`
+      : `higher-${higherEducations.findIndex((e) => e.id === edu.id)}`;
 
     // Check for validation errors in current card
-    if (errors[`${prefix}-result`] || errors[`${prefix}-institutionName`] || errors[`${prefix}-universityBoard`] || errors[`${prefix}-endYear`]) return;
+    if (
+      errors[`${prefix}-result`] ||
+      errors[`${prefix}-institutionName`] ||
+      errors[`${prefix}-universityBoard`] ||
+      errors[`${prefix}-startYear`] ||
+      errors[`${prefix}-endYear`]
+    )
+      return;
     const isNew = !edu.education_id;
     // Handle initial save or update
     try {
-      
       let payload: Record<string, any> = {};
 
       if (isNew) {
@@ -542,78 +665,137 @@ export default function EducationDetailsForm({
           result: edu.result || "",
           currently_pursuing: edu.currentlyPursuing || false,
         };
-        
+
         // Skip saving empty new cards
         if (!edu.degree && !edu.institutionName) {
-            const feedbackSetter = isExtra ? setExtraFeedback : setHigherFeedback;
-            feedbackSetter(prev => ({ ...prev, [edu.id]: "Cannot save empty card." }));
-            setTimeout(() => feedbackSetter(prev => { const updated = { ...prev }; delete updated[edu.id]; return updated; }), 3000);
-            return;
+          const feedbackSetter = isExtra ? setExtraFeedback : setHigherFeedback;
+          feedbackSetter((prev) => ({
+            ...prev,
+            [edu.id]: "Cannot save empty card.",
+          }));
+          setTimeout(
+            () =>
+              feedbackSetter((prev) => {
+                const updated = { ...prev };
+                delete updated[edu.id];
+                return updated;
+              }),
+            3000
+          );
+          return;
         }
 
         const response = await saveEducationDetails(userId, token, [payload]);
         const updatedEdu = { ...edu, education_id: response[0].education_id };
-        
+
         // Update local state and refs
         const setter = isExtra ? setExtraEducations : setHigherEducations;
-        setter(prev => prev.map(e => e.id === edu.id ? updatedEdu : e));
+        setter((prev) => prev.map((e) => (e.id === edu.id ? updatedEdu : e)));
         const initialRef = isExtra ? initialExtra : initialHigher;
         initialRef.current[edu.id] = updatedEdu;
 
         const feedbackSetter = isExtra ? setExtraFeedback : setHigherFeedback;
-        feedbackSetter(prev => ({ ...prev, [edu.id]: "Saved successfully! " }));
-        
+        feedbackSetter((prev) => ({
+          ...prev,
+          [edu.id]: "Saved successfully! ",
+        }));
       } else {
         // Existing record, check for changes and build minimal payload (PUT)
         if (!eduChanges || eduChanges.length === 0) {
-            const feedbackSetter = isExtra ? setExtraFeedback : setHigherFeedback;
-            feedbackSetter(prev => ({ ...prev, [edu.id]: "No changes to save." }));
-            setTimeout(() => feedbackSetter(prev => { const updated = { ...prev }; delete updated[edu.id]; return updated; }), 3000);
-            return;
+          const feedbackSetter = isExtra ? setExtraFeedback : setHigherFeedback;
+          feedbackSetter((prev) => ({
+            ...prev,
+            [edu.id]: "No changes to save.",
+          }));
+          setTimeout(
+            () =>
+              feedbackSetter((prev) => {
+                const updated = { ...prev };
+                delete updated[edu.id];
+                return updated;
+              }),
+            3000
+          );
+          return;
         }
 
-        eduChanges.forEach(field => {
-          switch(field) {
-            case 'degree': payload.degree = edu.degree; break;
-            case 'fieldOfStudy': payload.field_of_study = edu.fieldOfStudy; break;
-            case 'institutionName': payload.institution_name = edu.institutionName; break;
-            case 'universityBoard': payload.university_name = edu.universityBoard; break;
-            case 'startYear': payload.start_year = buildYear(edu.startYear); break;
-            case 'endYear': payload.end_year = buildYear(edu.endYear); break;
-            case 'resultFormat': payload.result_format = edu.resultFormat?.toLowerCase(); break;
-            case 'result': payload.result = edu.result; break;
-            case 'currentlyPursuing': payload.currently_pursuing = edu.currentlyPursuing; break;
+        eduChanges.forEach((field) => {
+          switch (field) {
+            case "degree":
+              payload.degree = edu.degree;
+              break;
+            case "fieldOfStudy":
+              payload.field_of_study = edu.fieldOfStudy;
+              break;
+            case "institutionName":
+              payload.institution_name = edu.institutionName;
+              break;
+            case "universityBoard":
+              payload.university_name = edu.universityBoard;
+              break;
+            case "startYear":
+              payload.start_year = buildYear(edu.startYear);
+              break;
+            case "endYear":
+              payload.end_year = buildYear(edu.endYear);
+              break;
+            case "resultFormat":
+              payload.result_format = edu.resultFormat?.toLowerCase();
+              break;
+            case "result":
+              payload.result = edu.result;
+              break;
+            case "currentlyPursuing":
+              payload.currently_pursuing = edu.currentlyPursuing;
+              break;
           }
         });
 
         await updateEducationDetails(userId, token, edu.education_id, payload);
-        
+
         // Update local state and refs
         const initialRef = isExtra ? initialExtra : initialHigher;
         initialRef.current[edu.id] = { ...edu };
 
         const changesSetter = isExtra ? setExtraChanges : setHigherChanges;
-        changesSetter(prev => { const updated = { ...prev }; delete updated[edu.id]; return updated; });
-        
+        changesSetter((prev) => {
+          const updated = { ...prev };
+          delete updated[edu.id];
+          return updated;
+        });
+
         const feedbackSetter = isExtra ? setExtraFeedback : setHigherFeedback;
-        feedbackSetter(prev => ({ ...prev, [edu.id]: "Updated successfully! " }));
+        feedbackSetter((prev) => ({
+          ...prev,
+          [edu.id]: "Updated successfully! ",
+        }));
       }
 
       // Clear feedback after 3 seconds
       setTimeout(() => {
         const feedbackSetter = isExtra ? setExtraFeedback : setHigherFeedback;
-        feedbackSetter(prev => { const updated = { ...prev }; delete updated[edu.id]; return updated; });
+        feedbackSetter((prev) => {
+          const updated = { ...prev };
+          delete updated[edu.id];
+          return updated;
+        });
       }, 3000);
-
     } catch (error) {
       console.error("Error saving education:", error);
       const feedback = isNew ? "Failed to save " : "Failed to update ";
       const feedbackSetter = isExtra ? setExtraFeedback : setHigherFeedback;
-      feedbackSetter(prev => ({ ...prev, [edu.id]: feedback }));
-      setTimeout(() => feedbackSetter(prev => { const updated = { ...prev }; delete updated[edu.id]; return updated; }), 3000);
+      feedbackSetter((prev) => ({ ...prev, [edu.id]: feedback }));
+      setTimeout(
+        () =>
+          feedbackSetter((prev) => {
+            const updated = { ...prev };
+            delete updated[edu.id];
+            return updated;
+          }),
+        3000
+      );
     }
   };
-
 
   // Handler to add an extra education card
   const addEducation = () => {
@@ -632,28 +814,50 @@ export default function EducationDetailsForm({
     setExtraEducations([...extraEducations, newEdu]);
     setExtraExpanded((prev) => ({ ...prev, [newEdu.id]: true }));
     // A new card is considered 'changed' until saved
-    setExtraChanges(prev => ({ ...prev, [newEdu.id]: ['new'] }));
+    setExtraChanges((prev) => ({ ...prev, [newEdu.id]: ["new"] }));
   };
 
   // Handler to remove an extra education card and perform DELETE API call if necessary
   const removeEducation = async (index: number) => {
     const edu = extraEducations[index];
-    
+
     if (edu.education_id) {
       try {
         await deleteEducation(userId, token, edu.education_id);
         deletedEducationIds.current.push(edu.education_id);
         const feedbackSetter = setExtraFeedback;
-        feedbackSetter(prev => ({ ...prev, [edu.id]: "Deleted successfully! " }));
-        setTimeout(() => feedbackSetter(prev => { const updated = { ...prev }; delete updated[edu.id]; return updated; }), 3000);
+        feedbackSetter((prev) => ({
+          ...prev,
+          [edu.id]: "Deleted successfully! ",
+        }));
+        setTimeout(
+          () =>
+            feedbackSetter((prev) => {
+              const updated = { ...prev };
+              delete updated[edu.id];
+              return updated;
+            }),
+          3000
+        );
       } catch (error) {
         console.error("Error deleting education:", error);
-        setExtraFeedback(prev => ({ ...prev, [edu.id]: "Failed to delete " }));
-        setTimeout(() => setExtraFeedback(prev => { const updated = { ...prev }; delete updated[edu.id]; return updated; }), 3000);
-        return; // Stop removal if API call fails
+        setExtraFeedback((prev) => ({
+          ...prev,
+          [edu.id]: "Failed to delete ",
+        }));
+        setTimeout(
+          () =>
+            setExtraFeedback((prev) => {
+              const updated = { ...prev };
+              delete updated[edu.id];
+              return updated;
+            }),
+          3000
+        );
+        return;
       }
     }
-    
+
     // Remove from state and clear associated data/errors
     const id = edu.id;
     setExtraEducations(extraEducations.filter((_, i) => i !== index));
@@ -670,24 +874,25 @@ export default function EducationDetailsForm({
     setErrors((prev) => {
       const updated = { ...prev };
       // Clear errors by matching the prefix pattern for the removed index
-      Object.keys(updated).forEach(key => {
-          if (key.startsWith(`extra-${index}-`)) {
-              delete updated[key];
-          }
+      Object.keys(updated).forEach((key) => {
+        if (key.startsWith(`extra-${index}-`)) {
+          delete updated[key];
+        }
       });
       return updated;
     });
   };
 
-  // Handler for clearing SSLC form data
+  // Handler for clearing SSLC form data (RESET/UNDO)
   const handleClearEducationSSLC = () => {
-    setSslcData(prev => ({
+    const initial = initialSslc.current;
+    setSslcData((prev) => ({
       ...prev,
-      institutionName: "",
-      boardType: "",
-      resultFormat: "",
-      yearOfPassing: "",
-      result: "",
+      institutionName: initial.institutionName || "",
+      boardType: initial.boardType || "",
+      resultFormat: initial.resultFormat || "",
+      yearOfPassing: initial.yearOfPassing || "",
+      result: initial.result || "",
     }));
     setErrors((prev) => {
       const updated = { ...prev };
@@ -695,20 +900,21 @@ export default function EducationDetailsForm({
       delete updated["sslc-institutionName"];
       return updated;
     });
-    setSslcChanged(true);
+    // Since state is reset to initial, useEffect will set sslcChanged to false
     setSslcFeedback("");
   };
 
-  // Handler for clearing PU form data
+  // Handler for clearing PU form data (RESET/UNDO)
   const handleClearEducationPreUniversity = () => {
-    setPuData(prev => ({
+    const initial = initialPu.current;
+    setPuData((prev) => ({
       ...prev,
-      institutionName: "",
-      boardType: "",
-      yearOfPassing: "",
-      resultFormat: "",
-      subjectStream: "",
-      result: "",
+      institutionName: initial.institutionName || "",
+      boardType: initial.boardType || "",
+      yearOfPassing: initial.yearOfPassing || "",
+      resultFormat: initial.resultFormat || "",
+      subjectStream: initial.subjectStream || "",
+      result: initial.result || "",
     }));
     setErrors((prev) => {
       const updated = { ...prev };
@@ -716,37 +922,66 @@ export default function EducationDetailsForm({
       delete updated["pu-institutionName"];
       return updated;
     });
-    setPuChanged(true);
+    // Since state is reset to initial, useEffect will set puChanged to false
     setPuFeedback("");
   };
 
-  // Handler for clearing Higher/Extra Education card data
+  // Handler for clearing Higher/Extra Education card data (RESET/UNDO)
   const handleClearHigherEducation = (id: string, isExtra: boolean) => {
     const setter = isExtra ? setExtraEducations : setHigherEducations;
-    const currentList = isExtra ? extraEducations : higherEducations;
-    const index = currentList.findIndex(e => e.id === id);
-    const prefix = isExtra ? `extra-${index}` : `higher-${index}`;
-    
-    if (index === -1) return;
+    const initialRef = isExtra ? initialExtra : initialHigher;
+    const initial = initialRef.current[id];
 
-    setter((prev) =>
-      prev.map((edu, i) =>
-        i === index
-          ? {
-              ...edu,
-              degree: "",
-              institutionName: "",
-              universityBoard: "",
-              fieldOfStudy: "",
-              startYear: "",
-              endYear: "",
-              resultFormat: "",
-              result: "",
-              currentlyPursuing: false,
-            }
-          : edu
-      )
-    );
+    if (!initial) {
+      // If no initial data (new unsaved card), clear all fields
+      const currentList = isExtra ? extraEducations : higherEducations;
+      const index = currentList.findIndex((e) => e.id === id);
+      const prefix = isExtra ? `extra-${index}` : `higher-${index}`;
+
+      setter((prev) =>
+        prev.map((edu, i) =>
+          i === index
+            ? {
+                ...edu,
+                degree: "",
+                institutionName: "",
+                universityBoard: "",
+                fieldOfStudy: "",
+                startYear: "",
+                endYear: "",
+                resultFormat: "",
+                result: "",
+                currentlyPursuing: false,
+              }
+            : edu
+        )
+      );
+      const changesSetter = isExtra ? setExtraChanges : setHigherChanges;
+      changesSetter((prev) => ({ ...prev, [id]: ["cleared"] }));
+    } else {
+      // If initial data exists, reset to initial data
+      const currentList = isExtra ? extraEducations : higherEducations;
+      const index = currentList.findIndex((e) => e.id === id);
+      const prefix = isExtra ? `extra-${index}` : `higher-${index}`;
+
+      setter((prev) =>
+        prev.map((edu) => (edu.id === id ? { ...initial } : edu))
+      );
+
+      // Clear changes object for this card (useEffect will re-evaluate and typically remove the entry)
+      const changesSetter = isExtra ? setExtraChanges : setHigherChanges;
+      changesSetter((prev) => {
+        const updated = { ...prev };
+        delete updated[id];
+        return updated;
+      });
+    }
+
+    // Clear errors for this card
+    const currentList = isExtra ? extraEducations : higherEducations;
+    const index = currentList.findIndex((e) => e.id === id);
+    const prefix = isExtra ? `extra-${index}` : `higher-${index}`;
+
     setErrors((prev) => {
       const updated = { ...prev };
       delete updated[`${prefix}-result`];
@@ -755,29 +990,61 @@ export default function EducationDetailsForm({
       delete updated[`${prefix}-endYear`];
       return updated;
     });
-    
-    // Mark as changed to re-enable Save button
-    const changesSetter = isExtra ? setExtraChanges : setHigherChanges;
-    changesSetter(prev => ({ ...prev, [id]: ['cleared'] }));
   };
 
   // Check if there are any unsaved changes in any section
-  const hasUnsavedChanges = sslcChanged || puChanged || Object.keys(higherChanges).length > 0 || Object.keys(extraChanges).length > 0;
+  const hasUnsavedChanges =
+    sslcChanged ||
+    puChanged ||
+    Object.keys(higherChanges).length > 0 ||
+    Object.keys(extraChanges).length > 0;
 
   // Final submission handler
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
+    // Check for validation errors across all fields
+    if (Object.values(errors).some((err) => err.length > 0)) {
+      alert("Please fix validation errors before proceeding.");
+      return;
+    }
+
     if (hasUnsavedChanges) {
-      setSslcFeedback(sslcChanged ? "Please save your SSLC changes before proceeding" : "");
-      setPuFeedback(puChanged ? "Please save your PU changes before proceeding" : "");
-      Object.keys(higherChanges).forEach(id => {
-        setHigherFeedback(prev => ({ ...prev, [id]: "Please save your changes before proceeding" }));
-        setTimeout(() => setHigherFeedback(prev => { const updated = { ...prev }; delete updated[id]; return updated; }), 3000);
+      setSslcFeedback(
+        sslcChanged ? "Please save your SSLC changes before proceeding" : ""
+      );
+      setPuFeedback(
+        puChanged ? "Please save your PU changes before proceeding" : ""
+      );
+      Object.keys(higherChanges).forEach((id) => {
+        setHigherFeedback((prev) => ({
+          ...prev,
+          [id]: "Please save your changes before proceeding",
+        }));
+        setTimeout(
+          () =>
+            setHigherFeedback((prev) => {
+              const updated = { ...prev };
+              delete updated[id];
+              return updated;
+            }),
+          3000
+        );
       });
-      Object.keys(extraChanges).forEach(id => {
-        setExtraFeedback(prev => ({ ...prev, [id]: "Please save your changes before proceeding" }));
-        setTimeout(() => setExtraFeedback(prev => { const updated = { ...prev }; delete updated[id]; return updated; }), 3000);
+      Object.keys(extraChanges).forEach((id) => {
+        setExtraFeedback((prev) => ({
+          ...prev,
+          [id]: "Please save your changes before proceeding",
+        }));
+        setTimeout(
+          () =>
+            setExtraFeedback((prev) => {
+              const updated = { ...prev };
+              delete updated[id];
+              return updated;
+            }),
+          3000
+        );
       });
       return;
     }
@@ -785,8 +1052,12 @@ export default function EducationDetailsForm({
     onNext({
       sslc: sslcData,
       pu: puData,
-      higherEducations: higherEducations.filter(e => e.degree || e.institutionName || e.education_id),
-      extraEducations: extraEducations.filter(e => e.degree || e.institutionName || e.education_id),
+      higherEducations: higherEducations.filter(
+        (e) => e.degree || e.institutionName || e.education_id
+      ),
+      extraEducations: extraEducations.filter(
+        (e) => e.degree || e.institutionName || e.education_id
+      ),
       deletedEducationIds: deletedEducationIds.current,
     });
   };
@@ -801,11 +1072,14 @@ export default function EducationDetailsForm({
     const id = education.id;
     const expanded = isExtra ? extraExpanded[id] : higherExpanded[id];
     const prefix = isExtra ? `extra-${index}` : `higher-${index}`;
-    const changed = isExtra ? (extraChanges[id]?.length > 0) : (higherChanges[id]?.length > 0);
+    const changed = isExtra
+      ? extraChanges[id]?.length > 0
+      : higherChanges[id]?.length > 0;
     const feedback = isExtra ? extraFeedback[id] : higherFeedback[id];
     const handleSave = () => handleSaveHigherEducation(education, isExtra);
     const handleClear = () => handleClearHigherEducation(id, isExtra);
-    const handleChange = (field: string, value: string | boolean) => handleEducationChange(id, field, value, isExtra);
+    const handleChange = (field: string, value: string | boolean) =>
+      handleEducationChange(id, field, value, isExtra);
 
     return (
       <div
@@ -817,18 +1091,18 @@ export default function EducationDetailsForm({
             {isExtra ? `Higher Education ${index + 1}` : "Higher Education*"}
           </h3>
           <div className="flex gap-2 items-center">
-             {changed && (
-                <button
-                    type="button"
-                    onClick={handleSave}
-                    className="w-5 h-5 flex items-center justify-center rounded-full border-2 border-green-600 hover:bg-green-50 transition-colors"
-                    title="Save changes"
-                >
-                    <Save
-                        className="w-3 h-3 text-green-600 cursor-pointer"
-                        strokeWidth={2.5}
-                    />
-                </button>
+            {changed && (
+              <button
+                type="button"
+                onClick={handleSave}
+                className="w-5 h-5 flex items-center justify-center rounded-full border-2 border-green-600 hover:bg-green-50 transition-colors"
+                title="Save changes"
+              >
+                <Save
+                  className="w-3 h-3 text-green-600 cursor-pointer"
+                  strokeWidth={2.5}
+                />
+              </button>
             )}
             <button
               type="button"
@@ -846,6 +1120,7 @@ export default function EducationDetailsForm({
               type="button"
               onClick={handleClear}
               className="w-5 h-5 flex items-center justify-center rounded-full border-2 border-gray-600 hover:bg-gray-100 transition-colors"
+              title="Reset changes"
             >
               <RotateCcw
                 className="w-3 h-3 text-gray-600 cursor-pointer"
@@ -867,11 +1142,15 @@ export default function EducationDetailsForm({
             )}
           </div>
         </div>
-        
+
         {feedback && (
-          <div className={`p-4 text-sm ${
-            feedback.includes("successfully") ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"
-          }`}>
+          <div
+            className={`p-4 text-sm ${
+              feedback.includes("successfully")
+                ? "bg-green-50 text-green-700"
+                : "bg-red-50 text-red-700"
+            }`}
+          >
             {feedback}
           </div>
         )}
@@ -908,7 +1187,9 @@ export default function EducationDetailsForm({
                 <div className="relative">
                   <select
                     value={education.fieldOfStudy}
-                    onChange={(e) => handleChange("fieldOfStudy", e.target.value)}
+                    onChange={(e) =>
+                      handleChange("fieldOfStudy", e.target.value)
+                    }
                     className="w-full px-3 py-2 sm:py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent text-xs sm:text-sm appearance-none bg-white pr-8"
                   >
                     <option value="">Select Field of Study</option>
@@ -929,7 +1210,9 @@ export default function EducationDetailsForm({
                 <input
                   type="text"
                   value={education.institutionName}
-                  onChange={(e) => handleChange("institutionName", e.target.value)}
+                  onChange={(e) =>
+                    handleChange("institutionName", e.target.value)
+                  }
                   placeholder="Enter Institution Name"
                   className={`w-full px-3 py-2 sm:py-2.5 border rounded-lg focus:outline-none focus:ring-2 text-xs sm:text-sm ${
                     errors[`${prefix}-institutionName`]
@@ -938,7 +1221,9 @@ export default function EducationDetailsForm({
                   }`}
                 />
                 {errors[`${prefix}-institutionName`] && (
-                  <p className="mt-1 text-xs text-red-500">{errors[`${prefix}-institutionName`]}</p>
+                  <p className="mt-1 text-xs text-red-500">
+                    {errors[`${prefix}-institutionName`]}
+                  </p>
                 )}
               </div>
 
@@ -950,7 +1235,9 @@ export default function EducationDetailsForm({
                 <input
                   type="text"
                   value={education.universityBoard}
-                  onChange={(e) => handleChange("universityBoard", e.target.value)}
+                  onChange={(e) =>
+                    handleChange("universityBoard", e.target.value)
+                  }
                   placeholder="Enter University/ Board Name"
                   className={`w-full px-3 py-2 sm:py-2.5 border rounded-lg focus:outline-none focus:ring-2 text-xs sm:text-sm ${
                     errors[`${prefix}-universityBoard`]
@@ -959,7 +1246,9 @@ export default function EducationDetailsForm({
                   }`}
                 />
                 {errors[`${prefix}-universityBoard`] && (
-                  <p className="mt-1 text-xs text-red-500">{errors[`${prefix}-universityBoard`]}</p>
+                  <p className="mt-1 text-xs text-red-500">
+                    {errors[`${prefix}-universityBoard`]}
+                  </p>
                 )}
               </div>
 
@@ -973,9 +1262,15 @@ export default function EducationDetailsForm({
                     type="month"
                     value={education.startYear}
                     onChange={(e) => handleChange("startYear", e.target.value)}
+                    max={getCurrentMonth()}
                     className="w-full px-3 py-2 sm:py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent text-xs sm:text-sm"
                   />
                 </div>
+                {errors[`${prefix}-startYear`] && (
+                  <p className="mt-1 text-xs text-red-500">
+                    {errors[`${prefix}-startYear`]}
+                  </p>
+                )}
               </div>
 
               {/* End Year */}
@@ -988,6 +1283,7 @@ export default function EducationDetailsForm({
                     type="month"
                     value={education.endYear}
                     onChange={(e) => handleChange("endYear", e.target.value)}
+                    max={getCurrentMonth()}
                     disabled={education.currentlyPursuing}
                     className={`w-full px-3 py-2 sm:py-2.5 border rounded-lg focus:outline-none focus:ring-2 text-xs sm:text-sm disabled:bg-gray-100 ${
                       errors[`${prefix}-endYear`]
@@ -997,7 +1293,9 @@ export default function EducationDetailsForm({
                   />
                 </div>
                 {errors[`${prefix}-endYear`] && (
-                  <p className="mt-1 text-xs text-red-500">{errors[`${prefix}-endYear`]}</p>
+                  <p className="mt-1 text-xs text-red-500">
+                    {errors[`${prefix}-endYear`]}
+                  </p>
                 )}
               </div>
 
@@ -1007,7 +1305,9 @@ export default function EducationDetailsForm({
                   <input
                     type="checkbox"
                     checked={education.currentlyPursuing}
-                    onChange={(e) => handleChange("currentlyPursuing", e.target.checked)}
+                    onChange={(e) =>
+                      handleChange("currentlyPursuing", e.target.checked)
+                    }
                     className="w-4 h-4 text-orange-400 border-gray-300 rounded focus:ring-orange-400"
                   />
                   <span className="text-xs sm:text-sm text-gray-700">
@@ -1024,7 +1324,9 @@ export default function EducationDetailsForm({
                 <div className="relative">
                   <select
                     value={education.resultFormat}
-                    onChange={(e) => handleChange("resultFormat", e.target.value)}
+                    onChange={(e) =>
+                      handleChange("resultFormat", e.target.value)
+                    }
                     className="w-full px-3 py-2 sm:py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent text-xs sm:text-sm appearance-none bg-white pr-8"
                   >
                     <option value="">Select Result Format</option>
@@ -1053,7 +1355,9 @@ export default function EducationDetailsForm({
                   }`}
                 />
                 {errors[`${prefix}-result`] && (
-                  <p className="mt-1 text-xs text-red-500">{errors[`${prefix}-result`]}</p>
+                  <p className="mt-1 text-xs text-red-500">
+                    {errors[`${prefix}-result`]}
+                  </p>
                 )}
               </div>
             </div>
@@ -1071,7 +1375,6 @@ export default function EducationDetailsForm({
       setHigherExpanded((prev) => ({ ...prev, [id]: !prev[id] }));
     }
   };
-
 
   return (
     <form
@@ -1099,15 +1402,15 @@ export default function EducationDetailsForm({
             <div className="flex gap-2 items-center">
               {sslcChanged && (
                 <button
-                    type="button"
-                    onClick={handleSaveSslc}
-                    className="w-5 h-5 flex items-center justify-center rounded-full border-2 border-green-600 hover:bg-green-50 transition-colors"
-                    title="Save changes"
+                  type="button"
+                  onClick={handleSaveSslc}
+                  className="w-5 h-5 flex items-center justify-center rounded-full border-2 border-green-600 hover:bg-green-50 transition-colors"
+                  title="Save changes"
                 >
-                    <Save
-                        className="w-3 h-3 text-green-600 cursor-pointer"
-                        strokeWidth={2.5}
-                    />
+                  <Save
+                    className="w-3 h-3 text-green-600 cursor-pointer"
+                    strokeWidth={2.5}
+                  />
                 </button>
               )}
               <button
@@ -1126,6 +1429,7 @@ export default function EducationDetailsForm({
                 type="button"
                 onClick={handleClearEducationSSLC}
                 className="w-5 h-5 flex items-center justify-center rounded-full border-2 border-gray-600 hover:bg-gray-100 transition-colors"
+                title="Reset changes"
               >
                 <RotateCcw
                   className="w-3 h-3 text-gray-600 cursor-pointer"
@@ -1134,14 +1438,18 @@ export default function EducationDetailsForm({
               </button>
             </div>
           </div>
-          
+
           {sslcFeedback && (
-              <div className={`p-4 text-sm ${
-                sslcFeedback.includes("successfully") ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"
-              }`}>
-                {sslcFeedback}
-              </div>
-            )}
+            <div
+              className={`p-4 text-sm ${
+                sslcFeedback.includes("successfully")
+                  ? "bg-green-50 text-green-700"
+                  : "bg-red-50 text-red-700"
+              }`}
+            >
+              {sslcFeedback}
+            </div>
+          )}
 
           {sslcExpanded && (
             <div className="p-4 sm:p-5 md:p-6">
@@ -1163,7 +1471,9 @@ export default function EducationDetailsForm({
                     }`}
                   />
                   {errors["sslc-institutionName"] && (
-                    <p className="mt-1 text-xs text-red-500">{errors["sslc-institutionName"]}</p>
+                    <p className="mt-1 text-xs text-red-500">
+                      {errors["sslc-institutionName"]}
+                    </p>
                   )}
                 </div>
                 <div>
@@ -1194,6 +1504,7 @@ export default function EducationDetailsForm({
                     name="yearOfPassing"
                     value={sslcData.yearOfPassing}
                     onChange={handleSslcChange}
+                    max={getCurrentMonth()}
                     className="w-full px-3 py-2 sm:py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent text-xs sm:text-sm"
                   />
                 </div>
@@ -1233,7 +1544,9 @@ export default function EducationDetailsForm({
                     }`}
                   />
                   {errors["sslc-result"] && (
-                    <p className="mt-1 text-xs text-red-500">{errors["sslc-result"]}</p>
+                    <p className="mt-1 text-xs text-red-500">
+                      {errors["sslc-result"]}
+                    </p>
                   )}
                 </div>
               </div>
@@ -1250,15 +1563,15 @@ export default function EducationDetailsForm({
             <div className="flex gap-2 items-center">
               {puChanged && (
                 <button
-                    type="button"
-                    onClick={handleSavePu}
-                    className="w-5 h-5 flex items-center justify-center rounded-full border-2 border-green-600 hover:bg-green-50 transition-colors"
-                    title="Save changes"
+                  type="button"
+                  onClick={handleSavePu}
+                  className="w-5 h-5 flex items-center justify-center rounded-full border-2 border-green-600 hover:bg-green-50 transition-colors"
+                  title="Save changes"
                 >
-                    <Save
-                        className="w-3 h-3 text-green-600 cursor-pointer"
-                        strokeWidth={2.5}
-                    />
+                  <Save
+                    className="w-3 h-3 text-green-600 cursor-pointer"
+                    strokeWidth={2.5}
+                  />
                 </button>
               )}
               <button
@@ -1277,6 +1590,7 @@ export default function EducationDetailsForm({
                 type="button"
                 onClick={handleClearEducationPreUniversity}
                 className="w-5 h-5 flex items-center justify-center rounded-full border-2 border-gray-600 hover:bg-gray-100 transition-colors"
+                title="Reset changes"
               >
                 <RotateCcw
                   className="w-3 h-3 text-gray-600 cursor-pointer"
@@ -1285,14 +1599,18 @@ export default function EducationDetailsForm({
               </button>
             </div>
           </div>
-          
+
           {puFeedback && (
-              <div className={`p-4 text-sm ${
-                puFeedback.includes("successfully") ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"
-              }`}>
-                {puFeedback}
-              </div>
-            )}
+            <div
+              className={`p-4 text-sm ${
+                puFeedback.includes("successfully")
+                  ? "bg-green-50 text-green-700"
+                  : "bg-red-50 text-red-700"
+              }`}
+            >
+              {puFeedback}
+            </div>
+          )}
 
           {puExpanded && (
             <div className="p-4 sm:p-5 md:p-6">
@@ -1314,7 +1632,9 @@ export default function EducationDetailsForm({
                     }`}
                   />
                   {errors["pu-institutionName"] && (
-                    <p className="mt-1 text-xs text-red-500">{errors["pu-institutionName"]}</p>
+                    <p className="mt-1 text-xs text-red-500">
+                      {errors["pu-institutionName"]}
+                    </p>
                   )}
                 </div>
                 <div>
@@ -1364,6 +1684,7 @@ export default function EducationDetailsForm({
                     name="yearOfPassing"
                     value={puData.yearOfPassing}
                     onChange={handlePuChange}
+                    max={getCurrentMonth()}
                     className="w-full px-3 py-2 sm:py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent text-xs sm:text-sm"
                   />
                 </div>
@@ -1403,7 +1724,9 @@ export default function EducationDetailsForm({
                     }`}
                   />
                   {errors["pu-result"] && (
-                    <p className="mt-1 text-xs text-red-500">{errors["pu-result"]}</p>
+                    <p className="mt-1 text-xs text-red-500">
+                      {errors["pu-result"]}
+                    </p>
                   )}
                 </div>
               </div>
@@ -1415,7 +1738,7 @@ export default function EducationDetailsForm({
         {higherEducations.map((edu, index) =>
           renderEducationCard(edu, index, false, true)
         )}
-        
+
         {/* Extra Education Cards (Additional Higher Education) */}
         {extraEducations.map((edu, index) =>
           renderEducationCard(edu, index, true, false)
@@ -1444,7 +1767,9 @@ export default function EducationDetailsForm({
             type="submit"
             disabled={hasUnsavedChanges}
             style={{
-              background: hasUnsavedChanges ? "#BDBDBD" : "linear-gradient(180deg, #FF9D48 0%, #FF8251 100%)",
+              background: hasUnsavedChanges
+                ? "#BDBDBD"
+                : "linear-gradient(180deg, #FF9D48 0%, #FF8251 100%)",
             }}
             className="px-6 sm:px-8 py-2.5 sm:py-3 text-white rounded-xl font-medium text-xs sm:text-sm transition-colors shadow-sm cursor-pointer disabled:cursor-not-allowed"
           >

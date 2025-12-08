@@ -137,18 +137,39 @@ export default function ExperienceDetailsForm({
     setExperienceChanges(changes);
   }, [workExperiences]);
 
-  // Validation functions
   const validateCompanyName = (value: string) => {
-    if (value && !/^[a-zA-Z0-9\s.,&'-]+$/.test(value)) {
-      return "Invalid characters in company name";
+    if (!value.trim()) return "Company name is required";
+
+    const regex = /^[a-zA-Z0-9\s.,&'-]+$/;
+
+    if (!regex.test(value)) {
+      return "Invalid company name";
     }
+
+    if (!/[a-zA-Z]/.test(value)) {
+      return "Company name must include a letter";
+    }
+
     return "";
   };
 
   const validateJobTitle = (value: string) => {
-    if (value && !/^[a-zA-Z0-9\s./-]+$/.test(value)) {
-      return "Invalid characters in job title";
+    if (!value.trim()) return "Job title is required";
+
+    const regex = /^[a-zA-Z0-9\s./-]+$/;
+
+    if (!regex.test(value)) {
+      return "Invalid job title";
     }
+
+    if (!/\d/.test(value)) {
+      return "Job title must include a number";
+    }
+
+    if (!/[a-zA-Z]/.test(value)) {
+      return "Job title must include a letter";
+    }
+
     return "";
   };
 
@@ -159,6 +180,14 @@ export default function ExperienceDetailsForm({
       }
     }
     return "";
+  };
+
+  // Helper to get current month in YYYY-MM format (for blocking future dates)
+  const getCurrentMonth = (): string => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    return `${year}-${month}`;
   };
 
   // Helper to format date for API payload (YYYY-MM to YYYY-MM-01)
@@ -834,6 +863,7 @@ export default function ExperienceDetailsForm({
                     onChange={(e) =>
                       handleExperienceChange(index, "startDate", e.target.value)
                     }
+                    max={getCurrentMonth()}
                     placeholder="Select Start Date"
                     className="w-full px-3 py-2 sm:py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent text-xs sm:text-sm pr-8"
                   />
@@ -852,6 +882,7 @@ export default function ExperienceDetailsForm({
                     onChange={(e) =>
                       handleExperienceChange(index, "endDate", e.target.value)
                     }
+                    max={getCurrentMonth()}
                     placeholder="Select End Date"
                     disabled={experience.currentlyWorking}
                     className={`w-full px-3 py-2 sm:py-2.5 border rounded-lg focus:outline-none focus:ring-2 text-xs sm:text-sm pr-8 disabled:bg-gray-100 ${

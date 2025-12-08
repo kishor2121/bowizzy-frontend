@@ -55,12 +55,6 @@ import InterviewReview from "./pages/(InterviewPrep)/VideoPractise/Components/In
 import TemplateSelection from "./pages/(ResumeBuilder)/TemplateSelection";
 import ResumeEditor from "./pages/(ResumeBuilder)/ResumeEditor";
 
-
-
-// const isAuthenticated = () => {
-//   return true;
-// };
-
 const isAuthenticated = () => {
   const raw = localStorage.getItem("user");
   if (!raw) return false;
@@ -71,34 +65,6 @@ const isAuthenticated = () => {
     return false;
   }
 };
-
-// const items = [
-//   {
-//     title: "Home",
-//     url: "/",
-//     icon: Home,
-//   },
-//   {
-//     title: "Inbox",
-//     url: "#",
-//     icon: Inbox,
-//   },
-//   {
-//     title: "Calendar",
-//     url: "#",
-//     icon: Calendar,
-//   },
-//   {
-//     title: "Search",
-//     url: "#",
-//     icon: Search,
-//   },
-//   {
-//     title: "Settings",
-//     url: "#",
-//     icon: Settings,
-//   },
-// ]
 
 const careerMap = [
   {
@@ -260,25 +226,24 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-
-
 function App() {
   const router = createBrowserRouter([
     {
       path: "/",
-      Component: () => <Navigate to="/login" />,   // Redirect to login
+      Component: () => {
+        if (isAuthenticated()) {
+          return <Navigate to="/dashboard" replace />;
+        }
+        return <Navigate to="/login" replace />;
+      },
     },
     {
       path: "login",
-      Component: () => <Login />,                  // ⬅ LOGIN ROUTE ADDED
+      Component: () => <Login />,
     },
     {
       path: "signup",
       Component: () => <Register />,
-    },
-    {
-      path: "/",
-      Component: () => <Home />,
     },
     {
       path: "dashboard",
@@ -330,7 +295,6 @@ function App() {
         </ProtectedRoute>
       ),
     },
-
     {
       path: "interview-prep/mock-interview",
       Component: () => (
@@ -341,8 +305,6 @@ function App() {
         </ProtectedRoute>
       ),
     },
-
-    // ⭐ VIDEO PRACTICE MAIN PAGE
     {
       path: "interview-prep/video-practice",
       Component: () => (
@@ -353,8 +315,6 @@ function App() {
         </ProtectedRoute>
       ),
     },
-
-    // ⭐ NEW: INTERVIEW STEPS PAGE
     {
       path: "interview-prep/video-practice/steps",
       Component: () => (
@@ -365,8 +325,6 @@ function App() {
         </ProtectedRoute>
       ),
     },
-
-    // ⭐ QUESTION PAGE
     {
       path: "interview-prep/video-practice/question",
       Component: () => (
@@ -377,8 +335,6 @@ function App() {
         </ProtectedRoute>
       ),
     },
-
-    // ⭐ NEW: INTERVIEW COMPLETE PAGE
     {
       path: "interview-prep/video-practice/complete",
       Component: () => (
@@ -389,7 +345,6 @@ function App() {
         </ProtectedRoute>
       ),
     },
-
     {
       path: "interview-prep/video-practice/review",
       Component: () => (
@@ -400,9 +355,6 @@ function App() {
         </ProtectedRoute>
       ),
     },
-
-
-    // OTHER EXISTING ROUTES...
     {
       path: "interview-prep/give-mock-interview",
       Component: () => (
@@ -414,7 +366,7 @@ function App() {
       ),
     },
     {
-      path: "interview-prep/interview-details",
+      path: "interview-prep/interview-details/:id",
       Component: () => (
         <ProtectedRoute>
           <LayoutWrapper>
@@ -485,7 +437,6 @@ function App() {
     },
     {
       path: "template-selection",
-
       Component: () => (
         <ProtectedRoute>
           <LayoutWrapper>

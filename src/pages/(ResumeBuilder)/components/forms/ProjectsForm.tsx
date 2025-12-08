@@ -65,11 +65,11 @@ export const ProjectsForm: React.FC<ProjectsFormProps> = ({
   // Check if a specific project has changes
   const getProjectChangedStatus = (current: Project): boolean => {
     const initial = initialProjectsRef.current[current.id];
-    
+
     if (!initial) {
       return !!(current.projectTitle || current.projectType);
     }
-    
+
     return (
       current.projectTitle !== (initial.projectTitle || "") ||
       current.projectType !== (initial.projectType || "") ||
@@ -92,6 +92,9 @@ export const ProjectsForm: React.FC<ProjectsFormProps> = ({
   const validateProjectTitle = (value: string) => {
     if (value && !/^[a-zA-Z0-9\s.,-]+$/.test(value)) {
       return "Invalid characters in project title";
+    }
+    if (value && !/[a-zA-Z]/.test(value)) {
+      return "Project title must include at least one letter";
     }
     return "";
   };
@@ -155,6 +158,18 @@ export const ProjectsForm: React.FC<ProjectsFormProps> = ({
         return newErrors;
       });
     }
+    // If projectType is changed, ensure it's not purely numeric
+    if (field === "projectType" && typeof value === "string") {
+      if (value && !/[a-zA-Z]/.test(value)) {
+        setErrors((prev) => ({ ...prev, [`project-${id}-projectType`]: "Project type must include at least one letter" }));
+      } else {
+        setErrors((prev) => {
+          const updated = { ...prev };
+          delete updated[`project-${id}-projectType`];
+          return updated;
+        });
+      }
+    }
   };
 
   // Handler for saving individual Project card (PUT/POST call)
@@ -162,7 +177,11 @@ export const ProjectsForm: React.FC<ProjectsFormProps> = ({
     const isNew = !project.project_id;
 
     // Check local validation errors
-    if (errors[`project-${project.id}-projectTitle`] || errors[`project-${project.id}-endDate`]) return;
+    if (
+      errors[`project-${project.id}-projectTitle`] ||
+      errors[`project-${project.id}-endDate`]
+    )
+      return;
 
     // Check if there are actually changes to save
     if (!getProjectChangedStatus(project) && !isNew) {
@@ -268,7 +287,10 @@ export const ProjectsForm: React.FC<ProjectsFormProps> = ({
         if (project.description !== (initial?.description || "")) {
           minimalPayload.description = project.description;
         }
-        if (project.rolesResponsibilities !== (initial?.rolesResponsibilities || "")) {
+        if (
+          project.rolesResponsibilities !==
+          (initial?.rolesResponsibilities || "")
+        ) {
           minimalPayload.roles_responsibilities = project.rolesResponsibilities;
         }
         if (project.currentlyWorking !== (initial?.currentlyWorking || false)) {
@@ -461,11 +483,15 @@ export const ProjectsForm: React.FC<ProjectsFormProps> = ({
             isCollapsed={collapsedStates[project.id] || false}
             onCollapseToggle={() => toggleCollapse(project.id)}
           >
-            <div className='flex items-center justify-end gap-2 mb-4'>
+            <div className="flex items-center justify-end gap-2 mb-4">
               {feedback && (
-                <span className={`text-xs px-2 py-1 rounded-full ${
-                  feedback.includes("successfully") ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
-                }`}>
+                <span
+                  className={`text-xs px-2 py-1 rounded-full ${
+                    feedback.includes("successfully")
+                      ? "bg-green-100 text-green-700"
+                      : "bg-red-100 text-red-700"
+                  }`}
+                >
                   {feedback}
                 </span>
               )}
@@ -474,9 +500,14 @@ export const ProjectsForm: React.FC<ProjectsFormProps> = ({
                   type="button"
                   onClick={() => handleSaveProject(project)}
                   className="w-6 h-6 flex items-center justify-center rounded-full border-2 border-green-600 hover:bg-green-50 transition-colors"
-                  title={project.project_id ? "Update changes" : "Save new project"}
+                  title={
+                    project.project_id ? "Update changes" : "Save new project"
+                  }
                 >
-                  <Save className="w-3 h-3 text-green-600 cursor-pointer" strokeWidth={2.5} />
+                  <Save
+                    className="w-3 h-3 text-green-600 cursor-pointer"
+                    strokeWidth={2.5}
+                  />
                 </button>
               )}
               <button
@@ -485,7 +516,10 @@ export const ProjectsForm: React.FC<ProjectsFormProps> = ({
                 className="w-6 h-6 flex items-center justify-center rounded-full border-2 border-gray-600 hover:bg-gray-100 transition-colors"
                 title="Reset to saved values"
               >
-                <RotateCcw className="w-3 h-3 text-gray-600 cursor-pointer" strokeWidth={2.5} />
+                <RotateCcw
+                  className="w-3 h-3 text-gray-600 cursor-pointer"
+                  strokeWidth={2.5}
+                />
               </button>
             </div>
 
@@ -532,7 +566,11 @@ export const ProjectsForm: React.FC<ProjectsFormProps> = ({
                 id={`currentlyWorking-${project.id}`}
                 checked={project.currentlyWorking}
                 onChange={(e) =>
-                  updateProject(project.id, "currentlyWorking", e.target.checked)
+                  updateProject(
+                    project.id,
+                    "currentlyWorking",
+                    e.target.checked
+                  )
                 }
                 className="w-4 h-4 text-orange-400 border-gray-300 rounded focus:ring-orange-400"
               />
@@ -545,27 +583,29 @@ export const ProjectsForm: React.FC<ProjectsFormProps> = ({
             </div>
 
             <div className="mt-4">
-              <RichTextEditor
-                label="Description"
-                value={project.description}
-                onChange={(v) => updateProject(project.id, "description", v)}
-                placeholder="Provide Description of your project.."
-                rows={4}
-                showAiButton={true}
-              />
+              <div className="flex flex-col gap-1">
+                <label className="font-medium">Description</label>
+                <RichTextEditor
+                  value={project.description}
+                  onChange={(v) => updateProject(project.id, "description", v)}
+                  placeholder="Provide Description of your project.."
+                  rows={4}
+                />
+              </div>
             </div>
 
             <div className="mt-4">
-              <RichTextEditor
-                label="Roles & Responsibilities"
-                value={project.rolesResponsibilities}
-                onChange={(v) =>
-                  updateProject(project.id, "rolesResponsibilities", v)
-                }
-                placeholder="Provide your roles & responsibilities..."
-                rows={4}
-                showAiButton={true}
-              />
+              <div className="flex flex-col gap-1">
+                <label className="font-medium">Roles & Responsibilities</label>
+                <RichTextEditor
+                  value={project.rolesResponsibilities}
+                  onChange={(v) =>
+                    updateProject(project.id, "rolesResponsibilities", v)
+                  }
+                  placeholder="Provide your roles & responsibilities..."
+                  rows={4}
+                />
+              </div>
             </div>
           </FormSection>
         );

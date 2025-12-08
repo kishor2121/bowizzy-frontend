@@ -40,7 +40,8 @@ interface Certificate {
   isExpanded: boolean;
   uploadedFileUrl?: string;
   uploadedFileType?: string;
-  certificate_id?: number; // DB ID
+  certificate_id?: number;
+  cloudDeleteToken?: string;
 }
 
 export default function CertificationDetailsForm({
@@ -135,15 +136,17 @@ export default function CertificationDetailsForm({
   };
 
   const validateDomain = (value: string) => {
-    if (value && !/^[a-zA-Z0-9\s.,-/&]+$/.test(value)) {
-      return "Invalid characters in domain";
+    // Domain should not contain digits; allow letters, spaces and common punctuation
+    if (value && !/^[a-zA-Z\s.,&\/\-]+$/.test(value)) {
+      return "Invalid characters in domain (no numbers allowed)";
     }
     return "";
   };
 
   const validateProvider = (value: string) => {
-    if (value && !/^[a-zA-Z0-9\s.,&'-]+$/.test(value)) {
-      return "Invalid characters in provider name";
+    // Provider name should not contain digits; allow letters, spaces and common punctuation
+    if (value && !/^[a-zA-Z\s.,&'\-]+$/.test(value)) {
+      return "Invalid characters in provider name (no numbers allowed)";
     }
     return "";
   };
@@ -161,6 +164,27 @@ export default function CertificationDetailsForm({
       return "File size must be less than 5MB";
     }
 
+    return "";
+  };
+
+  const getTodayDate = (): string => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    const day = String(now.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
+
+  const validateDateValue = (value: string) => {
+    if (!value || value === "") return "";
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return "Please select a valid date";
+    const [y, m, d] = value.split("-");
+    if (y.length !== 4) return "Year must be 4 digits";
+    const monthNum = parseInt(m, 10);
+    const dayNum = parseInt(d, 10);
+    if (isNaN(monthNum) || monthNum < 1 || monthNum > 12) return "Invalid month";
+    if (isNaN(dayNum) || dayNum < 1 || dayNum > 31) return "Invalid day";
+    if (value > getTodayDate()) return "Cannot select a future date";
     return "";
   };
 
@@ -184,6 +208,9 @@ export default function CertificationDetailsForm({
     } else if (field === "domain" && typeof value === "string") {
       const error = validateDomain(value);
       setErrors((prev) => ({ ...prev, [`cert-${index}-domain`]: error }));
+    } else if (field === "date" && typeof value === "string") {
+      const error = validateDateValue(value);
+      setErrors((prev) => ({ ...prev, [`cert-${index}-date`]: error }));
     } else if (field === "certificateProvidedBy" && typeof value === "string") {
       const error = validateProvider(value);
       setErrors((prev) => ({
@@ -237,6 +264,7 @@ export default function CertificationDetailsForm({
       const newErrors = { ...prev };
       delete newErrors[`cert-${index}-certificateTitle`];
       delete newErrors[`cert-${index}-file`];
+      delete newErrors[`cert-${index}-date`];
       return newErrors;
     });
     setCertFeedback((prev) => {
@@ -323,15 +351,32 @@ export default function CertificationDetailsForm({
       return;
     }
 
+    const existingCert = certificates[index];
+
+    if (existingCert.cloudDeleteToken) {
+      await deleteFromCloudinary(existingCert.cloudDeleteToken);
+    }
+
+    const uploadRes = await uploadToCloudinary(file);
+
+    if (!uploadRes?.url) {
+      setErrors((prev) => ({ ...prev, [`cert-${index}-file`]: "Upload failed" }));
+      return;
+    }
+
     const updated = [...certificates];
+
     updated[index] = {
       ...updated[index],
-      uploadedFile: file,
+      uploadedFile: null,
       uploadedFileName: file.name,
+      uploadedFileUrl: uploadRes.url,
       uploadedFileType: file.type,
+      cloudDeleteToken: uploadRes.deleteToken, 
     };
 
     setCertificates(updated);
+
     setErrors((prev) => {
       const newErrors = { ...prev };
       delete newErrors[`cert-${index}-file`];
@@ -399,9 +444,38 @@ export default function CertificationDetailsForm({
     const localErrors = [
       errors[`cert-${index}-certificateTitle`],
       errors[`cert-${index}-file`],
+      errors[`cert-${index}-domain`],
+      errors[`cert-${index}-certificateProvidedBy`],
     ].filter(Boolean);
 
-    if (localErrors.length > 0) return;
+    // Re-run domain/provider validation to ensure no numbers are present
+    const domainError = validateDomain(cert.domain || "");
+    const providerError = validateProvider(cert.certificateProvidedBy || "");
+
+    if (domainError) {
+      setErrors((prev) => ({ ...prev, [`cert-${index}-domain`]: domainError }));
+    }
+    if (providerError) {
+      setErrors((prev) => ({
+        ...prev,
+        [`cert-${index}-certificateProvidedBy`]: providerError,
+      }));
+    }
+
+    const dateError = validateDateValue(cert.date || "");
+    if (dateError) {
+      setErrors((prev) => ({ ...prev, [`cert-${index}-date`]: dateError }));
+    }
+
+    const updatedLocalErrors = [
+      errors[`cert-${index}-certificateTitle`],
+      errors[`cert-${index}-file`],
+      domainError,
+      providerError,
+      dateError,
+    ].filter(Boolean);
+
+    if (updatedLocalErrors.length > 0) return;
 
     if (!changes || changes.length === 0) {
       setCertFeedback((prev) => ({ ...prev, [certId]: "No changes to save." }));
@@ -788,9 +862,15 @@ export default function CertificationDetailsForm({
                         handleCertificateChange(index, "date", e.target.value)
                       }
                       placeholder="Select Month and Year"
-                      className="w-full px-3 py-2 sm:py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent text-xs sm:text-sm pr-8"
+                        className="w-full px-3 py-2 sm:py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent text-xs sm:text-sm pr-8"
+                        max={getTodayDate()}
                     />
                   </div>
+                  {errors[`cert-${index}-date`] && (
+                    <p className="mt-1 text-xs text-red-500">
+                      {errors[`cert-${index}-date`]}
+                    </p>
+                  )}
                 </div>
               </div>
 

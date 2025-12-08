@@ -4,7 +4,6 @@ export const uploadResume = async (userId, file, token) => {
   const formData = new FormData();
   formData.append("file", file);
 
-  console.log(formData)
 
   return await api.post(`/users/${userId}/resume/extract`, formData, {
     headers: {

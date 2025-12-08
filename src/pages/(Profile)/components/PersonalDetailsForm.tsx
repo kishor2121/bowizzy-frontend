@@ -1,8 +1,27 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useMemo } from "react";
 import { ChevronDown, RotateCcw, X, Save } from "lucide-react";
 import { uploadToCloudinary } from "@/utils/uploadToCloudinary";
 import { deleteFromCloudinary } from "@/utils/deleteFromCloudinary";
 import { updatePersonalDetails } from "@/services/personalService";
+
+const ALL_LANGUAGES = [
+  "Kannada",
+  "English",
+  "Tamil",
+  "Hindi",
+  "Telugu",
+  "Malayalam",
+  "Bengali",
+  "Marathi",
+  "Gujarati",
+  "Punjabi",
+  "Urdu",
+  "French",
+  "Spanish",
+  "German",
+  "Mandarin",
+  "Japanese",
+];
 
 interface PersonalDetailsFormProps {
   onNext: (data: any) => void;
@@ -21,7 +40,6 @@ export default function PersonalDetailsForm({
   token,
   personalDetailsId,
 }: PersonalDetailsFormProps) {
-  // Handler for initializing form data state
   const [formData, setFormData] = useState({
     firstName: initialData.firstName || "",
     middleName: initialData.middleName || "",
@@ -45,24 +63,25 @@ export default function PersonalDetailsForm({
     uploadedDeleteToken: initialData.uploadedDeleteToken || "",
   });
 
-  // Handler for initializing local states
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [newLanguage, setNewLanguage] = useState("");
   const [personalDetailsExpanded, setPersonalDetailsExpanded] = useState(true);
   const [languagesExpanded, setLanguagesExpanded] = useState(true);
   const [currentLocationExpanded, setCurrentLocationExpanded] = useState(true);
 
-  // Track changes for each card
+  const [showLanguageSuggestions, setShowLanguageSuggestions] = useState(false);
+
   const [languagesChanged, setLanguagesChanged] = useState(false);
   const [locationChanged, setLocationChanged] = useState(false);
 
-  // Feedback messages
   const [languagesFeedback, setLanguagesFeedback] = useState("");
   const [locationFeedback, setLocationFeedback] = useState("");
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const languageInputRef = useRef<HTMLInputElement>(null);
+  const languageContainerRef = useRef<HTMLDivElement>(null);
+  const suggestionBoxRef = useRef<HTMLDivElement>(null);
 
-  // Store initial values to compare changes
   const initialLanguages = useRef(initialData.languages || []);
   const initialLocation = useRef({
     address: initialData.address || "",
@@ -74,13 +93,11 @@ export default function PersonalDetailsForm({
     passportNumber: initialData.passportNumber || "",
   });
 
-  // Track which specific fields changed
   const [changedLanguages, setChangedLanguages] = useState(false);
   const [changedLocationFields, setChangedLocationFields] = useState<string[]>(
     []
   );
 
-  // Handler for checking if languages changed
   useEffect(() => {
     const hasChanged =
       JSON.stringify(formData.languages) !==
@@ -89,7 +106,6 @@ export default function PersonalDetailsForm({
     setChangedLanguages(hasChanged);
   }, [formData.languages]);
 
-  // Handler for checking which location fields changed
   useEffect(() => {
     const changedFields: string[] = [];
 
@@ -120,7 +136,32 @@ export default function PersonalDetailsForm({
     formData.passportNumber,
   ]);
 
-  // Validation functions
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        languageContainerRef.current &&
+        !languageContainerRef.current.contains(event.target as Node) &&
+        suggestionBoxRef.current &&
+        !suggestionBoxRef.current.contains(event.target as Node)
+      ) {
+        const trimmedLang = newLanguage.trim();
+        const isValidLanguage = ALL_LANGUAGES.some(
+          (lang) => lang.toLowerCase() === trimmedLang.toLowerCase()
+        );
+
+        if (trimmedLang && !isValidLanguage) {
+          setNewLanguage("");
+        }
+
+        setShowLanguageSuggestions(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [newLanguage]);
+
   const validateField = (name: string, value: string) => {
     let error = "";
 
@@ -153,16 +194,22 @@ export default function PersonalDetailsForm({
         break;
 
       case "pincode":
-        if (value && !/^\d{0,6}$/.test(value)) {
-          error = "Only 6 digits allowed";
+        // Error check for partial input (user can't type letters, but if data exists it must be digits)
+        if (value && !/^\d*$/.test(value)) {
+          error = "Only digits allowed";
         } else if (value && value.length > 0 && value.length < 6) {
           error = "Must be 6 digits";
         }
         break;
 
       case "passportNumber":
+        // Error check for partial input (user can't type special chars, but must be alphanumeric and length is 8)
         if (value && !/^[A-Z0-9]*$/.test(value)) {
-          error = "Only uppercase letters and numbers";
+          error = "Only uppercase letters and numbers allowed";
+        } else if (value && value.length > 0 && value.length < 8) {
+          error = "Must be 8 characters";
+        } else if (value && value.length > 8) {
+          error = "Only 8 characters allowed";
         }
         break;
     }
@@ -170,64 +217,81 @@ export default function PersonalDetailsForm({
     return error;
   };
 
-  // Handler for input changes
   const handleInputChange = (
     e: React.ChangeEvent<
       HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
     >
   ) => {
     const { name, value } = e.target;
+    let newValue = value;
+    let error = "";
 
-    if (name === "mobileNumber" && value.length > 10) return;
-    if (name === "pincode" && value.length > 6) return;
-    if (name === "passportNumber") {
+    // 1. Pincode: Allow only digits, max 6
+    if (name === "pincode") {
+      if (!/^\d*$/.test(value)) {
+        // Block non-digit input
+        error = "Only digits allowed";
+        setErrors((prev) => ({ ...prev, [name]: error }));
+        return;
+      }
+      if (value.length > 6) return;
+
+      // 2. Mobile Number: Allow only digits, max 10 (keeping existing logic)
+    } else if (name === "mobileNumber") {
+      if (!/^\d*$/.test(value)) {
+        return;
+      }
+      if (value.length > 10) return;
+
+      // 3. Passport Number: Convert to uppercase, allow only A-Z and 0-9, max 8
+    } else if (name === "passportNumber") {
       const upperValue = value.toUpperCase();
-      setFormData((prev) => ({ ...prev, [name]: upperValue }));
-      const error = validateField(name, upperValue);
-      setErrors((prev) => ({ ...prev, [name]: error }));
-      return;
+      if (!/^[A-Z0-9]*$/.test(upperValue)) {
+        // Block special characters / non-alphanumeric input
+        error = "Only uppercase letters and numbers allowed";
+        setErrors((prev) => ({ ...prev, [name]: error }));
+        return;
+      }
+      if (upperValue.length > 8) return;
+      newValue = upperValue;
     }
 
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    // Update formData only if input was valid or non-restricted
+    setFormData((prev) => ({ ...prev, [name]: newValue }));
 
-    const error = validateField(name, value);
+    // Run full validation and update error state
+    error = validateField(name, newValue);
     setErrors((prev) => ({ ...prev, [name]: error }));
   };
 
-  // Handler for photo upload
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Revoke previous blob URL if exists
     const prev = formData.profilePhotoPreview;
     if (prev && typeof prev === "string" && prev.startsWith("blob:")) {
       try {
         URL.revokeObjectURL(prev);
-      } catch {
-        /* ignore */
-      }
+      } catch {}
     }
 
     try {
       const cloudinaryRes = await uploadToCloudinary(file);
 
-      // Update form state with cloudinary response
       setFormData((prev) => ({
         ...prev,
         profilePhoto: file,
-        profilePhotoPreview: cloudinaryRes.url, // Use cloudinary URL directly
+        profilePhotoPreview: cloudinaryRes.url,
         uploadedPhotoURL: cloudinaryRes.url,
         uploadedPublicId: cloudinaryRes.publicId,
         uploadedDeleteToken: cloudinaryRes.deleteToken || "",
       }));
 
-      // Immediately save to backend with cloudinary URL
       if (personalDetailsId) {
         const payload = {
           profile_photo_url: cloudinaryRes.url,
         };
-        // console.log("Updating profile photo with payload:", payload);
+
         await updatePersonalDetails(userId, token, personalDetailsId, payload);
       }
 
@@ -237,26 +301,50 @@ export default function PersonalDetailsForm({
     }
   };
 
-  // Handler for photo click
   const handlePhotoClick = () => {
     fileInputRef.current?.click();
   };
 
-  // Handler for adding a language
+  const handleLanguageInputChange = (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    setNewLanguage(e.target.value);
+    setShowLanguageSuggestions(true);
+  };
+
+  const handleSelectLanguage = (language: string) => {
+    if (!formData.languages.includes(language.trim())) {
+      setFormData((prev) => ({
+        ...prev,
+        languages: [...prev.languages, language.trim()],
+      }));
+    }
+    setNewLanguage("");
+    setShowLanguageSuggestions(false);
+  };
+
   const handleAddLanguage = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" && newLanguage.trim()) {
       e.preventDefault();
-      if (!formData.languages.includes(newLanguage.trim())) {
+
+      const exactMatch = filteredSuggestions.find(
+        (lang) => lang.toLowerCase() === newLanguage.trim().toLowerCase()
+      );
+
+      if (exactMatch && !formData.languages.includes(exactMatch)) {
         setFormData((prev) => ({
           ...prev,
-          languages: [...prev.languages, newLanguage.trim()],
+          languages: [...prev.languages, exactMatch],
         }));
+        setNewLanguage("");
+      } else if (newLanguage.trim() && filteredSuggestions.length === 0) {
+        setNewLanguage("");
       }
-      setNewLanguage("");
+
+      setShowLanguageSuggestions(false);
     }
   };
 
-  // Handler for removing a language
   const handleRemoveLanguage = (languageToRemove: string) => {
     setFormData((prev) => ({
       ...prev,
@@ -266,26 +354,23 @@ export default function PersonalDetailsForm({
     }));
   };
 
-  // Handler for clearing all languages
   const handleClearLanguages = () => {
     setFormData((prev) => ({
       ...prev,
-      languages: [],
+      languages: [...initialLanguages.current],
     }));
-    setLanguagesChanged(true);
   };
 
-  // Handler for clearing current location fields
   const handleClearCurrentLocation = () => {
     setFormData((prev) => ({
       ...prev,
-      address: "",
-      country: "",
-      state: "",
-      city: "",
-      pincode: "",
-      nationality: "",
-      passportNumber: "",
+      address: initialLocation.current.address,
+      country: initialLocation.current.country,
+      state: initialLocation.current.state,
+      city: initialLocation.current.city,
+      pincode: initialLocation.current.pincode,
+      nationality: initialLocation.current.nationality,
+      passportNumber: initialLocation.current.passportNumber,
     }));
     setErrors((prev) => {
       const newErrors = { ...prev };
@@ -295,7 +380,6 @@ export default function PersonalDetailsForm({
     });
   };
 
-  // Handler for updating Languages (PUT call)
   const handleUpdateLanguages = async () => {
     if (!personalDetailsId) {
       console.error("No personalDetailsId available");
@@ -305,7 +389,6 @@ export default function PersonalDetailsForm({
     }
 
     try {
-      // Create payload with only the changed field
       const payload = {
         languages_known: formData.languages,
       };
@@ -325,7 +408,6 @@ export default function PersonalDetailsForm({
     }
   };
 
-  // Handler for updating Location (PUT call)
   const handleUpdateLocation = async () => {
     if (!personalDetailsId || changedLocationFields.length === 0) {
       console.error("No personalDetailsId available or no fields changed");
@@ -337,7 +419,6 @@ export default function PersonalDetailsForm({
     }
 
     try {
-      // Create payload with only the changed fields
       const payload: any = {};
 
       changedLocationFields.forEach((field) => {
@@ -366,11 +447,8 @@ export default function PersonalDetailsForm({
         }
       });
 
-      // console.log("Updating location with payload:", payload);
-
       await updatePersonalDetails(userId, token, personalDetailsId, payload);
 
-      // Update initial values
       initialLocation.current = {
         address: formData.address,
         country: formData.country,
@@ -392,20 +470,15 @@ export default function PersonalDetailsForm({
     }
   };
 
-  // Determine if the form can proceed (no unsaved changes + no validation errors)
   const canProceed = !(
-    (
-      languagesChanged ||
-      locationChanged ||
-      Object.keys(errors).some((key) => errors[key])
-    ) // Check if any error message exists
+    languagesChanged ||
+    locationChanged ||
+    Object.keys(errors).some((key) => errors[key])
   );
 
-  // Handler for form submission
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Check if there are unsaved changes
     if (languagesChanged || locationChanged) {
       setLanguagesFeedback(
         languagesChanged ? "Please save your changes before proceeding" : ""
@@ -416,15 +489,31 @@ export default function PersonalDetailsForm({
       return;
     }
 
-    // Check if there are validation errors
-    if (Object.keys(errors).some((key) => errors[key])) {
-      // Find first error field and show a generic alert
+    if (
+      Object.keys(errors).some(
+        (key) => key !== "pincode" && key !== "passportNumber" && errors[key]
+      )
+    ) {
       alert("Please fix validation errors before proceeding.");
       return;
     }
 
+
     onNext(formData);
   };
+
+  const filteredSuggestions = useMemo(() => {
+    if (!newLanguage.trim()) return [];
+    const normalizedInput = newLanguage.trim().toLowerCase();
+
+    return ALL_LANGUAGES.filter(
+      (lang) =>
+        lang.toLowerCase().startsWith(normalizedInput) &&
+        !formData.languages.some(
+          (addedLang: string) => addedLang.toLowerCase() === lang.toLowerCase()
+        )
+    ).slice(0, 5);
+  }, [newLanguage, formData.languages]);
 
   return (
     <form
@@ -432,7 +521,6 @@ export default function PersonalDetailsForm({
       className="px-3 sm:px-4 md:px-6 lg:px-8 py-4 md:py-6"
     >
       <div className="max-w-6xl mx-auto">
-        {/* Step Header */}
         <div className="mb-4 md:mb-6">
           <h2 className="text-lg sm:text-xl md:text-2xl font-semibold text-gray-900 mb-1">
             Step 1: Personal Details
@@ -442,9 +530,7 @@ export default function PersonalDetailsForm({
           </p>
         </div>
 
-        {/* Personal Details Section */}
         <div className="bg-white border border-gray-200 rounded-xl mb-4 md:mb-5 overflow-hidden">
-          {/* Header */}
           <div className="flex items-center justify-between px-4 sm:px-5 md:px-6 py-3 md:py-4 border-b border-gray-200">
             <h3 className="text-sm sm:text-base md:text-lg font-semibold text-gray-900">
               Personal Details
@@ -467,29 +553,33 @@ export default function PersonalDetailsForm({
             </div>
           </div>
 
-          {/* Content */}
           {personalDetailsExpanded && (
             <div className="p-4 sm:p-5 md:p-6">
               <div className="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-5">
-                {/* Profile Photo */}
                 <div className="md:col-span-3 flex justify-center md:justify-start">
                   <div className="flex flex-col items-center">
                     <div
                       onClick={handlePhotoClick}
                       className={`relative w-28 h-28 sm:w-32 sm:h-32 md:w-36 md:h-36 lg:w-40 lg:h-40 bg-gray-100 rounded-lg border-2 ${
-                        formData.profilePhotoPreview || formData.uploadedPhotoURL
+                        formData.profilePhotoPreview ||
+                        formData.uploadedPhotoURL
                           ? "border-gray-300"
                           : "border-dashed border-gray-300"
                       } flex items-center justify-center overflow-hidden ${
-                        !formData.profilePhotoPreview && !formData.uploadedPhotoURL
+                        !formData.profilePhotoPreview &&
+                        !formData.uploadedPhotoURL
                           ? "cursor-pointer hover:border-orange-400 transition-colors group"
                           : ""
                       }`}
                     >
-                      {formData.profilePhotoPreview || formData.uploadedPhotoURL ? (
+                      {formData.profilePhotoPreview ||
+                      formData.uploadedPhotoURL ? (
                         <>
                           <img
-                            src={formData.profilePhotoPreview || formData.uploadedPhotoURL}
+                            src={
+                              formData.profilePhotoPreview ||
+                              formData.uploadedPhotoURL
+                            }
                             alt="Profile"
                             className="w-full h-full object-cover"
                           />
@@ -499,18 +589,17 @@ export default function PersonalDetailsForm({
                               e.stopPropagation();
 
                               try {
-                                // Delete from Cloudinary if delete token exists
                                 if (formData.uploadedDeleteToken) {
-                                  const deleteSuccess = await deleteFromCloudinary(
-                                    formData.uploadedDeleteToken
-                                  );
+                                  const deleteSuccess =
+                                    await deleteFromCloudinary(
+                                      formData.uploadedDeleteToken
+                                    );
                                   console.log(
                                     "Cloudinary delete result:",
                                     deleteSuccess
                                   );
                                 }
 
-                                // Update backend to clear the photo URL
                                 if (personalDetailsId) {
                                   const payload = {
                                     uploadedPhotoURL: "",
@@ -530,7 +619,6 @@ export default function PersonalDetailsForm({
                                 console.error("Error deleting photo:", error);
                               }
 
-                              // Clear form state
                               setFormData((prev) => ({
                                 ...prev,
                                 profilePhoto: null,
@@ -582,9 +670,7 @@ export default function PersonalDetailsForm({
                   </div>
                 </div>
 
-                {/* Form Fields - Frozen (Read-only with gray background) */}
                 <div className="md:col-span-9 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-                  {/* First Name - Frozen */}
                   <div>
                     <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5">
                       First Name
@@ -598,7 +684,6 @@ export default function PersonalDetailsForm({
                     />
                   </div>
 
-                  {/* Middle Name - Frozen */}
                   <div>
                     <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5">
                       Middle Name
@@ -612,7 +697,6 @@ export default function PersonalDetailsForm({
                     />
                   </div>
 
-                  {/* Last Name - Frozen */}
                   <div>
                     <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5">
                       Last Name
@@ -626,7 +710,6 @@ export default function PersonalDetailsForm({
                     />
                   </div>
 
-                  {/* Email - Frozen */}
                   <div className="sm:col-span-2">
                     <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5">
                       Email
@@ -640,7 +723,6 @@ export default function PersonalDetailsForm({
                     />
                   </div>
 
-                  {/* Mobile Number - Frozen */}
                   <div>
                     <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5">
                       Mobile Number
@@ -662,7 +744,6 @@ export default function PersonalDetailsForm({
                     </div>
                   </div>
 
-                  {/* Date of Birth - Frozen */}
                   <div>
                     <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5">
                       Date of Birth
@@ -676,7 +757,6 @@ export default function PersonalDetailsForm({
                     />
                   </div>
 
-                  {/* Gender - Frozen */}
                   <div>
                     <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5">
                       Gender
@@ -701,9 +781,7 @@ export default function PersonalDetailsForm({
           )}
         </div>
 
-        {/* Languages Known Section - NEW SEPARATE CARD */}
-        <div className="bg-white border border-gray-200 rounded-xl mb-4 md:mb-5 overflow-hidden">
-          {/* Header */}
+        <div className="bg-white border border-gray-200 rounded-xl mb-4 md:mb-5 overflow-visible">
           <div className="flex items-center justify-between px-4 sm:px-5 md:px-6 py-3 md:py-4 border-b border-gray-200">
             <h3 className="text-sm sm:text-base md:text-lg font-semibold text-gray-900">
               Languages Known
@@ -738,6 +816,7 @@ export default function PersonalDetailsForm({
                 type="button"
                 onClick={handleClearLanguages}
                 className="w-5 h-5 flex items-center justify-center rounded-full border-2 border-gray-600 hover:bg-gray-100 transition-colors"
+                title="Reset changes"
               >
                 <RotateCcw
                   className="w-3 h-3 text-gray-600 cursor-pointer"
@@ -747,7 +826,6 @@ export default function PersonalDetailsForm({
             </div>
           </div>
 
-          {/* Content */}
           {languagesExpanded && (
             <div className="p-4 sm:p-5 md:p-6">
               {languagesFeedback && (
@@ -761,8 +839,12 @@ export default function PersonalDetailsForm({
                   {languagesFeedback}
                 </div>
               )}
-              <div className="w-full px-3 py-2 sm:py-2.5 border border-gray-300 rounded-lg focus-within:ring-2 focus-within:ring-orange-400 focus-within:border-transparent min-h-[38px] sm:min-h-[42px]">
-                <div className="flex flex-wrap gap-2 items-center">
+
+              <div
+                ref={languageContainerRef}
+                className="relative w-full overflow-visible"
+              >
+                <div className="w-full px-3 py-2 sm:py-2.5 border border-gray-300 rounded-lg focus-within:ring-2 focus-within:ring-orange-400 focus-within:border-transparent min-h-[38px] sm:min-h-[42px] flex flex-wrap gap-2 items-center">
                   {formData.languages.map((lang: string, index: number) => (
                     <span
                       key={index}
@@ -779,22 +861,43 @@ export default function PersonalDetailsForm({
                     </span>
                   ))}
                   <input
+                    ref={languageInputRef}
                     type="text"
                     value={newLanguage}
-                    onChange={(e) => setNewLanguage(e.target.value)}
+                    onChange={handleLanguageInputChange}
                     onKeyDown={handleAddLanguage}
+                    onFocus={() => setShowLanguageSuggestions(true)}
                     placeholder="Add Language known to you..."
                     className="flex-1 min-w-[150px] sm:min-w-[200px] outline-none text-xs sm:text-sm"
                   />
                 </div>
+
+                {showLanguageSuggestions && filteredSuggestions.length > 0 && (
+                  <div
+                    ref={suggestionBoxRef}
+                    className="absolute z-20 w-full mt-0.5 left-0 top-full"
+                  >
+                    <div className="absolute z-20 mt-0.5 left-0 top-full">
+                      <div className="bg-white border border-gray-300 rounded-lg shadow-lg max-h-48 overflow-y-auto w-fit">
+                        {filteredSuggestions.map((lang, index) => (
+                          <div
+                            key={index}
+                            onClick={() => handleSelectLanguage(lang)}
+                            className="px-4 py-2 cursor-pointer hover:bg-orange-50 text-gray-700 text-sm whitespace-nowrap"
+                          >
+                            {lang}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}
         </div>
 
-        {/* Current Location Section */}
         <div className="bg-white border border-gray-200 rounded-xl mb-4 md:mb-5 overflow-hidden">
-          {/* Header */}
           <div className="flex items-center justify-between px-4 sm:px-5 md:px-6 py-3 md:py-4 border-b border-gray-200">
             <h3 className="text-sm sm:text-base md:text-lg font-semibold text-gray-900">
               Current Location
@@ -831,6 +934,7 @@ export default function PersonalDetailsForm({
                 type="button"
                 onClick={handleClearCurrentLocation}
                 className="w-5 h-5 flex items-center justify-center rounded-full border-2 border-gray-600 hover:bg-gray-100 transition-colors"
+                title="Reset changes"
               >
                 <RotateCcw
                   className="w-3 h-3 text-gray-600 cursor-pointer"
@@ -840,7 +944,6 @@ export default function PersonalDetailsForm({
             </div>
           </div>
 
-          {/* Content */}
           {currentLocationExpanded && (
             <div className="p-4 sm:p-5 md:p-6">
               {locationFeedback && (
@@ -855,7 +958,6 @@ export default function PersonalDetailsForm({
                 </div>
               )}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-                {/* Address */}
                 <div className="sm:col-span-2 lg:col-span-3">
                   <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5">
                     Address
@@ -870,7 +972,6 @@ export default function PersonalDetailsForm({
                   />
                 </div>
 
-                {/* Country */}
                 <div>
                   <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5">
                     Country
@@ -891,7 +992,6 @@ export default function PersonalDetailsForm({
                   </div>
                 </div>
 
-                {/* State */}
                 <div>
                   <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5">
                     State
@@ -912,7 +1012,6 @@ export default function PersonalDetailsForm({
                   </div>
                 </div>
 
-                {/* City */}
                 <div>
                   <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5">
                     City
@@ -933,7 +1032,6 @@ export default function PersonalDetailsForm({
                   </div>
                 </div>
 
-                {/* Pincode */}
                 <div>
                   <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5">
                     Pincode
@@ -944,7 +1042,6 @@ export default function PersonalDetailsForm({
                     value={formData.pincode}
                     onChange={handleInputChange}
                     placeholder="Enter Pin code"
-                    maxLength={6}
                     className={`w-full px-3 py-2 sm:py-2.5 border rounded-lg focus:outline-none focus:ring-2 text-xs sm:text-sm ${
                       errors.pincode
                         ? "border-red-500 focus:ring-red-400"
@@ -958,7 +1055,6 @@ export default function PersonalDetailsForm({
                   )}
                 </div>
 
-                {/* Nationality */}
                 <div>
                   <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5">
                     Nationality
@@ -979,7 +1075,6 @@ export default function PersonalDetailsForm({
                   </div>
                 </div>
 
-                {/* Passport Number */}
                 <div>
                   <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5">
                     Passport Number
@@ -1007,11 +1102,10 @@ export default function PersonalDetailsForm({
           )}
         </div>
 
-        {/* Action Buttons */}
         <div className="flex justify-end">
           <button
             type="submit"
-            disabled={!canProceed} // Use the consolidated disabled state
+            disabled={!canProceed}
             style={{
               background: canProceed
                 ? "linear-gradient(180deg, #FF9D48 0%, #FF8251 100%)"

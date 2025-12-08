@@ -150,12 +150,19 @@ export const ExperienceDetailsForm: React.FC<ExperienceDetailsFormProps> = ({
     if (value && !/^[a-zA-Z0-9\s.,&'-]+$/.test(value)) {
       return "Invalid characters in company name";
     }
+
+    if (value && !/[a-zA-Z]/.test(value)) {
+      return "Company name must include at least one letter";
+    }
     return "";
   };
 
   const validateJobTitle = (value: string) => {
     if (value && !/^[a-zA-Z0-9\s./-]+$/.test(value)) {
       return "Invalid characters in job title";
+    }
+    if (value && !/[a-zA-Z]/.test(value)) {
+      return "Job title must include at least one letter";
     }
     return "";
   };
@@ -202,7 +209,23 @@ export const ExperienceDetailsForm: React.FC<ExperienceDetailsFormProps> = ({
     if (index === -1) return;
     
     const updated = [...workExperiences];
-    updated[index] = { ...updated[index], [field]: value };
+    const sanitizeMonthInput = (val: string) => {
+      if (!val) return "";
+      const cleaned = val.replace(/[^0-9-]/g, "");
+      if (cleaned.includes("-")) {
+        return cleaned.slice(0, 7);
+      }
+
+      return cleaned.slice(0, 4);
+    };
+
+    let sanitizedVal: string | undefined;
+    if ((field === "startDate" || field === "endDate") && typeof value === "string") {
+      sanitizedVal = sanitizeMonthInput(value);
+      updated[index] = { ...updated[index], [field]: sanitizedVal };
+    } else {
+      updated[index] = { ...updated[index], [field]: value };
+    }
     
     if (field === "currentlyWorking" && value === true) {
       updated[index].endDate = "";
@@ -227,6 +250,22 @@ export const ExperienceDetailsForm: React.FC<ExperienceDetailsFormProps> = ({
       (field === "startDate" || field === "endDate") &&
       typeof value === "string"
     ) {
+      // If user typed manual year (no hyphen) require exactly 4 digits
+      if (sanitizedVal !== undefined) {
+        if (!sanitizedVal.includes("-") && sanitizedVal.length !== 4) {
+          const which = field === "startDate" ? `exp-${id}-startDate` : `exp-${id}-endDate`;
+          setErrors((prev) => ({ ...prev, [which]: "Enter 4-digit year (YYYY)" }));
+        } else {
+          // clear individual field error if present
+          const which = field === "startDate" ? `exp-${id}-startDate` : `exp-${id}-endDate`;
+          setErrors((prev) => {
+            const updatedErr = { ...prev };
+            delete updatedErr[which];
+            return updatedErr;
+          });
+        }
+      }
+
       const error = validateDateRange(updatedExp.startDate, updatedExp.endDate);
       setErrors((prev) => ({ ...prev, [`exp-${id}-endDate`]: error }));
     }

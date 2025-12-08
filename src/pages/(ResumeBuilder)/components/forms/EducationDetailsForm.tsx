@@ -171,12 +171,91 @@ export const EducationDetailsForm: React.FC<EducationDetailsFormProps> = ({
     return data.higherEducation.some(getHigherEduChangedStatus);
   }, [data.higherEducation, getHigherEduChangedStatus]);
 
+  const getCurrentMonth = () => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    return `${year}-${month}`;
+  };
+
   const validateField = (
     name: string,
     value: string | boolean,
     resultFormat?: string
   ) => {
     if (typeof value !== "string") return "";
+    // Reuse helper validators (institution name, result format, month format)
+    const validateResult = (val: string, format?: string) => {
+      if (!val || !format) return "";
+
+      if (format === "Percentage" || format === "CGPA" || format === "GPA") {
+        if (val.startsWith("-")) return "Must be a positive number";
+      }
+
+      if (format === "Percentage") {
+        const num = parseFloat(val);
+        if (isNaN(num)) return "Enter valid percentage";
+        if (!/^\d+(\.\d{1,2})?$/.test(val)) return "Enter valid percentage (e.g., 85 or 85.5)";
+        if (num < 0 || num > 100) return "Percentage must be between 0 and 100";
+      }
+
+      if (format === "CGPA") {
+        const num = parseFloat(val);
+        if (isNaN(num)) return "Enter valid CGPA";
+        if (!/^\d+(\.\d{1,2})?$/.test(val)) return "Enter valid CGPA (e.g., 8.5)";
+        if (num < 0 || num > 10) return "CGPA must be between 0 and 10";
+      }
+
+      if (format === "GPA") {
+        const num = parseFloat(val);
+        if (isNaN(num)) return "Enter valid GPA";
+        if (!/^\d+(\.\d{1,2})?$/.test(val)) return "Enter valid GPA (e.g., 3.5)";
+        if (num < 0 || num > 4) return "GPA must be between 0 and 4";
+      }
+
+      if (format === "Grade") {
+        if (!/^[A-F]\+$|^Pass$|^Fail$/i.test(val)) return "Enter valid grade (A+, B+, Pass, Fail)";
+      }
+
+      return "";
+    };
+
+    const validateInstitutionName = (val: string) => {
+      if (!val || !val.trim()) return "Institution name is required";
+      const regex = /^[a-zA-Z0-9\s.,&'\-()]+$/;
+      if (!regex.test(val)) return "Invalid institution name";
+      if (!/[a-zA-Z]/.test(val)) return "Institution name must include a letter";
+      return "";
+    };
+
+    const validateMonthFormat = (val: string) => {
+      if (!val || val === "") return "";
+      if (!/^\d{4}-\d{2}$/.test(val)) return "Please select a valid month (YYYY-MM)";
+      const [y, m] = val.split("-");
+      if (y.length !== 4) return "Year must be 4 digits";
+      const monthNum = parseInt(m, 10);
+      if (isNaN(monthNum) || monthNum < 1 || monthNum > 12) return "Invalid month";
+      return "";
+    };
+
+    const validateYearOrMonth = (val: string) => {
+      if (!val || val === "") return "";
+      // Allow either YYYY or YYYY-MM
+      if (/^\d{4}$/.test(val)) return "";
+      if (/^\d{4}-\d{2}$/.test(val)) {
+        const [y, m] = val.split("-");
+        if (y.length !== 4) return "Year must be 4 digits";
+        const monthNum = parseInt(m, 10);
+        if (isNaN(monthNum) || monthNum < 1 || monthNum > 12) return "Invalid month";
+        return "";
+      }
+
+      // If user typed digits without hyphen but length is not 4, give a specific message
+      if (/^\d{1,3}$/.test(val)) return "Enter 4-digit year (YYYY)";
+
+      return "Enter year as YYYY or month as YYYY-MM";
+    };
+
     let error = "";
 
     if (
@@ -185,38 +264,29 @@ export const EducationDetailsForm: React.FC<EducationDetailsFormProps> = ({
       name.includes("universityBoard") ||
       name.includes("boardType")
     ) {
-      if (value && !/^[a-zA-Z0-9\s.,&()\-']+$/.test(value)) {
-        error = "Only letters, numbers, and basic punctuation allowed";
-      }
+      error = validateInstitutionName(value);
     }
 
     if (name.includes("result") && value) {
-      if (resultFormat === "Percentage") {
-        const num = parseFloat(value);
-        if (!/^\d+(\.\d{1,2})?$/.test(value)) {
-          error = "Enter valid percentage (e.g., 85 or 85.5)";
-        } else if (num < 0 || num > 100) {
-          error = "Percentage must be between 0 and 100";
-        }
-      } else if (resultFormat === "CGPA") {
-        const num = parseFloat(value);
-        if (!/^\d+(\.\d{1,2})?$/.test(value)) {
-          error = "Enter valid CGPA (e.g., 8.5)";
-        } else if (num < 0 || num > 10) {
-          error = "CGPA must be between 0 and 10";
-        }
-      } else if (resultFormat === "GPA") {
-        const num = parseFloat(value);
-        if (!/^\d+(\.\d{1,2})?$/.test(value)) {
-          error = "Enter valid GPA (e.g., 3.5)";
-        } else if (num < 0 || num > 4) {
-          error = "GPA must be between 0 and 4";
-        }
-      } else if (resultFormat === "Grade") {
-        if (!/^[A-F][+-]?$|^Pass$|^Fail$/i.test(value)) {
-          error = "Enter valid grade (A, B+, C-, etc.)";
+      error = validateResult(value, resultFormat);
+    }
+
+    // For SSLC / Pre-University yearOfPassing (they use month picker) - disallow future
+    if (name.includes("yearOfPassing") && value) {
+      const monthError = validateMonthFormat(value);
+      if (monthError) {
+        error = monthError;
+      } else {
+        const current = getCurrentMonth();
+        if (value > current) {
+          error = "Cannot be a future date";
         }
       }
+    }
+
+    // For Higher Education startYear/endYear: allow YYYY or YYYY-MM (permit future years)
+    if ((name.endsWith(".startYear") || name.endsWith(".endYear")) && value) {
+      error = validateYearOrMonth(value);
     }
 
     return error;
@@ -686,33 +756,42 @@ export const EducationDetailsForm: React.FC<EducationDetailsFormProps> = ({
   };
 
   const updateSSLC = (field: string, value: string) => {
+    // sanitize month input for yearOfPassing to avoid invalid manual typing
+    const sanitizeMonthInput = (val: string) => {
+      if (!val) return "";
+      const cleaned = val.replace(/[^0-9-]/g, "");
+      // If user typed hyphen-month form, keep up to YYYY-MM
+      if (cleaned.includes("-")) return cleaned.slice(0, 7);
+      // No hyphen -> user is typing a year manually; allow up to 4 digits only
+      return cleaned.slice(0, 4);
+    };
+
     const newData = {
       ...data,
-      sslc: { ...data.sslc, [field]: value },
+      sslc: { ...data.sslc, [field]: field === "yearOfPassing" ? sanitizeMonthInput(value) : value },
     };
     onChange(newData);
 
-    const error = validateField(
-      `sslc.${field}`,
-      value,
-      newData.sslc.resultFormat
-    );
+    const error = validateField(`sslc.${field}`, newData.sslc[field as keyof typeof newData.sslc] as string, newData.sslc.resultFormat);
     setErrors((prev) => ({ ...prev, [`sslc.${field}`]: error }));
     setSslcFeedback("");
   };
 
   const updatePreUniversity = (field: string, value: string) => {
+    const sanitizeMonthInput = (val: string) => {
+      if (!val) return "";
+      const cleaned = val.replace(/[^0-9-]/g, "");
+      if (cleaned.includes("-")) return cleaned.slice(0, 7);
+      return cleaned.slice(0, 4);
+    };
+
     const newData = {
       ...data,
-      preUniversity: { ...data.preUniversity, [field]: value },
+      preUniversity: { ...data.preUniversity, [field]: field === "yearOfPassing" ? sanitizeMonthInput(value) : value },
     };
     onChange(newData);
 
-    const error = validateField(
-      `preUniversity.${field}`,
-      value,
-      newData.preUniversity.resultFormat
-    );
+    const error = validateField(`preUniversity.${field}`, newData.preUniversity[field as keyof typeof newData.preUniversity] as string, newData.preUniversity.resultFormat);
     setErrors((prev) => ({ ...prev, [`preUniversity.${field}`]: error }));
     setPuFeedback("");
   };
@@ -722,8 +801,25 @@ export const EducationDetailsForm: React.FC<EducationDetailsFormProps> = ({
     field: string,
     value: string | boolean
   ) => {
+    const sanitizeYearOrMonthInput = (val: string) => {
+      if (!val) return "";
+      // allow YYYY or YYYY-MM; limit lengths without silently changing to other formats
+      const cleaned = val.replace(/[^0-9-]/g, "");
+      if (cleaned.includes("-")) {
+        // keep at most YYYY-MM (7 chars)
+        return cleaned.slice(0, 7);
+      }
+      // no hyphen -> year typed manually, allow up to 4 digits (do not auto-expand)
+      return cleaned.slice(0, 4);
+    };
+
+    const normalizedValue =
+      field === "startYear" || field === "endYear"
+        ? (typeof value === "string" ? sanitizeYearOrMonthInput(value) : value)
+        : value;
+
     const updatedEducation = data.higherEducation.map((edu) =>
-      edu.id === id ? { ...edu, [field]: value } : edu
+      edu.id === id ? { ...edu, [field]: normalizedValue } : edu
     );
 
     onChange({
@@ -741,7 +837,7 @@ export const EducationDetailsForm: React.FC<EducationDetailsFormProps> = ({
 
     const fieldError = validateField(
       `higherEducation.${id}.${field}`,
-      value,
+      typeof normalizedValue === "string" ? normalizedValue : (value as string),
       edu?.resultFormat
     );
     setErrors((prev) => ({
@@ -1107,6 +1203,7 @@ export const EducationDetailsForm: React.FC<EducationDetailsFormProps> = ({
               type="month"
               value={data.sslc.yearOfPassing}
               onChange={(e) => updateSSLC("yearOfPassing", e.target.value)}
+              max={getCurrentMonth()}
               className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent text-sm"
             />
           </div>
@@ -1221,6 +1318,7 @@ export const EducationDetailsForm: React.FC<EducationDetailsFormProps> = ({
               onChange={(e) =>
                 updatePreUniversity("yearOfPassing", e.target.value)
               }
+              max={getCurrentMonth()}
               className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent text-sm"
             />
           </div>

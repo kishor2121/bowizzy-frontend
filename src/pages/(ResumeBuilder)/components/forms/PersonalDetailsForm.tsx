@@ -186,7 +186,9 @@ export const PersonalDetailsForm: React.FC<PersonalDetailsFormProps> = ({
 
       case "passportNumber":
         if (value && !/^[A-Z0-9]*$/.test(value)) {
-          error = "Only uppercase letters and numbers";
+          error = "Only uppercase letters and numbers allowed";
+        } else if (value && !/(?=.*[A-Z])(?=.*\d)/.test(value)) {
+          error = "Must contain at least one letter and one number";
         }
         break;
     }
@@ -198,23 +200,41 @@ export const PersonalDetailsForm: React.FC<PersonalDetailsFormProps> = ({
     field: K,
     value: PersonalDetails[K]
   ) => {
+    let newValue: any = value;
+
     if (
       field === "mobileNumber" &&
-      typeof value === "string" &&
-      value.length > 10
+      typeof newValue === "string" &&
+      newValue.length > 10
     ) {
       return;
     }
 
-    if (field === "pincode" && typeof value === "string" && value.length > 6) {
+    if (field === "pincode" && typeof newValue === "string" && newValue.length > 6) {
       return;
     }
 
-    console.log("Updating field:", field, "with value:", value);
-    onChange({ ...data, [field]: value });
+    if (field === "passportNumber" && typeof newValue === "string") {
+      const upperValue = newValue.toUpperCase();
+      if (!/^[A-Z0-9]*$/.test(upperValue)) {
+        setErrors((prev) => ({ ...prev, [field]: "Only uppercase letters and numbers allowed" }));
+        return;
+      }
+      if (upperValue.length > 8) return;
+      newValue = upperValue;
+      // If the value doesn't contain both a letter and a digit, show error
+      if (!/(?=.*[A-Z])(?=.*\d)/.test(upperValue)) {
+        setErrors((prev) => ({ ...prev, [field]: "Must contain at least one letter and one number" }));
+      } else {
+        setErrors((prev) => ({ ...prev, [field]: "" }));
+      }
+    }
 
-    if (typeof value === "string") {
-      const error = validateField(field, value);
+    console.log("Updating field:", field, "with value:", newValue);
+    onChange({ ...data, [field]: newValue });
+
+    if (typeof newValue === "string") {
+      const error = validateField(field, newValue);
       setErrors((prev) => ({ ...prev, [field]: error }));
     }
   };
@@ -772,7 +792,7 @@ export const PersonalDetailsForm: React.FC<PersonalDetailsFormProps> = ({
                 label="Passport Number"
                 placeholder="Enter Passport Number"
                 value={data.passportNumber}
-                onChange={(v) => updateField("passportNumber", v.toUpperCase())}
+                onChange={(v) => updateField("passportNumber", v)}
                 error={errors.passportNumber}
               />
             </div>

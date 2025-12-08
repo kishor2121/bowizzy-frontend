@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import ProfileStepper from "./components/ui/ProfileStepper";
+import ProfileStepper from "./components/ui/ProfileStepper";
 import PersonalDetailsForm from "./components/forms/PersonalDetailsForm";
 import EducationDetailsForm from "./components/forms/EducationDetailsForm";
 import ExperienceDetailsForm from "./components/forms/ExperienceDetailsForm";
@@ -265,7 +266,9 @@ export const ResumeEditor: React.FC = () => {
   const [deleteEducationIds, setDeleteEducationIds] = useState<number[]>([]);
   const [experienceDataIdMap, setExperienceDataIdMap] = useState<Record<string, number>>({});
   const [deleteExperienceIds, setDeleteExperienceIds] = useState<number[]>([]);
-  const [technicalSummaryId, setTechnicalSummaryId] = useState<number | null>(null);
+  const [technicalSummaryId, setTechnicalSummaryId] = useState<number | null>(
+    null
+  );
 
   // Ref for preview content to calculate page markers
   const previewContentRef = useRef<HTMLDivElement>(null);

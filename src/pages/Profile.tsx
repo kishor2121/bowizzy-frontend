@@ -12,6 +12,7 @@ import {
   Bell,
   Share2,
   Menu,
+  X,
 } from "lucide-react";
 import DashNav from "@/components/dashnav/dashnav";
 import { useNavigate } from "react-router-dom";
@@ -35,6 +36,7 @@ export default function Profile() {
   const [profileProgress, setProfileProgress] = useState(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const [submitting, setSubmitting] = useState(false);
 
   // Fetch profile progress on component mount
   useEffect(() => {
@@ -123,6 +125,20 @@ export default function Profile() {
     event.preventDefault();
   };
 
+  const handleFileRemove = (e) => {
+    e.stopPropagation();
+    setSelectedFile(null);
+    setFileError("");
+
+    const fileInput = document.getElementById(
+      "file-upload-input"
+    ) as HTMLInputElement | null;
+
+    if (fileInput) {
+      fileInput.value = "";
+    }
+  };
+
   const handleAddDetailsMyself = () => {
     setActiveButton("add");
     setShowUploadSection(false);
@@ -142,36 +158,39 @@ export default function Profile() {
   };
 
   const handleSubmit = async () => {
-  if (!selectedFile) return;
+    if (!selectedFile || submitting) return;
 
-  try {
-    const user = JSON.parse(localStorage.getItem("user"));
-    const userId = user?.user_id;
-    const token = user?.token;
+    setSubmitting(true);
 
-    if (!userId || !token) {
-      alert("User not logged in");
-      return;
+    try {
+      const user = JSON.parse(localStorage.getItem("user"));
+      const userId = user?.user_id;
+      const token = user?.token;
+
+      if (!userId || !token) {
+        alert("User not logged in");
+        setSubmitting(false);
+        return;
+      }
+
+      console.log("Uploading resume to server…");
+
+      const response = await uploadResume(userId, selectedFile, token);
+
+      console.log("Upload response →", response);
+
+      if (response.status === 200 || response.status === 201) {
+        navigate("/profile/parsing", {
+          state: { file: selectedFile, uploadSuccess: true },
+        });
+      }
+    } catch (error) {
+      console.error("Upload failed →", error);
+      navigate("/profile/parsing", { state: { uploadSuccess: false } });
+    } finally {
+      setSubmitting(false);
     }
-
-    console.log("Uploading resume to server…");
-
-    const response = await uploadResume(userId, selectedFile, token);
-
-    //  If server upload SUCCESS → go to Parsing Steps
-    if (response.status === 200 || response.status === 201) {
-      navigate("/profile/parsing", { state: { file: selectedFile, uploadSuccess: true }});
-    }
-
-  } catch (error) {
-    console.error("Upload failed →", error);
-
-    //  On failure → also go to parsing page but show FAILED UI
-    navigate("/profile/parsing", { state: { uploadSuccess: false }});
-  }
-};
-
-
+  };
 
   const handleBrowseClick = () => {
     document.getElementById("file-upload-input").click();
@@ -203,7 +222,6 @@ export default function Profile() {
       {showDashboard ? (
         // Profile Dashboard View (when > 50% complete)
         <div className="flex-1 bg-gray-50 overflow-auto px-4 sm:px-6 py-4">
-
           {/* PAGE TITLE */}
           <h2 className="text-2xl sm:text-3xl font-semibold mb-4">
             User Profile
@@ -321,32 +339,57 @@ export default function Profile() {
                 {showUploadSection && (
                   <div className="flex flex-col items-center w-full max-w-xl mt-2 px-2 sm:px-0">
                     <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full">
+                      {/* File Upload/Drop Area */}
                       <div
                         onClick={handleBrowseClick}
                         onDrop={handleFileDrop}
                         onDragOver={handleDragOver}
-                        className={`flex-1 border-2 rounded-2xl px-4 sm:px-6 py-3 flex items-center justify-center gap-2 cursor-pointer hover:bg-gray-50 transition-colors ${
+                        className={`flex-1 border-2 rounded-2xl px-4 sm:px-6 py-3 flex items-center justify-between gap-2 cursor-pointer transition-colors ${
                           fileError
                             ? "border-red-500 bg-red-50"
-                            : "border-gray-300"
+                            : "border-gray-300 hover:bg-gray-50"
                         }`}
                       >
-                        <Upload
-                          size={16}
-                          className={`sm:w-[18px] sm:h-[18px] flex-shrink-0 ${
-                            fileError ? "text-red-600" : "text-gray-600"
-                          }`}
-                        />
-                        <span
-                          className={`text-xs sm:text-sm md:text-[15px] truncate ${
-                            fileError ? "text-red-600" : "text-gray-600"
-                          }`}
-                        >
-                          {selectedFile
-                            ? selectedFile.name
-                            : "Browse or Drop your resume"}
-                        </span>
+                        <div className="flex items-center min-w-0 pr-2">
+                          {selectedFile ? (
+                            <FileText
+                              size={16}
+                              className={`sm:w-[18px] sm:h-[18px] flex-shrink-0 mr-2 ${
+                                fileError ? "text-red-600" : "text-gray-600"
+                              }`}
+                            />
+                          ) : (
+                            <Upload
+                              size={16}
+                              className={`sm:w-[18px] sm:h-[18px] flex-shrink-0 mr-2 ${
+                                fileError ? "text-red-600" : "text-gray-600"
+                              }`}
+                            />
+                          )}
+
+                          <span
+                            className={`text-xs sm:text-sm md:text-[15px] truncate ${
+                              fileError ? "text-red-600" : "text-gray-600"
+                            }`}
+                          >
+                            {selectedFile
+                              ? selectedFile.name
+                              : "Browse or Drop your resume"}
+                          </span>
+                        </div>
+
+                        {/* Remove File Button */}
+                        {selectedFile && (
+                          <button
+                            onClick={handleFileRemove}
+                            className="p-1 rounded-full text-gray-500 hover:bg-gray-200 transition-colors flex-shrink-0"
+                            aria-label="Remove selected file"
+                          >
+                            <X size={16} />
+                          </button>
+                        )}
                       </div>
+
                       <input
                         id="file-upload-input"
                         type="file"
@@ -356,14 +399,14 @@ export default function Profile() {
                       />
                       <button
                         onClick={handleSubmit}
-                        disabled={!selectedFile}
-                        className={`px-6 sm:px-8 py-3.5 rounded-2xl font-medium text-sm sm:text-[15px] transition-colors duration-300 shadow-sm cursor-pointer ${
-                          selectedFile
-                            ? "bg-orange-400 hover:bg-orange-500 text-white"
-                            : "bg-gray-300 text-gray-500 cursor-not-allowed"
+                        disabled={!selectedFile || submitting}
+                        className={`px-6 sm:px-8 py-3.5 rounded-2xl font-medium text-sm sm:text-[15px] transition-colors duration-300 shadow-sm ${
+                          !selectedFile || submitting
+                            ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                            : "bg-orange-400 hover:bg-orange-500 text-white cursor-pointer"
                         }`}
                       >
-                        Submit
+                        {submitting ? "Submitting..." : "Submit"}
                       </button>
                     </div>
 

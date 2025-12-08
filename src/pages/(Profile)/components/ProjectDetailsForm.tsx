@@ -133,6 +133,26 @@ export default function ProjectDetailsForm({
     return "";
   };
 
+  const getCurrentMonth = (): string => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    return `${year}-${month}`;
+  };
+
+  const validateMonthFormat = (value: string) => {
+    if (!value || value === "") return "";
+    if (!/^\d{4}-\d{2}$/.test(value)) {
+      return "Please select a valid month (YYYY-MM)";
+    }
+    const [y, m] = value.split("-");
+    if (y.length !== 4) return "Year must be 4 digits";
+    const monthNum = parseInt(m, 10);
+    if (isNaN(monthNum) || monthNum < 1 || monthNum > 12)
+      return "Invalid month";
+    return "";
+  };
+
   // Helper to format date for API payload (YYYY-MM to YYYY-MM-01)
   const normalizeMonthToDate = (val: string): string | null => {
     if (!val) return null;
@@ -169,11 +189,31 @@ export default function ProjectDetailsForm({
         [`project-${index}-projectTitle`]: error,
       }));
     } else if (field === "startDate" && typeof value === "string") {
-      const error = validateDateRange(value, updated[index].endDate);
-      setErrors((prev) => ({ ...prev, [`project-${index}-endDate`]: error }));
+      const fmtError = validateMonthFormat(value);
+      if (fmtError) {
+        setErrors((prev) => ({ ...prev, [`project-${index}-startDate`]: fmtError }));
+      } else {
+        setErrors((prev) => {
+          const updatedErr = { ...prev };
+          delete updatedErr[`project-${index}-startDate`];
+          return updatedErr;
+        });
+      }
+      const rangeError = validateDateRange(value, updated[index].endDate);
+      setErrors((prev) => ({ ...prev, [`project-${index}-endDate`]: rangeError }));
     } else if (field === "endDate" && typeof value === "string") {
-      const error = validateDateRange(updated[index].startDate, value);
-      setErrors((prev) => ({ ...prev, [`project-${index}-endDate`]: error }));
+      const fmtError = validateMonthFormat(value);
+      if (fmtError) {
+        setErrors((prev) => ({ ...prev, [`project-${index}-endDate`]: fmtError }));
+      } else {
+        setErrors((prev) => {
+          const updatedErr = { ...prev };
+          delete updatedErr[`project-${index}-endDate`];
+          return updatedErr;
+        });
+        const rangeError = validateDateRange(updated[index].startDate, value);
+        setErrors((prev) => ({ ...prev, [`project-${index}-endDate`]: rangeError }));
+      }
     }
   };
 
@@ -185,7 +225,12 @@ export default function ProjectDetailsForm({
     const prefix = `project-${index}`;
 
     // Check local validation errors
-    if (errors[`${prefix}-projectTitle`] || errors[`${prefix}-endDate`]) return;
+    if (
+      errors[`${prefix}-projectTitle`] ||
+      errors[`${prefix}-startDate`] ||
+      errors[`${prefix}-endDate`]
+    )
+      return;
 
     try {
       let payload: Record<string, any> = {};
@@ -672,13 +717,19 @@ export default function ProjectDetailsForm({
                     <input
                       type="month"
                       value={project.startDate}
-                      onChange={(e) =>
-                        handleProjectChange(index, "startDate", e.target.value)
-                      }
-                      placeholder="Select Start Date"
+                        onChange={(e) =>
+                          handleProjectChange(index, "startDate", e.target.value)
+                        }
+                        placeholder="Select Start Date"
+                        max={getCurrentMonth()}
                       className="w-full px-3 py-2 sm:py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent text-xs sm:text-sm pr-8"
                     />
                   </div>
+                  {errors[`project-${index}-startDate`] && (
+                    <p className="mt-1 text-xs text-red-500">
+                      {errors[`project-${index}-startDate`]}
+                    </p>
+                  )}
                 </div>
 
                 {/* End Date */}
@@ -694,6 +745,7 @@ export default function ProjectDetailsForm({
                         handleProjectChange(index, "endDate", e.target.value)
                       }
                       placeholder="Select End Date"
+                      max={getCurrentMonth()}
                       disabled={project.currentlyWorking}
                       className={`w-full px-3 py-2 sm:py-2.5 border rounded-lg focus:outline-none focus:ring-2 text-xs sm:text-sm pr-8 disabled:bg-gray-100 ${
                         errors[`project-${index}-endDate`]
