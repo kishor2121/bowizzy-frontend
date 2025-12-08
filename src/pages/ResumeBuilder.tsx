@@ -119,7 +119,7 @@ export default function ResumeBuilder() {
                   onClick={() => handleTemplateClick(template.id)}
                 >
                   <img
-                    src={template.thumbnailUrl}
+                    src={template.thumbnail}
                     alt={template.name}
                     className="w-full h-[439px] object-cover"
                   />

@@ -41,7 +41,7 @@ export const Template3Display: React.FC<Template3DisplayProps> = ({
           top: 0,
           left: 0,
           width: '100%',
-          height: '280px',
+          height: '150px',
           background: `linear-gradient(135deg, ${primaryColor} 0%, ${primaryColor} 65%, transparent 65%)`,
           zIndex: 0
         }} />

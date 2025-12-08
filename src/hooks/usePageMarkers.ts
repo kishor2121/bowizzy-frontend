@@ -1,4 +1,5 @@
-import { useState, useEffect, RefObject } from 'react';
+import { useState, useEffect } from 'react';
+import type { RefObject } from 'react';
 
 // A4 dimensions at 96 DPI
 export const A4_WIDTH_PX = 794;   // 210mm

@@ -10,9 +10,9 @@ export interface TemplateInfo {
   name: string;
   category: string;
   thumbnail: string;
-  component: React.ComponentType<any>; // Legacy - for backward compatibility
-  displayComponent: React.ComponentType<any>; // For live preview
-  pdfComponent?: React.ComponentType<any>; // For PDF export (optional)
+  component?: React.ComponentType<any>; 
+  displayComponent: React.ComponentType<any>; 
+  pdfComponent?: React.ComponentType<any>; 
   pageCount?: number;
 }
 

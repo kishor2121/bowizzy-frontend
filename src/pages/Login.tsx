@@ -4,29 +4,28 @@ import { loginUser } from "@/services/login";
 import Bowizzy from "../assets/bowizzy.png";
 import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
 
-
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e) => {
-  e.preventDefault();
-  setError("");
+    e.preventDefault();
+    setError("");
+    setLoading(true);
 
-  // --- EMAIL FORMAT VALIDATION ---
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       setError("Please enter a valid email address");
+      setLoading(false);
       return;
     }
 
     try {
-      console.log(email);
       const data = await loginUser(email, password);
-      console.log(data.token);
 
       localStorage.setItem(
         "user",
@@ -40,13 +39,13 @@ export default function Login() {
       navigate("/dashboard");
     } catch (err) {
       setError(err.response?.data?.message || "Login error");
+    } finally {
+      setLoading(false);
     }
   };
 
-
   return (
     <div className="min-h-screen grid grid-cols-1 md:grid-cols-2 font-['Baloo_2']">
-
       {/* LEFT ORANGE PANEL */}
       <div className="hidden md:flex flex-col justify-between bg-[#FFE9D6] p-12">
         <div>
@@ -92,30 +91,29 @@ export default function Login() {
               />
             </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Password
-            </label>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">
+                Password
+              </label>
 
-            <div className="relative">
-              <input
-                type={showPassword ? "text" : "password"}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                className="mt-2 w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-400 outline-none"
-                placeholder="Enter your password"
-              />
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  className="mt-2 w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-400 outline-none"
+                  placeholder="Enter your password"
+                />
 
-              <span
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer text-gray-600 text-xl"
-              >
-                {showPassword ? <AiOutlineEyeInvisible /> : <AiOutlineEye />}
-              </span>
+                <span
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer text-gray-600 text-xl"
+                >
+                  {showPassword ? <AiOutlineEyeInvisible /> : <AiOutlineEye />}
+                </span>
+              </div>
             </div>
-          </div>
-
 
             {error && (
               <p className="text-red-500 text-sm text-center">{error}</p>
@@ -123,20 +121,23 @@ export default function Login() {
 
             <button
               type="submit"
-              className="w-full py-3 rounded-lg text-white font-medium cursor-pointer"
+              disabled={loading}
+              className={`w-full py-3 rounded-lg text-white font-medium cursor-pointer flex items-center justify-center ${
+                loading ? "opacity-60 cursor-not-allowed" : ""
+              }`}
               style={{
-                background:
-                  "linear-gradient(180deg, #FF9D48 0%, #FF8251 100%)",
+                background: "linear-gradient(180deg, #FF9D48 0%, #FF8251 100%)",
               }}
             >
-              Login
+              {loading ? (
+                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+              ) : (
+                "Login"
+              )}
             </button>
 
             <div className="text-right text-sm">
-              <button
-                type="button"
-                className="text-orange-500 hover:underline"
-              >
+              <button type="button" className="text-orange-500 hover:underline">
                 Forgot Password?
               </button>
             </div>
