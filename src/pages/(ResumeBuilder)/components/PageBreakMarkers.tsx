@@ -22,7 +22,7 @@ export const PageBreakMarkers: React.FC<PageBreakMarkersProps> = ({ markers }) =
               position: 'absolute',
               left: 0,
               right: 0,
-              top: `${marker.position - 100}px`,
+              top: `${marker.position - 340}px`,
               height: '2px',
               background: 'repeating-linear-gradient(to right, #ff6b35 0, #ff6b35 10px, transparent 10px, transparent 20px)',
               pointerEvents: 'none',
