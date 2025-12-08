@@ -67,7 +67,19 @@ export const ProjectsForm: React.FC<ProjectsFormProps> = ({
     const initial = initialProjectsRef.current[current.id];
 
     if (!initial) {
-      return !!(current.projectTitle || current.projectType);
+      if (current.project_id) {
+        initialProjectsRef.current[current.id] = { ...current };
+        return false;
+      }
+      return !!(
+        current.projectTitle ||
+        current.projectType ||
+        current.startDate ||
+        current.endDate ||
+        current.currentlyWorking ||
+        current.description ||
+        current.rolesResponsibilities
+      );
     }
 
     return (
