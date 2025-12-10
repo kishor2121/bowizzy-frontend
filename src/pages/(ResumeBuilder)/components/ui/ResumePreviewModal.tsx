@@ -99,7 +99,7 @@ export const ResumePreviewModal: React.FC<ResumePreviewModalProps> = ({
                   className="resume-preview-content relative"
                 >
                   {DisplayComponent && <DisplayComponent data={resumeData} />}
-                  <PageBreakMarkers markers={markers} />
+                  {/* <PageBreakMarkers markers={markers} /> */}
                 </div>
               </div>
 

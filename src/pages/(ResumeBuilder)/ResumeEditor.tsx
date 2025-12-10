@@ -607,7 +607,7 @@ export const ResumeEditor: React.FC = () => {
                   <div className="relative transform scale-75 origin-top -mt-4">
                     <div ref={previewContentRef} className="relative">
                       {renderTemplatePreview()}
-                      <PageBreakMarkers markers={markers} />
+                      {/* <PageBreakMarkers markers={markers} /> */}
                     </div>
                   </div>
                 </div>
