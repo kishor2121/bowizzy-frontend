@@ -129,7 +129,11 @@ export default function CertificationDetailsForm({
 
   // Validation functions
   const validateCertificateTitle = (value: string) => {
-    if (value && !/^[a-zA-Z0-9\s.,-:()]+$/.test(value)) {
+    if (!value) return "";
+    if (!/[a-zA-Z]/.test(value)) {
+      return "Certificate title must contain at least one letter";
+    }
+    if (!/^[a-zA-Z0-9\s.,-:()&]+$/.test(value)) {
       return "Invalid characters in certificate title";
     }
     return "";
