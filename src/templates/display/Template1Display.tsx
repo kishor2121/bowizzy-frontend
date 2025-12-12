@@ -1,4 +1,5 @@
 import React from 'react';
+import DOMPurify from 'dompurify';
 import type { ResumeData } from '@/types/resume';
 
 interface Template1DisplayProps {
@@ -62,14 +63,16 @@ export const Template1Display: React.FC<Template1DisplayProps> = ({
           }}>
             SUMMARY
           </h2>
-          <p style={{ 
+          {/* Render as sanitized HTML so any editor-generated tags are interpreted correctly */}
+          <div style={{ 
             fontSize: '10px', 
             color: '#4a5568', 
             textAlign: 'justify',
             lineHeight: '1.6'
-          }}>
-            {personal.aboutCareerObjective}
-          </p>
+          }}
+          // Use dangerouslySetInnerHTML after sanitizing to prevent XSS
+          dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(personal.aboutCareerObjective || '') }}
+          />
         </div>
       )}
 
