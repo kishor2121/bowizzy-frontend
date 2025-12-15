@@ -38,7 +38,11 @@ export default function RichTextEditor({
     const el = editorRef.current;
     if (!el) return;
     const html = normalizeValueToHtml(value || '');
-    if (el.innerHTML !== html) el.innerHTML = html;
+    const active = document.activeElement;
+    const isFocused = active && el.contains(active);
+    if (el.innerHTML !== html && !isFocused) {
+      el.innerHTML = html;
+    }
   }, [value]);
 
   const exec = (command: string) => {
