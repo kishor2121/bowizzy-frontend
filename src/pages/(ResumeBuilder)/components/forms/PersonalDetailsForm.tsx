@@ -587,7 +587,7 @@ export const PersonalDetailsForm: React.FC<PersonalDetailsFormProps> = ({
           </div>
           <div>
             <div className="text-sm font-semibold text-gray-800">This Template does not support photo upload</div>
-            <div className="text-xs text-gray-500">Select a template that supports photos to show your image</div>
+            {/* <div className="text-xs text-gray-500">Select a template that supports photos to show your image</div> */}
           </div>
         </div>
       )}
