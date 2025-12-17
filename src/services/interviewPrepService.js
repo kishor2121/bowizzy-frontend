@@ -29,6 +29,21 @@ export const getAllInterviewSlots = async (token) => {
     return response.data;
 };
 
+export const updateInterviewSlot = async (userId, token, slotId, payload) => {
+    const response = await api.put(
+        `/users/${userId}/mock-interview/interview-slot/${slotId}`,
+        payload,
+        {
+            headers: {
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "application/json",
+            },
+        }
+    );
+    return response.data;
+};
+
+
 export const getInterviewSlotById = async (userId, token, slotId) => {
     console.log(userId, token, slotId);
     const response = await api.get(`/users/${userId}/mock-interview/interview-slot/${slotId}`, {
@@ -49,20 +64,29 @@ export const getInterviewSlotsByUserId = async (userId, token) => {
 };
 
 export const cancelInterviewSlot = async (userId, token, slotId) => {
-    const response = await api.delete(`/users/${userId}/mock-interview/interview-slot/${slotId}`, {
-        headers: {
-            Authorization: `Bearer ${token}`,
-        },
-    });
+    const payload = { interview_status: 'cancelled' };
+    const response = await api.put(
+        `/users/${userId}/mock-interview/interview-slot/${slotId}`,
+        payload,
+        {
+            headers: {
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "application/json",
+            },
+        }
+    );
     return response.data;
 };
 
 export const confirmInterviewSlotPayment = async (userId, token, slotId) => {
     const response = await api.put(
-        `/users/${userId}/mock-interview/interview-slot/${slotId}`,
+        `/users/${userId}/mock-interview/interview-slot/confirm-payment/${slotId}`,
         {},
         {
-            headers: { Authorization: `Bearer ${token}` },
+            headers: {
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "application/json",
+            },
         }
     );
 

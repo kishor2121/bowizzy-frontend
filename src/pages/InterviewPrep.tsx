@@ -19,7 +19,14 @@ const InterviewPrep = () => {
     const [error, setError] = useState(null);
 
     const [showAllUpcoming, setShowAllUpcoming] = useState(false);
-    const [showAllPast, setShowAllPast] = useState(false);
+    const [showCancelModal, setShowCancelModal] = useState(false);
+    const [slotToCancel, setSlotToCancel] = useState(null);
+    const [cancelling, setCancelling] = useState(false);
+
+    const handlePayNow = (slotId) => {
+        navigate(`/interview-prep/pay/${slotId}`);
+    };
+
 
     const formatDateTime = (utcTime) => {
         if (!utcTime) return { date: "N/A", time: "N/A" };
@@ -62,14 +69,23 @@ const InterviewPrep = () => {
 
             const normalizedSlots = (response || []).map(slot => {
                 const { date, time } = formatDateTime(slot.start_time_utc);
-                
+
+                const now = new Date();
+                const endTime = slot.end_time_utc ? new Date(slot.end_time_utc) : (slot.start_time_utc ? new Date(slot.start_time_utc) : null);
+                const isExpired = endTime ? endTime < now : false;
+                const serverStatus = slot.interview_status || '';
+                const pastStatuses = ['cancelled', 'completed', 'expired'];
+                const computedStatus = isExpired && !pastStatuses.includes(serverStatus) ? 'expired' : serverStatus;
+
                 return {
-                    ...slot, 
+                    ...slot,
                     id: slot.interview_slot_id,
-                    status: slot.interview_status, 
+                    status: computedStatus,
+                    raw_status: slot.interview_status,
                     date: date,
+                    end_time_utc: slot.end_time_utc,
                     time: time,
-                    type: "Mock Interview", 
+                    type: "Mock Interview",
                     image: "https://images.unsplash.com/photo-1556761175-5973dc0f32e7?w=600&h=400&fit=crop",
                     completedDate: date,
                 };
@@ -95,22 +111,37 @@ const InterviewPrep = () => {
 
     const displayedUpcoming = showAllUpcoming
         ? upcomingInterviews
-        : upcomingInterviews.slice(0, 3);
-    const displayedPast = showAllPast
-        ? pastInterviews
-        : pastInterviews.slice(0, 3);
+        : upcomingInterviews.slice(0, 4);
+    const displayedPast = pastInterviews;
         
-    const handleCancel = async (slotId) => {
-        if (!userId || !token || !window.confirm("Are you sure you want to cancel this interview slot?")) {
+    const openCancelModal = (slot) => {
+        setSlotToCancel(slot);
+        setShowCancelModal(true);
+    };
+
+    const closeCancelModal = () => {
+        if (cancelling) return;
+        setShowCancelModal(false);
+        setSlotToCancel(null);
+    };
+
+    const handleCancel = async () => {
+        if (!userId || !token || !slotToCancel) {
+            closeCancelModal();
             return;
         }
 
         try {
+            setCancelling(true);
+            const slotId = slotToCancel.id || slotToCancel.interview_slot_id;
             await cancelInterviewSlot(userId, token, slotId);
+            closeCancelModal();
             fetchInterviewSlots();
         } catch (error) {
             console.error("Cancellation failed:", error);
             alert("Failed to cancel the interview slot.");
+        } finally {
+            setCancelling(false);
         }
     };
 
@@ -148,78 +179,105 @@ const InterviewPrep = () => {
     };
     
     const renderUpcomingCardButtons = (interview) => {
-        const { is_payment_done, status, id } = interview;
+        const { is_payment_done, status, id, start_time_utc, end_time_utc } = interview;
+
+        const now = new Date();
+        const endTime = end_time_utc ? new Date(end_time_utc) : (start_time_utc ? new Date(start_time_utc) : null);
+        const hasEnded = endTime ? (endTime < now) : false;
 
         if (is_payment_done === false) {
-            return (
-                <div className="flex items-center justify-between w-full">
-                    <div className="px-4 py-2 bg-[#FFF4E6] text-[#FF9D48] rounded-md text-sm font-medium whitespace-nowrap">
-                        Awaiting Payment
-                    </div>
-                    <button 
-                        onClick={() => handleCancel(id)}
-                        className="px-4 py-2 bg-white border border-[#FFD4D4] text-[#FF6B6B] rounded-md text-sm font-medium hover:bg-red-50 cursor-pointer whitespace-nowrap"
+        return (
+            <div className="w-full flex flex-col sm:flex-row sm:justify-end gap-2">
+                <button
+                    onClick={() => handlePayNow(id)}
+                    className="w-full sm:w-auto px-4 py-2 rounded-md text-sm font-semibold text-white cursor-pointer"
+                    style={{
+                        background: "linear-gradient(180deg, #FF9D48 0%, #FF8251 100%)"
+                    }}
+                >
+                    Pay
+                </button>
+                {!hasEnded && (
+                    <button
+                        onClick={() => openCancelModal(interview)}
+                        className="w-full sm:w-auto px-4 py-2 bg-white border border-[#FFD4D4] text-[#FF6B6B] rounded-md text-sm font-medium hover:bg-red-50 cursor-pointer"
                     >
                         Cancel
                     </button>
-                </div>
-            );
-        }
+                )}
+            </div>
+        );
+    }
 
         if (is_payment_done === true && status === "open") {
             return (
-                <div className="flex items-center justify-between w-full">
-                    <div className="px-4 py-2 bg-[#FFF4E6] text-[#FF9D48] rounded-md text-sm font-medium whitespace-nowrap">
+                <div className="w-full flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <div className="px-4 py-2 bg-[#FFF4E6] text-[#FF9D48] rounded-md text-sm font-medium text-center sm:text-left">
                         Waiting for confirmation
                     </div>
-                    <button 
-                        onClick={() => handleCancel(id)}
-                        className="px-4 py-2 bg-white border border-[#FFD4D4] text-[#FF6B6B] rounded-md text-sm font-medium hover:bg-red-50 cursor-pointer whitespace-nowrap"
-                    >
-                        Cancel
-                    </button>
+
+                    {!hasEnded && (
+                        <button
+                            onClick={() => openCancelModal(interview)}
+                            className="w-full sm:w-auto px-4 py-2 bg-white border border-[#FFD4D4] text-[#FF6B6B] rounded-md text-sm font-medium hover:bg-red-50 cursor-pointer"
+                        >
+                            Cancel
+                        </button>
+                    )}
                 </div>
             );
         }
 
+
         if (is_payment_done === true && status === "confirmed") {
             return (
-                <div className="flex items-center justify-between w-full">
-                    <div className="flex gap-2">
-                        <button 
-                            className="px-4 py-2 bg-[#4ADE80] text-white rounded-md text-sm font-medium hover:bg-green-500 cursor-pointer whitespace-nowrap"
-                            onClick={() => handleViewDetails(id)}
-                        >
-                            Join Now
-                        </button>
+                <div className="w-full flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                        {!hasEnded && (
+                            <button
+                                onClick={() => handleViewDetails(id)}
+                                className="w-full sm:w-auto px-4 py-2 bg-[#4ADE80] text-white rounded-md text-sm font-medium hover:bg-green-500 cursor-pointer"
+                            >
+                                Join Now
+                            </button>
+                        )}
+
                         <button
                             onClick={() => handleViewDetails(id)}
-                            className="px-4 py-2 bg-white border border-[#E5E5E5] text-[#3A3A3A] rounded-md text-sm font-medium hover:bg-gray-50 cursor-pointer whitespace-nowrap"
+                            className="w-full sm:w-auto px-4 py-2 bg-white border border-[#E5E5E5] text-[#3A3A3A] rounded-md text-sm font-medium hover:bg-gray-50 cursor-pointer"
                         >
                             View Details
                         </button>
                     </div>
-                    <button 
-                        onClick={() => handleCancel(id)}
-                        className="px-4 py-2 bg-white border border-[#FFD4D4] text-[#FF6B6B] rounded-md text-sm font-medium hover:bg-red-50 cursor-pointer whitespace-nowrap"
-                    >
-                        Cancel
-                    </button>
+
+                    {!hasEnded && (
+                        <button
+                            onClick={() => openCancelModal(interview)}
+                            className="w-full sm:w-auto px-4 py-2 bg-white border border-[#FFD4D4] text-[#FF6B6B] rounded-md text-sm font-medium hover:bg-red-50 cursor-pointer"
+                        >
+                            Cancel
+                        </button>
+                    )}
                 </div>
             );
         }
-        
         return (
-            <div className="flex items-center justify-between w-full">
-                {getStatusBadge(status)}
-                <button 
-                    onClick={() => handleCancel(id)}
-                    className="px-4 py-2 bg-white border border-[#FFD4D4] text-[#FF6B6B] rounded-md text-sm font-medium hover:bg-red-50 cursor-pointer whitespace-nowrap"
-                >
-                    Cancel
-                </button>
+            <div className="w-full flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div className="w-full sm:w-auto">
+                    {getStatusBadge(status)}
+                </div>
+
+                {!hasEnded && (
+                    <button
+                        onClick={() => openCancelModal(interview)}
+                        className="w-full sm:w-auto px-4 py-2 bg-white border border-[#FFD4D4] text-[#FF6B6B] rounded-md text-sm font-medium hover:bg-red-50 cursor-pointer"
+                    >
+                        Cancel
+                    </button>
+                )}
             </div>
         );
+
     };
 
     const EmptyState = () => (
@@ -309,7 +367,7 @@ const InterviewPrep = () => {
                                 )}
                             </div>
 
-                            {upcomingInterviews.length > 3 && (
+                            {upcomingInterviews.length > 4 && (
                                 <div className="text-center mt-4">
                                     <button
                                         onClick={() => setShowAllUpcoming(!showAllUpcoming)}
@@ -397,7 +455,7 @@ const InterviewPrep = () => {
                                 Past Performance
                             </h2>
 
-                            <div className="space-y-3">
+                            <div className="space-y-3 max-h-[420px] overflow-y-auto pr-2">
                                 {displayedPast.length > 0 ? (
                                     displayedPast.map((interview) => (
                                         <div
@@ -419,9 +477,12 @@ const InterviewPrep = () => {
                                                 <p className="text-[#7F7F7F] text-xs mb-3">
                                                     Completed on {interview.completedDate || "N/A"}
                                                 </p>
-                                                <button className="w-full py-2 bg-white border border-[#FF9D48] text-[#FF9D48] rounded-lg text-xs font-semibold hover:bg-orange-50 cursor-pointer">
-                                                    Review Feedback
-                                                </button>
+
+                                                {(interview.status !== 'cancelled' && interview.status !== 'expired') && (
+                                                    <button className="w-full py-2 bg-white border border-[#FF9D48] text-[#FF9D48] rounded-lg text-xs font-semibold hover:bg-orange-50 cursor-pointer">
+                                                        Review Feedback
+                                                    </button>
+                                                )}
                                             </div>
                                         </div>
                                     ))
@@ -430,16 +491,7 @@ const InterviewPrep = () => {
                                 )}
                             </div>
 
-                            {pastInterviews.length > 3 && (
-                                <div className="text-center mt-4">
-                                    <button
-                                        onClick={() => setShowAllPast(!showAllPast)}
-                                        className="text-[#FF8351] text-sm hover:underline"
-                                    >
-                                        {showAllPast ? "show less" : "see all"}
-                                    </button>
-                                </div>
-                            )}
+                            {/* Removed see all / show less toggle — Past Performance is scrollable */}
                         </div>
 
                         <div className="bg-[#FFF9F5] rounded-2xl p-5">
@@ -460,6 +512,63 @@ const InterviewPrep = () => {
             </div>
         </div>
     );
+
+    // Confirmation modal for cancelling an interview
+    const CancelModal = () => {
+        if (!showCancelModal || !slotToCancel) return null;
+
+        return (
+            <div className="fixed inset-0 z-50 flex items-center justify-center">
+                <div
+                    className="absolute inset-0 bg-black/40"
+                    onClick={() => closeCancelModal()}
+                />
+
+                <div className="relative bg-white rounded-xl w-[min(600px,90%)] p-6 shadow-lg">
+                    <button
+                        onClick={() => closeCancelModal()}
+                        className="absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center text-gray-600 hover:bg-gray-100"
+                        aria-label="Close"
+                        disabled={cancelling}
+                    >
+                        ✕
+                    </button>
+
+                    <div className="flex flex-col items-center text-center pt-2">
+                        <div className="w-20 h-20 rounded-full flex items-center justify-center bg-yellow-50 border-4 border-yellow-300 mb-4">
+                            <span className="text-3xl">!</span>
+                        </div>
+
+                        <h3 className="text-lg font-medium text-[#3A3A3A] mb-3">
+                            Are you sure you want to cancel this
+                            <span className="block font-semibold">Mock Interview?</span>
+                        </h3>
+
+                        <p className="text-sm text-[#7F7F7F] mb-6">This action cannot be undone.</p>
+
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => closeCancelModal()}
+                                className="px-5 py-2 bg-white border border-[#FF9D48] text-[#FF9D48] rounded-lg text-sm font-semibold hover:bg-orange-50"
+                                disabled={cancelling}
+                            >
+                                Go Back
+                            </button>
+
+                            <button
+                                onClick={() => handleCancel()}
+                                className="px-5 py-2 rounded-lg text-sm font-semibold text-white"
+                                style={{ background: 'linear-gradient(180deg, #FF9D48 0%, #FF8251 100%)' }}
+                                disabled={cancelling}
+                            >
+                                {cancelling ? 'Cancelling...' : 'Cancel Interview'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    };
 
     if (loading) {
         return (
@@ -488,6 +597,8 @@ const InterviewPrep = () => {
             <DashNav heading="Interview Preparation" />
 
             {allSlots.length === 0 ? <EmptyState /> : <DashboardWithData />}
+
+            {showCancelModal && <CancelModal />}
         </div>
     );
 };

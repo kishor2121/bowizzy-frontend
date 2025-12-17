@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Upload } from 'lucide-react';
 import DashNav from '@/components/dashnav/dashnav';
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams, useParams } from "react-router-dom";
+
 import { motion } from "framer-motion";
 import {
     createInterviewSlot,
@@ -24,7 +25,11 @@ const GiveMockInterview = () => {
     const [userRole, setUserRole] = useState('Loading...');
     const [allBackendSkills, setAllBackendSkills] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [uploadingResume, setUploadingResume] = useState(false);
+    const [uploadedPreviewUrl, setUploadedPreviewUrl] = useState('');
     const [apiError, setApiError] = useState(null);
+    const [bookingError, setBookingError] = useState('');
+    const { slotId } = useParams();
 
     const [cloudinaryData, setCloudinaryData] = useState({
         url: '',
@@ -214,6 +219,42 @@ const GiveMockInterview = () => {
         fetchUserData();
     }, [fetchUserData]);
 
+
+    useEffect(() => {
+        if (slotId) {
+            setBookingData(prev => ({
+                ...prev,
+                interviewId: slotId
+            }));
+            setCurrentScreen('payment');
+        }
+    }, [slotId]);
+
+
+    // create a preview URL for the uploaded resume (object URL for local File, or cloud url)
+    useEffect(() => {
+        let objUrl;
+
+        if (bookingData.uploadedResumeFile) {
+            try {
+                objUrl = URL.createObjectURL(bookingData.uploadedResumeFile);
+                setUploadedPreviewUrl(objUrl);
+            } catch (e) {
+                setUploadedPreviewUrl('');
+            }
+        } else if (cloudinaryData.url) {
+            setUploadedPreviewUrl(cloudinaryData.url);
+        } else {
+            setUploadedPreviewUrl('');
+        }
+
+        return () => {
+            if (objUrl) {
+                try { URL.revokeObjectURL(objUrl); } catch (e) {}
+            }
+        };
+    }, [bookingData.uploadedResumeFile, cloudinaryData.url]);
+
     const validateBookingData = () => {
         const errors = [];
         const totalYears = bookingData.yearsExp.length > 0 ? bookingData.yearsExp[bookingData.yearsExp.length - 1] : 0;
@@ -310,7 +351,10 @@ const GiveMockInterview = () => {
 
         } catch (error) {
             console.error('Booking API Error:', error);
-            alert(`Failed to book interview: ${error.message || 'Server error'}`);
+            const serverMsg = error?.response?.data?.message || error?.response?.data?.error || error?.response?.data?.detail;
+            const displayMsg = serverMsg || error?.message || 'Server error';
+                const friendlyMsg = mapBookingErrorMessage(displayMsg);
+                setBookingError(friendlyMsg);
         } finally {
             setLoading(false);
         }
@@ -361,6 +405,7 @@ const GiveMockInterview = () => {
 
         try {
             setLoading(true);
+            setUploadingResume(true);
 
             if (cloudinaryData.deleteToken) {
                 await deleteFromCloudinary(cloudinaryData.deleteToken);
@@ -390,6 +435,7 @@ const GiveMockInterview = () => {
             setCloudinaryData({ url: '', deleteToken: null });
 
         } finally {
+            setUploadingResume(false);
             setLoading(false);
             event.target.value = null;
         }
@@ -416,6 +462,55 @@ const GiveMockInterview = () => {
         }
     };
 
+    const getUploadedFileName = () => {
+        if (bookingData.uploadedResumeFile) return bookingData.uploadedResumeFile.name;
+        if (cloudinaryData.url) {
+            try {
+                const parts = cloudinaryData.url.split('/');
+                const last = parts[parts.length - 1] || '';
+                return decodeURIComponent(last.split('?')[0]);
+            } catch (e) {
+                return 'Uploaded Resume';
+            }
+        }
+        return '';
+    };
+
+    const mapBookingErrorMessage = (msg) => {
+        if (!msg) return 'Server error';
+        const m = String(msg).toLowerCase();
+
+        if (m.includes('slot_overlap') || m.includes('slot overlap') || m.includes('slot already') || m.includes('already booked') || m.includes('alredy booked') || m.includes('slot alredy')) {
+            return 'This slot is already booked. Please choose a different time.';
+        }
+        return msg;
+    };
+    // ---------- SIDEBAR ----------
+    const NoteSidebar = ({ notes }) => (
+        <div className="bg-white rounded-lg p-6 shadow-sm sticky top-4 min-h-[720px]">
+            <h3 className="text-[#FF8351] text-base md:text-lg font-semibold mb-4">Note</h3>
+            <ul className="space-y-3">
+                {notes.map((txt, i) => (
+                    <li key={i} className="text-[#3A3A3A] text-sm md:text-base flex items-start">
+                        <span className="font-bold mr-2 text-lg md:text-xl">•</span>
+                        <span>{txt}</span>
+                    </li>
+                ))}
+            </ul>
+        </div>
+    );
+
+
+    
+      const notes = [
+        "The job role and experience for your interview will be based on your profile. To schedule an interview for a different role, please create a new role in your profile section.",
+        "Once your payment is complete, your interview request will be forwarded to our professionals, who will conduct the interview according to the available time slots.",
+        "You will receive a notification 2 hours before your interview and a reminder 30 minutes prior.",
+        "If you cancel the interview 3–4 hours in advance, you are eligible for a 50% refund. Cancellations made within 3 hours of the interview are non-refundable."
+    ];
+
+
+
     const handleSelectDefaultResume = (idx) => {
         if (bookingData.uploadedResumeFile) {
             handleRemoveUploadedResume();
@@ -439,6 +534,30 @@ const GiveMockInterview = () => {
         </div>
     );
 
+    const NoteCard = () => (
+        <div className="bg-white rounded-[20px] p-6 shadow-sm border border-gray-100">
+            <h3 className="text-[#F26D3A] text-base font-semibold mb-4">Note</h3>
+            <ul className="space-y-4 text-xs text-[#3A3A3A] leading-relaxed">
+                <li className="flex gap-3">
+                    <span className="text-[#FF8351] mt-1">•</span>
+                    <span>The job role and experience for your interview will be based on your profile. To schedule an interview for a different role, please create a new role in your profile section.</span>
+                </li>
+                <li className="flex gap-3">
+                    <span className="text-[#FF8351] mt-1">•</span>
+                    <span>Once your payment is complete, your interview request will be forwarded to our professionals, who will conduct the interview according to the available time slots.</span>
+                </li>
+                <li className="flex gap-3">
+                    <span className="text-[#FF8351] mt-1">•</span>
+                    <span>You will receive a notification 2 hours before your interview and a reminder 30 minutes prior.</span>
+                </li>
+                <li className="flex gap-3">
+                    <span className="text-[#FF8351] mt-1">•</span>
+                    <span>If you cancel the interview 3-4 hours in advance, you are eligible for a 50% refund. Cancellations made within 3 hours of the interview are non-refundable, as per our policy.</span>
+                </li>
+            </ul>
+        </div>
+    );
+
     if (apiError) {
         return (
             <div className="flex flex-col h-screen font-['Baloo_2']">
@@ -455,18 +574,17 @@ const GiveMockInterview = () => {
     const FormScreen = () => (
         <div className="max-w-[1400px] mx-auto">
             <IntroBanner />
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-2">
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-2">
 
-                <div className="lg:col-span-2 space-y-5">
+                <div className="lg:col-span-3 space-y-5">
                     
-                    <div className="bg-white rounded-[20px] py-5 px-5">
+                    <div className="bg-white rounded-[20px] pt-5 px-5 pb-0">
+
                         <div className="flex items-center justify-between">
                             <h2 className="text-[#3A3A3A] text-2xl font-bold">Job Role : {bookingData.role}</h2>
                         </div>
                     </div>
-
-                    <div className="bg-white rounded-[20px] py-5 px-5">
-
+                    <div className="bg-white rounded-[20px] pt-5 px-5 pb-0">
                         <h2 className="text-[#F26D3A] text-2xl mb-5">Schedule your Mock Interview</h2>
 
                         <div className="mb-4">
@@ -642,99 +760,164 @@ const GiveMockInterview = () => {
                         
                         <Separator />
 
-                        <div>
-                            <div className="flex items-center justify-between mb-4">
-                                <h2 className="text-[#3A3A3A] text-xl font-semibold">RESUME</h2>
-                                <span className="text-[10px] text-[#3A3A3A]">Your resume is taken from the "My Resume" section.</span>
-                            </div>
-
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-                                {[0, 1].map((idx) => (
-                                    <button
-                                        key={idx}
-                                        onClick={() => handleSelectDefaultResume(idx)}
-                                        className={`rounded-lg p-3 border-2 ${
-                                            bookingData.selectedResume === idx && !bookingData.uploadedResumeFile
-                                                ? 'border-[#F26D3A] bg-[#FFF9F5]'
-                                                : 'border-[#E5E5E5] bg-white'
-                                        }`}
-                                        disabled={loading}
-                                    >
-                                        <div className="w-full h-40 bg-gray-200 rounded mb-3 flex items-center justify-center">
-                                            <span className="text-xs text-gray-400">Resume Preview</span>
-                                        </div>
-                                        <div className="flex items-center justify-between">
-                                            <span className="text-xs text-[#3A3A3A]">{`Aarov-Mehta-Python-Developer-${idx + 1}`}</span>
-                                            <svg className={`w-4 h-4 ${bookingData.selectedResume === idx && !bookingData.uploadedResumeFile ? 'text-[#F26D3A]' : 'text-gray-400'}`} fill="currentColor" viewBox="0 0 20 20">
-                                                <circle cx="10" cy="10" r="5" fill="currentColor" />
-                                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                                            </svg>
-                                        </div>
-                                    </button>
-                                ))}
-                            </div>
-
-                            {bookingData.uploadedResumeFile && (
-                                <div className="mb-4 p-4 bg-[#FFF9F5] border-2 border-[#F26D3A] rounded-lg">
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 bg-[#FF9D48] rounded-lg flex items-center justify-center">
-                                                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                                </svg>
-                                            </div>
-                                            <div>
-                                                <p className="text-sm font-semibold text-[#3A3A3A]">{bookingData.uploadedResumeFile.name}</p>
-                                                <p className="text-xs text-gray-500">{(bookingData.uploadedResumeFile.size / 1024).toFixed(2)} KB</p>
-                                            </div>
-                                        </div>
-                                        <button
-                                            onClick={handleRemoveUploadedResume}
-                                            className="text-red-500 hover:text-red-700"
-                                            disabled={loading}
-                                        >
-                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                            </svg>
-                                        </button>
-                                    </div>
-                                </div>
-                            )}
-
-                            <div className="text-center my-3">
-                                <span className="text-sm text-gray-500">OR</span>
-                            </div>
-
-                            <input
-                                type="file"
-                                id="resumeUpload"
-                                accept=".pdf,.doc,.docx"
-                                onChange={handleResumeUpload}
-                                className="hidden"
-                                disabled={loading}
-                            />
-
-                            <label
-                                htmlFor="resumeUpload"
-                                className={`w-full py-3 border-2 border-dashed rounded-lg text-sm flex items-center justify-center gap-2 mb-3 cursor-pointer transition-colors ${loading ? 'border-gray-200 text-gray-400' : 'border-gray-300 text-gray-600 hover:border-[#FF8351] hover:text-[#FF8351]'}`}
-                            >
-                                <Upload size={16} />
-                                {loading && bookingData.uploadedResumeFile === null ? 'Processing upload...' : 'Upload Resume (PDF, DOC, DOCX - Max 5MB)'}
-                            </label>
-
-                            <div className="text-center mb-3">
-                                <span className="text-sm text-gray-500">OR</span>
-                            </div>
-
-                            <button className="w-full py-3 border-2 border-gray-300 rounded-lg text-sm text-gray-600 hover:border-[#FF8351] hover:text-[#FF8351] flex items-center justify-center gap-2 cursor-pointer" disabled={loading}>
-                                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                    <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4z" />
-                                    <path d="M3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6z" />
-                                    <path d="M14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z" />
-                                </svg>
-                                Create Resume in BoWizzy
-                            </button>
+                      <div>
+                        {/* HEADER */}
+                        <div className="flex items-center justify-between mb-6">
+                            <h2 className="text-[#3A3A3A] text-xl font-semibold tracking-wide">
+                                RESUME
+                            </h2>
+                            <span className="text-[10px] text-[#3A3A3A]">
+                                Your resumes are taken from the "My Resumes" section.
+                            </span>
                         </div>
+
+                        <div className="flex flex-col md:flex-row gap-6">
+
+                            {/* LEFT SIDE – Resume Cards */}
+                            <div className="flex-1 mb-0">
+                                <div className="flex items-center gap-4">
+
+                                    {[0, 1].map((idx) => (
+                                        <div
+                                            key={idx}
+                                            onClick={() => handleSelectDefaultResume(idx)}
+                                            className={`w-40 h-56 rounded-xl bg-white shadow-sm border cursor-pointer relative overflow-hidden transition flex-shrink-0 ${
+                                                bookingData.selectedResume === idx &&
+                                                !bookingData.uploadedResumeFile
+                                                    ? "border-[#F26D3A]"
+                                                    : "border-gray-200"
+                                            }`}
+                                        >
+                                            {/* IMAGE / PREVIEW */}
+                                            <img
+                                                src="/resume-placeholder.png"
+                                                className="w-full h-full object-cover opacity-90"
+                                            />
+
+                                            {/* RADIO */}
+                                            <div className="absolute top-2 right-2 w-5 h-5 rounded-full border border-gray-400 bg-white flex items-center justify-center">
+                                                {bookingData.selectedResume === idx &&
+                                                !bookingData.uploadedResumeFile ? (
+                                                    <div className="w-3 h-3 rounded-full bg-[#F26D3A]" />
+                                                ) : null}
+                                            </div>
+
+                                            {/* NAME */}
+                                            <div className="absolute bottom-2 left-2 right-2 text-[11px] leading-tight text-[#3A3A3A] font-medium">
+                                                Aarav-Mehta-Python-Developer-{idx + 1}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                {/* DOTS */}
+                                <div className="flex justify-center gap-2 mt-2">
+                                    {[0, 1].map((i) => (
+                                        <div
+                                            key={i}
+                                            className={`w-2 h-2 rounded-full ${
+                                                bookingData.selectedResume === i &&
+                                                !bookingData.uploadedResumeFile
+                                                    ? "bg-[#F26D3A]"
+                                                    : "bg-gray-300"
+                                            }`}
+                                        />
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* OR DIVIDER */}
+                            <div className="hidden md:flex flex-col items-center justify-center px-4">
+                                <div className="w-px h-30 bg-gray-200" />
+                                <p className="text-xs my-2 text-gray-400">OR</p>
+                                <div className="w-px h-30 bg-gray-200" />
+                            </div>
+
+                            {/* RIGHT SIDE – Buttons */}
+                                <div className="w-full md:w-1/3 flex flex-col gap-4">  
+                                    {/* UPLOAD RESUME BUTTON */}
+                                    {!bookingData.uploadedResumeFile && (
+                                        <>
+                                            <input
+                                                type="file"
+                                                id="resumeUpload"
+                                                accept=".pdf,.doc,.docx"
+                                                onChange={handleResumeUpload}
+                                                className="hidden"
+                                                disabled={loading || uploadingResume}
+                                            />
+
+                                            <label
+                                                htmlFor="resumeUpload"
+                                                className={`w-full py-8 px-5 rounded-xl border-2 border-gray-300 
+                                                        ${uploadingResume ? 'cursor-not-allowed opacity-80' : 'hover:border-[#FF8351] hover:text-[#FF8351] cursor-pointer'} 
+                                                        text-gray-700 flex items-center gap-3 transition`}
+                                            >
+                                                {uploadingResume ? (
+                                                    <>
+                                                        <svg className="animate-spin h-5 w-5 text-gray-600" viewBox="0 0 24 24" fill="none">
+                                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                                                        </svg>
+                                                        <span className="text-sm font-medium">Uploading...</span>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <Upload size={20} />
+                                                        <span className="text-sm font-medium">Upload Resume</span>
+                                                    </>
+                                                )}
+                                            </label>
+                                        </>
+                                    )}
+
+                                    {(bookingData.uploadedResumeFile || cloudinaryData.url) ? (
+                                        <div className="mt-3 flex items-center justify-between bg-white rounded-lg p-3 border border-gray-200">
+                                            <div className="flex items-center gap-3">
+                                                <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 7h10M7 11h6m-3 8h.01M3 7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v7a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"></path></svg>
+                                                <div className="text-sm text-[#3A3A3A] max-w-[12rem] truncate" title={getUploadedFileName()}>
+                                                    {getUploadedFileName()}
+                                                </div>
+                                            </div>
+
+                                            <div className="flex items-center gap-3">
+                                                {cloudinaryData.url && (
+                                                    <a href={cloudinaryData.url} target="_blank" rel="noreferrer" className="text-xs text-[#3B82F6] underline">View</a>
+                                                )}
+
+                                                <button
+                                                    type="button"
+                                                    onClick={handleRemoveUploadedResume}
+                                                    disabled={loading}
+                                                    className="p-1 rounded hover:bg-gray-100 disabled:opacity-50"
+                                                    title="Delete uploaded resume"
+                                                >
+                                                    <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3"></path></svg>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ) : null}
+                                    <div className="w-full h-px bg-gray-200 my-2 rounded-full" />
+                                    {/* CREATE RESUME BUTTON */}
+                                    <button
+                                        type="button"
+                                        className="w-full py-8 px-5 rounded-xl border-2 border-gray-300 
+                                                hover:border-[#FF8351] hover:text-[#FF8351] 
+                                                text-gray-700 flex items-center gap-3 transition"
+                                        disabled={loading}
+                                        onClick={() => navigate('/ResumeBuilder')}
+                                    >
+                                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                            <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z"/>
+                                        </svg>
+
+                                        <span className="text-sm font-medium">Create Resume in BoWizzy</span>
+                                    </button>
+                                </div>
+
+                        </div>
+                    </div>
+
                     </div>
 
                     <div className="flex gap-3">
@@ -747,158 +930,138 @@ const GiveMockInterview = () => {
                         </button>
                         <button
                             onClick={handleBookInterview}
-                            className="flex-1 py-3 rounded-lg text-sm font-semibold text-white cursor-pointer"
+                            className={`flex-1 py-3 rounded-lg text-sm font-semibold text-white ${
+                                (loading || !(bookingData.uploadedResumeFile || cloudinaryData.url)) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+                            }`}
                             style={{
                                 background: "linear-gradient(180deg, #FF9D48 0%, #FF8251 100%)",
                             }}
-                            disabled={loading}
+                            disabled={loading || !(bookingData.uploadedResumeFile || cloudinaryData.url)}
+                            title={!bookingData.uploadedResumeFile && !cloudinaryData.url ? 'Please upload a resume to enable booking' : ''}
                         >
                             {loading ? 'Booking...' : 'Book Mock Interview'}
                         </button>
                     </div>
                 </div>
-
-                <div className="lg:col-span-1">
-                    <div className="bg-[#FFF9F5] rounded-[20px] p-5 sticky top-6">
-                        <h3 className="text-[#3A3A3A] text-base font-semibold mb-4">Note</h3>
-                        <ul className="space-y-3 text-xs text-[#3A3A3A] leading-relaxed">
-                            <li className="flex gap-2">
-                                <span className="text-[#FF8351] mt-0.5">•</span>
-                                <span>The job role and experience for your interview will be based on your profile. To schedule an interview for a different role, please create a new role in your profile section.</span>
-                            </li>
-                            <li className="flex gap-2">
-                                <span className="text-[#FF8351] mt-0.5">•</span>
-                                <span>Once your payment is complete, your interview request will be forwarded to our professionals, who will conduct the interview according to the available time slots.</span>
-                            </li>
-                            <li className="flex gap-2">
-                                <span className="text-[#FF8351] mt-0.5">•</span>
-                                <span>You will receive a notification 2 hours before your interview and a reminder 30 minutes prior.</span>
-                            </li>
-                            <li className="flex gap-2">
-                                <span className="text-[#FF8351] mt-0.5">•</span>
-                                <span>If you cancel the interview 3-4 hours in advance, you are eligible for a 50% refund. Cancellations made within 3 hours of the interview are non-refundable, as per our policy.</span>
-                            </li>
-                        </ul>
+                <div className="w-full lg:w-[320px] flex-shrink-0">
+                        <NoteSidebar notes={notes} />
                     </div>
-                </div>
+
             </div>
         </div>
     );
-
-    const PaymentScreen = () => (
+        const PaymentScreen = () => (
         <div className="max-w-[1400px] mx-auto">
             <IntroBanner />
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className="lg:col-span-2">
-                    <div className="bg-white rounded-[20px] py-6 px-6">
-                        <h2 className="text-[#F26D3A] text-2xl mb-6">Details</h2>
 
-                        <div className="grid grid-cols-2 gap-6 mb-6">
-                            <div>
-                                <h3 className="text-[#3A3A3A] text-sm font-semibold mb-2">Date</h3>
-                                <div className="bg-[#FFF9F5] rounded-lg p-4 border border-[#FFE5D1]">
-                                    <div className="text-xs text-[#7F7F7F] mb-1">{bookingData.selectedDate?.day || 'N/A'}</div>
-                                    <div className="text-2xl font-bold text-[#3A3A3A]">{bookingData.selectedDate?.date || 'N/A'}</div>
-                                </div>
-                            </div>
-                            <div>
-                                <h3 className="text-[#3A3A3A] text-sm font-semibold mb-2">Time</h3>
-                                <div className="bg-[#FFF9F5] rounded-lg p-4 border border-[#FFE5D1]">
-                                    <div className="text-2xl font-bold text-[#3A3A3A]">{bookingData.selectedTime || 'N/A'}</div>
-                                </div>
-                            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            <div className="lg:col-span-3">
+                <div className="bg-white rounded-[24px] px-8 py-6">
+                <h2 className="text-[#F26D3A] text-xl font-semibold mb-6">
+                    Details
+                </h2>
+                <div className="flex flex-col lg:flex-row gap-6 mb-8">
+                    <div className="flex gap-4">
+                    <div>
+                        <p className="text-xs font-semibold text-[#3A3A3A] mb-2">
+                        Date
+                        </p>
+                        <div className="w-[90px] border border-[#FFE5D1] rounded-xl p-3 text-center">
+                        <p className="text-[11px] text-gray-500">
+                            {bookingData.selectedDate?.day || "SAT"}
+                        </p>
+                        <p className="text-xl font-bold text-[#3A3A3A]">
+                            {bookingData.selectedDate?.date || "23"}
+                        </p>
                         </div>
-
-                        <div className="mb-6">
-                            <h3 className="text-[#F26D3A] text-lg font-semibold mb-1">Role : {bookingData.role}</h3>
-                            <p className="text-[#3A3A3A] text-sm">
-                                Experience : {bookingData.experience}
-                            </p>
+                    </div>
+                    <div>
+                        <p className="text-xs font-semibold text-[#3A3A3A] mb-2">
+                        Time
+                        </p>
+                        <div className="w-[110px] border border-[#FFE5D1] rounded-xl p-4 text-center">
+                        <p className="text-sm font-semibold text-[#3A3A3A]">
+                            {bookingData.selectedTime || "10:00 AM"}
+                        </p>
                         </div>
-
-
-                        <div className="mb-6">
-                            <h3 className="text-[#3A3A3A] text-base font-semibold mb-3">SKILL(S) SELECTED FOR MOCK INTERVIEW</h3>
-                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
-                                {bookingData.selectedSkills.slice(0, 7).map((skill, idx) => (
-                                    <div key={idx} className="bg-[#F5F5F5] rounded-lg py-2 px-3 text-center text-sm text-[#3A3A3A]">
-                                        {skill}
-                                    </div>
-                                ))}
-                            </div>
+                    </div>
+                    <div>
+                        <p className="text-xs font-semibold text-[#3A3A3A] mb-2">
+                        Mode
+                        </p>
+                        <div className="w-[110px] border border-[#FFE5D1] rounded-xl p-4 text-center">
+                        <p className="text-sm font-semibold text-[#3A3A3A]">
+                            Online
+                        </p>
                         </div>
+                    </div>
+                    </div>
 
-                        <div className="bg-[#E8E8E8] h-[1px] my-6"></div>
+                    <div className="hidden lg:block w-[1px] bg-[#E5E5E5]" />
+                    <div>
+                    <p className="text-[#F26D3A] text-xl font-bold mb-1">
+                        Job Role : {bookingData.role}
+                    </p>
 
+                    <p className="text-xl text-[#3A3A3A]">
+                        Experience : {bookingData.experience}
+                    </p>
+                    </div>
+                </div>
+                <div className="mb-8">
+                    <p className="text-sm font-semibold text-[#3A3A3A] mb-4">
+                    SKILL(S) SELECTED FOR MOCK INTERVIEW
+                    </p>
 
-                        <div className="flex justify-between items-center mb-6">
-                            <span className="text-[#3A3A3A] text-lg font-semibold">Amount :</span>
-                            <span className="text-[#3A3A3A] text-2xl font-bold">₹ 399.00 /-</span>
-                        </div>
-
-
-                        <button
-                            onClick={handlePayAndConfirm}
-                            className="w-full py-3 rounded-lg text-base font-semibold text-white cursor-pointer"
-                            style={{
-                                background: "linear-gradient(180deg, #FF9D48 0%, #FF8251 100%)",
-                            }}
-                            disabled={loading}
+                    <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-3">
+                    {bookingData.selectedSkills.slice(0, 7).map((skill, idx) => (
+                        <div
+                        key={idx}
+                        className="border border-[#E5E5E5] rounded-lg py-2 px-3 text-center text-sm text-[#3A3A3A]"
                         >
-                            {loading ? 'Initiating Payment...' : 'Pay and Confirm'}
-                        </button>
-
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
-
-                            <div className="bg-[#FFF9E6] rounded-lg p-4">
-                                <h4 className="text-[#3A3A3A] font-semibold text-sm mb-2">
-                                    One IT Community, Endless Opportunities - NamaQA Community
-                                </h4>
-                                <button className="mt-2 px-4 py-2 bg-white border border-[#FF9D48] text-[#FF9D48] rounded-lg text-xs font-semibold hover:bg-orange-50">
-                                    Join Now →
-                                </button>
-                            </div>
-
-                            <div className="bg-[#F0F9FF] rounded-lg p-4">
-                                <h4 className="text-[#3A3A3A] font-semibold text-sm mb-2">
-                                    Create an ATS-Friendly Resume That Gets Past Filters and Reaches Employers
-                                </h4>
-                                <button className="mt-2 px-4 py-2 bg-white border border-[#3B82F6] text-[#3B82F6] rounded-lg text-xs font-semibold hover:bg-blue-50">
-                                    Create Resume
-                                </button>
-                            </div>
+                        {skill}
                         </div>
+                    ))}
                     </div>
                 </div>
 
+                {/* DIVIDER */}
+                <div className="h-[1px] bg-[#E5E5E5] mb-6" />
 
-                <div className="lg:col-span-1">
-                    <div className="bg-[#FFF9F5] rounded-[20px] p-6 sticky top-6">
-                        <h3 className="text-[#3A3A3A] text-base font-semibold mb-4">Note</h3>
-                        <ul className="space-y-3 text-xs text-[#3A3A3A] leading-relaxed">
-                            <li className="flex gap-2">
-                                <span className="text-[#FF8351] mt-0.5">•</span>
-                                <span>The job role and experience for your interview will be based on your profile. To schedule an interview for a different role, please create a new role in your profile section.</span>
-                            </li>
-                            <li className="flex gap-2">
-                                <span className="text-[#FF8351] mt-0.5">•</span>
-                                <span>Once your payment is complete, your interview request will be forwarded to our professionals, who will conduct the interview according to the available time slots.</span>
-                            </li>
-                            <li className="flex gap-2">
-                                <span className="text-[#FF8351] mt-0.5">•</span>
-                                <span>You will receive a notification 2 hours before your interview and a reminder 30 minutes prior.</span>
-                            </li>
-                            <li className="flex gap-2">
-                                <span className="text-[#FF8351] mt-0.5">•</span>
-                                <span>If you cancel the interview 3-4 hours in advance, you are eligible for a 50% refund. Cancellations made within 3 hours of the interview are non-refundable, as per our policy.</span>
-                            </li>
-                        </ul>
-                    </div>
+                {/* AMOUNT */}
+                <div className="flex justify-between items-center mb-6">
+                    <span className="text-base font-semibold text-[#3A3A3A]">
+                    Amount :
+                    </span>
+                    <span className="text-xl font-bold text-[#3A3A3A]">
+                    ₹ 399.00 /-
+                    </span>
+                </div>
+
+                {/* PAY BUTTON */}
+                <button
+                    onClick={handlePayAndConfirm}
+                    disabled={loading}
+                    className="w-full h-[52px] rounded-xl text-white font-semibold text-base"
+                    style={{
+                    background:
+                        "linear-gradient(180deg, #FF9D48 0%, #FF8251 100%)",
+                    }}
+                >
+                    {loading ? "Initiating Payment..." : "Pay and Confirm"}
+                </button>
                 </div>
             </div>
+
+            {/* SIDEBAR */}
+            <div className="lg:col-span-1">
+                <div className="hidden lg:block w-[320px]">
+                <NoteSidebar notes={notes} />
+                </div>
+            </div>
+            </div>
         </div>
-    );
+        );
 
 
     const SuccessScreen = () => (
@@ -1054,6 +1217,7 @@ const GiveMockInterview = () => {
                     </motion.button>
                 </div>
             </div>
+            {/* Note sidebar intentionally removed from Success screen per request */}
         </div>
     );
 
@@ -1062,6 +1226,27 @@ const GiveMockInterview = () => {
         <div className="flex flex-col h-screen font-['Baloo_2']">
 
             <DashNav heading="Give Mock Interview" />
+
+            {bookingError && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center">
+                    <div className="absolute inset-0 bg-black opacity-30" onClick={() => setBookingError('')} />
+                    <div className="bg-white rounded-lg p-6 z-60 w-full max-w-md mx-4 shadow-lg">
+                        <h3 className="text-lg font-semibold mb-2">Booking Error</h3>
+                        <p className="text-sm mb-4 whitespace-pre-wrap">{bookingError}</p>
+                        <div className="flex justify-end">
+                            <button
+                                onClick={() => setBookingError('')}
+                                className="px-4 py-2 rounded-lg text-white font-semibold"
+                                style={{
+                                    background: "linear-gradient(180deg, #FF9D48 0%, #FF8251 100%)",
+                                }}
+                            >
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             <div className="flex-1 max-h-screen overflow-auto bg-[#F0FF0] p-6">
                 {currentScreen === 'form' && <FormScreen />}

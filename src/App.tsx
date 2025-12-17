@@ -365,6 +365,17 @@ function App() {
         </ProtectedRoute>
       ),
     },
+
+    {
+      path: "interview-prep/pay/:slotId",
+      Component: () => (
+        <ProtectedRoute>
+          <LayoutWrapper>
+            <GiveMockInterview />
+          </LayoutWrapper>
+        </ProtectedRoute>
+      ),
+    },
     {
       path: "interview-prep/interview-details/:id",
       Component: () => (
