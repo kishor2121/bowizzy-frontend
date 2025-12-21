@@ -278,6 +278,11 @@ export const ResumeEditor: React.FC = () => {
 
   const previewContentRef = useRef<HTMLDivElement>(null);
   const { markers, totalPages } = usePageMarkers(previewContentRef, [resumeData, selectedTemplate]);
+  const DisplayComponent = selectedTemplate?.displayComponent || selectedTemplate?.component;
+  const [paginatePreview, setPaginatePreview] = useState<boolean>(true);
+  const [previewPageCount, setPreviewPageCount] = useState<number>(1);
+  const [previewCurrentPage, setPreviewCurrentPage] = useState<number>(1);
+  const paginatedRef = useRef<{ goTo: (i: number) => void; next: () => void; prev: () => void } | null>(null);
 
   const location = useLocation();
 
@@ -769,15 +774,42 @@ export const ResumeEditor: React.FC = () => {
                 <div className="relative w-full h-full flex items-start justify-center">
                   {/* Page info */}
                   {totalPages > 1 && (
-                    <div className="absolute top-2 right-4 bg-white px-3 py-1 rounded-full shadow-md text-sm font-medium z-10">
-                      {totalPages} {totalPages === 1 ? 'Page' : 'Pages'}
-                    </div>
+                    <>
+                      <div className="absolute top-2 right-4 bg-white px-3 py-1 rounded-full shadow-md text-sm font-medium z-10">
+                        {paginatePreview ? (
+                          <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                            <button onClick={() => paginatedRef.current?.prev()} disabled={!paginatePreview} style={{ padding: '6px 8px', borderRadius: '6px' }}>‹</button>
+                            <span>{previewCurrentPage}/{previewPageCount} {previewPageCount === 1 ? 'Page' : 'Pages'}</span>
+                            <button onClick={() => paginatedRef.current?.next()} disabled={!paginatePreview} style={{ padding: '6px 8px', borderRadius: '6px' }}>›</button>
+                          </div>
+                        ) : (
+                          <>{totalPages} {totalPages === 1 ? 'Page' : 'Pages'}</>
+                        )}
+                      </div>
+
+                      {/* Paginate toggle */}
+                      <div className="absolute top-2 left-4 z-10">
+                        <label className="inline-flex items-center gap-2 bg-white px-3 py-1 rounded-full shadow-sm text-sm">
+                          <input type="checkbox" checked={paginatePreview} onChange={(e) => setPaginatePreview(e.target.checked)} />
+                          <span>Paginate</span>
+                        </label>
+                      </div>
+                    </>
                   )}
 
                   {/* Preview content with markers */}
                   <div className="relative transform scale-75 origin-top -mt-4">
                     <div ref={previewContentRef} className="relative">
-                      {renderTemplatePreview()}
+                      {selectedTemplate && (
+                        <DisplayComponent
+                          data={resumeData}
+                          supportsPhoto={selectedTemplate.supportsPhoto ?? false}
+                          showPageBreaks={paginatePreview}
+                            onPageCountChange={(n: number) => setPreviewPageCount(n)}
+                            onPageChange={(i: number) => setPreviewCurrentPage(i)}
+                            pageControllerRef={paginatedRef}
+                        />
+                      )}
                       {/* <PageBreakMarkers markers={markers} /> */}
                     </div>
                   </div>
@@ -814,6 +846,7 @@ export const ResumeEditor: React.FC = () => {
         userId={userId}
         token={token}
         resumeTemplateId={searchParams.get("resumeTemplateId")}
+        editorPaginatePreview={paginatePreview}
       />
     </div>
   );

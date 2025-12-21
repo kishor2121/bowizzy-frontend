@@ -152,3 +152,16 @@
     @apply bg-background text-foreground;
   }
 }
+
+.page {
+  page-break-after: always;
+}
+
+@media print {
+  .page { break-after: page; }
+}
+
+@page {
+  size: A4;
+  margin: 12mm;
+}

@@ -5,6 +5,8 @@ import { getTemplateById } from "@/templates/templateRegistry";
 import { PDFDownloadLink, pdf } from "@react-pdf/renderer";
 import PageBreakMarkers from "../PageBreakMarkers";
 import { usePageMarkers } from "@/hooks/usePageMarkers";
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
 import { uploadPdfToCloudinary } from "@/utils/uploadPdfToCloudinary";
 import { saveResumeTemplates, updateResumeTemplate } from "@/services/resumeServices";
 
@@ -16,6 +18,7 @@ interface ResumePreviewModalProps {
   userId?: string;
   token?: string;
   resumeTemplateId?: number | string | null; // existing saved template id when editing
+  editorPaginatePreview?: boolean; // if true, modal's visible preview will match editor's paginate toggle
 }
 
 const ResumePreviewModal: React.FC<ResumePreviewModalProps> = ({
@@ -26,6 +29,7 @@ const ResumePreviewModal: React.FC<ResumePreviewModalProps> = ({
   userId,
   token,
   resumeTemplateId,
+  editorPaginatePreview,
 }) => {
   const [showNameDialog, setShowNameDialog] = useState(false);
   const [showDownloadDialog, setShowDownloadDialog] = useState(false);
@@ -36,6 +40,10 @@ const ResumePreviewModal: React.FC<ResumePreviewModalProps> = ({
   const [isProcessing, setIsProcessing] = useState(false);
 
   const previewContentRef = useRef<HTMLDivElement>(null);
+  const [modalPaginatePageCount, setModalPaginatePageCount] = useState<number | null>(null);
+  const [modalPaginateCurrentPage, setModalPaginateCurrentPage] = useState<number>(1);
+  const modalPaginatedRef = useRef<{ goTo: (i: number) => void; next: () => void; prev: () => void } | null>(null);
+  const pdfPagesRef = useRef<HTMLDivElement>(null);
 
   // Get template
   const template = templateId ? getTemplateById(templateId) : null;
@@ -166,10 +174,34 @@ const ResumePreviewModal: React.FC<ResumePreviewModalProps> = ({
                   className="resume-preview-content relative"
                 >
                   {DisplayComponent && (
-                    <DisplayComponent
-                      data={resumeData}
-                      supportsPhoto={template?.supportsPhoto ?? false}
-                    />
+                    <div style={{ position: 'relative' }}>
+                      {/* Top-right modal page indicator when paginated */}
+                      {modalPaginatePageCount ? (
+                        <div style={{ position: 'absolute', right: 12, top: 8, zIndex: 20 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'white', padding: '6px 10px', borderRadius: 12, boxShadow: '0 6px 18px rgba(15, 23, 42, 0.12)' }}>
+                            <button onClick={() => modalPaginatedRef.current?.prev()} disabled={modalPaginateCurrentPage <= 1} style={{ padding: '6px 8px', borderRadius: 8 }}>&lsaquo;</button>
+                            <span style={{ fontSize: 13 }}>{modalPaginateCurrentPage}/{modalPaginatePageCount} Pages</span>
+                            <button onClick={() => modalPaginatedRef.current?.next()} disabled={modalPaginateCurrentPage >= (modalPaginatePageCount || 1)} style={{ padding: '6px 8px', borderRadius: 8 }}>&rsaquo;</button>
+                          </div>
+                        </div>
+                      ) : null}
+
+                      {editorPaginatePreview === false ? (
+                        <DisplayComponent
+                          data={resumeData}
+                          supportsPhoto={template?.supportsPhoto ?? false}
+                        />
+                      ) : (
+                        <DisplayComponent
+                          data={resumeData}
+                          supportsPhoto={template?.supportsPhoto ?? false}
+                          showPageBreaks={true}
+                          onPageCountChange={(n: number) => setModalPaginatePageCount(n)}
+                          onPageChange={(i: number) => setModalPaginateCurrentPage(i)}
+                          pageControllerRef={modalPaginatedRef}
+                        />
+                      )}
+                    </div>
                   )}
                   {/* <PageBreakMarkers markers={markers} /> */}
                 </div>
@@ -181,6 +213,21 @@ const ResumePreviewModal: React.FC<ResumePreviewModalProps> = ({
                   <DisplayComponent
                     data={resumeData}
                     supportsPhoto={template?.supportsPhoto ?? false}
+                  />
+                )}
+              </div>
+
+              {/* Hidden paginated pages for PDF generation (rendered off-screen) */}
+              <div style={{ position: 'absolute', left: '-9999px', top: 0 }} ref={pdfPagesRef} aria-hidden>
+                {DisplayComponent && (
+                  <DisplayComponent
+                    data={resumeData}
+                    supportsPhoto={template?.supportsPhoto ?? false}
+                    showPageBreaks={true}
+                    // make sure PDF-ready pages are rendered inside the DisplayComponent
+                    onPageCountChange={(n: number) => setModalPaginatePageCount(n)}
+                    onPageChange={(i: number) => setModalPaginateCurrentPage(i)}
+                    pageControllerRef={modalPaginatedRef}
                   />
                 )}
               </div>
@@ -312,6 +359,7 @@ const ResumePreviewModal: React.FC<ResumePreviewModalProps> = ({
               <h3 className="text-xl font-semibold text-gray-900 mt-2 mb-6 text-center">
                 Your Resume
               </h3>
+              <p className="text-sm text-gray-600 mb-4 text-center">Pages: <strong>{modalPaginatePageCount ?? totalPages}</strong></p>
 
               {/* Resume Thumbnail Image */}
               <div className="flex justify-center mb-6">
@@ -398,48 +446,72 @@ const ResumePreviewModal: React.FC<ResumePreviewModalProps> = ({
                 </button>
 
                 {/* Download (.pdf) Button - FUNCTIONAL DOWNLOAD */}
-                {/* We wrap the button content inside PDFDownloadLink */}
+                {/* Download using paginated HTML when available, otherwise fall back to react-pdf */}
                 {PDFComponent && (
-                  <PDFDownloadLink
-                    document={<PDFComponent data={resumeData} />}
-                    fileName={`${resumeName.trim() || 'resume'}.pdf`}
-                    // Optional: Call a function when the file starts generating
-                    onClick={() => setIsDownloading(true)} 
-                  >
-                    {({ loading, error }) => {
-                        // Reset loading state after download is complete
-                        if (!loading && isDownloading) {
+                  <button
+                    onClick={async () => {
+                          if (!resumeName.trim()) return;
+                          setIsDownloading(true);
+                          try {
+                            // Wait briefly for paginated pages to be rendered and counted (if any)
+                            const waitForPages = async () => {
+                              for (let i = 0; i < 20; i++) {
+                                const printableNow = document.querySelectorAll('.pdf-print-page');
+                                if (printableNow && printableNow.length > 0 && (modalPaginatePageCount === null || printableNow.length === modalPaginatePageCount)) {
+                                  return printableNow;
+                                }
+                                // small pause
+                                // eslint-disable-next-line no-await-in-loop
+                                await new Promise((r) => setTimeout(r, 100));
+                              }
+                              return document.querySelectorAll('.pdf-print-page');
+                            };
+
+                            const printable = await waitForPages();
+                            if (printable && printable.length > 0) {
+                              // Generate PDF from paginated DOM
+                              const pdf = new jsPDF('p', 'pt', 'a4');
+                              const pdfWidth = pdf.internal.pageSize.getWidth();
+                              const pdfHeight = pdf.internal.pageSize.getHeight();
+
+                              for (let i = 0; i < printable.length; i++) {
+                                // html2canvas each page
+                                // @ts-ignore
+                                const canvas = await html2canvas(printable[i] as HTMLElement, { scale: 2, useCORS: true });
+                                const imgData = canvas.toDataURL('image/png');
+                                if (i > 0) pdf.addPage();
+                                pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+                              }
+
+                              pdf.save(`${resumeName.trim() || 'resume'}.pdf`);
+                            } else {
+                              // Fallback: use react-pdf generation
+                              const doc = <PDFComponent data={resumeData} />;
+                              const asPdf = pdf(doc);
+                              const blob: Blob = await asPdf.toBlob();
+                              const url = URL.createObjectURL(blob);
+                              const a = document.createElement('a');
+                              a.href = url;
+                              a.download = `${resumeName.trim() || 'resume'}.pdf`;
+                              document.body.appendChild(a);
+                              a.click();
+                              a.remove();
+                              URL.revokeObjectURL(url);
+                            }
+                          } catch (err) {
+                            console.error('PDF generation error:', err);
+                            alert('Failed to generate PDF. See console for details.');
+                          } finally {
                             setIsDownloading(false);
-                            console.log("PDF generated successfully.");
-                        }
-
-                        // Handle error state (optional)
-                        if (error) {
-                            console.error("PDF Download Error:", error);
-                        }
-
-                        return (
-                            <button
-                                disabled={loading || !resumeName.trim() || !PDFComponent}
-                                // Styled to match the solid orange background in the image
-                                className="flex-1 px-3 py-2 text-sm font-medium text-white bg-orange-500 rounded-lg hover:bg-orange-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1"
-                            >
-                                {loading ? (
-                                    // Spinner while PDF is being generated
-                                    <>
-                                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                                      Processing
-                                    </>
-                                ) : (
-                                    <>
-                                      <Download className="w-4 h-4" />
-                                      Download (.pdf)
-                                    </>
-                                )}
-                            </button>
-                        );
-                    }}
-                  </PDFDownloadLink>
+                            setShowDownloadDialog(false);
+                            setPendingAction(null);
+                          }
+                        }}
+                    disabled={!resumeName.trim() || isDownloading}
+                    className="flex-1 px-3 py-2 text-sm font-medium text-white bg-orange-500 rounded-lg hover:bg-orange-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1"
+                  >
+                    {isDownloading ? (<><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Processing</>) : (<><Download className="w-4 h-4" /> Download (.pdf)</>)}
+                  </button>
                 )}
                 
                 {/* Fallback if PDFComponent is not defined */}
