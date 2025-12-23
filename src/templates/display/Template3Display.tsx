@@ -1,4 +1,5 @@
 import React from 'react';
+import DOMPurify from 'dompurify';
 import type { ResumeData } from '@/types/resume';
 
 interface Template3DisplayProps {
@@ -86,11 +87,9 @@ export const Template3Display: React.FC<Template3DisplayProps> = ({
                   backgroundColor: '#e0e0e0',
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '48px',
-                  color: '#999999'
+                  justifyContent: 'center'
                 }}>
-                  👤
+                  <img src="/icons/user.svg" alt="Profile" style={{ width: 48, height: 48, color: '#999999' }} />
                 </div>
               )}
             </div>
@@ -134,7 +133,7 @@ export const Template3Display: React.FC<Template3DisplayProps> = ({
               gap: '10px',
               marginBottom: '16px'
             }}>
-              <span style={{ fontSize: '18px' }}>📞</span>
+              <img src="/icons/phone.svg" alt="Contact" style={{ width: 18, height: 18 }} />
               <h2 style={{ 
                 fontSize: '13px', 
                 fontWeight: 'bold',
@@ -153,15 +152,15 @@ export const Template3Display: React.FC<Template3DisplayProps> = ({
               color: sidebarHeaderColor
             }}>
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', marginBottom: '10px' }}>
-                <span style={{ fontSize: '11px', minWidth: '16px', color: primaryColor }}>📞</span>
+                <img src="/icons/phone.svg" alt="Mobile" style={{ width: 12, height: 12, marginTop: 2 }} />
                 <span>{personal.mobileNumber || '+123-456-7890'}</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', marginBottom: '10px' }}>
-                <span style={{ fontSize: '11px', minWidth: '16px', color: primaryColor }}>✉️</span>
+                <img src="/icons/mail.svg" alt="Email" style={{ width: 12, height: 12, marginTop: 2 }} />
                 <span style={{ wordBreak: 'break-all' }}>{personal.email || 'hello@reallygreatsite.com'}</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', marginBottom: '10px' }}>
-                <span style={{ fontSize: '11px', minWidth: '16px', color: primaryColor }}>📍</span>
+                <img src="/icons/location.svg" alt="Location" style={{ width: 12, height: 12, marginTop: 2 }} />
                 <span>{personal.address || '123 Anywhere St., Any City, ST 12345'}</span>
               </div>
             </div>
@@ -176,7 +175,7 @@ export const Template3Display: React.FC<Template3DisplayProps> = ({
                 gap: '10px',
                 marginBottom: '16px'
               }}>
-                <span style={{ fontSize: '18px' }}>👤</span>
+                <img src="/icons/user.svg" alt="About" style={{ width: 18, height: 18 }} />
                 <h2 style={{ 
                   fontSize: '13px', 
                   fontWeight: 'bold',
@@ -187,7 +186,7 @@ export const Template3Display: React.FC<Template3DisplayProps> = ({
                   About Me
                 </h2>
               </div>
-              <p style={{ 
+              <div style={{ 
                 fontSize: '10px',
                 paddingLeft: '0',
                 paddingTop: '12px',
@@ -196,9 +195,9 @@ export const Template3Display: React.FC<Template3DisplayProps> = ({
                 lineHeight: '1.5',
                 margin: '0',
                 color: sidebarHeaderColor
-              }}>
-                {personal.aboutCareerObjective}
-              </p>
+              }}
+                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(personal.aboutCareerObjective || '') }}
+              />
             </div>
           )}
 
@@ -211,7 +210,7 @@ export const Template3Display: React.FC<Template3DisplayProps> = ({
                 gap: '10px',
                 marginBottom: '16px'
               }}>
-                <span style={{ fontSize: '18px' }}>🧩</span>
+                <img src="/icons/skills.svg" alt="Skills" style={{ width: 18, height: 18 }} />
                 <h2 style={{ 
                   fontSize: '13px', 
                   fontWeight: 'bold',
@@ -269,7 +268,7 @@ export const Template3Display: React.FC<Template3DisplayProps> = ({
               paddingBottom: '10px',
               borderBottom: `1px solid ${dividerColor}`
             }}>
-              <span style={{ fontSize: '20px' }}>🎓</span>
+              <img src="/icons/edu.svg" alt="Education" style={{ width: 20, height: 20 }} />
               <h2 style={{ 
                 fontSize: '16px', 
                 fontWeight: 'bold',
@@ -441,7 +440,7 @@ export const Template3Display: React.FC<Template3DisplayProps> = ({
               paddingBottom: '10px',
               borderBottom: `1px solid ${dividerColor}`
             }}>
-              <span style={{ fontSize: '20px' }}>💼</span>
+              <img src="/icons/briefcase.svg" alt="Experience" style={{ width: 20, height: 20 }} />
               <h2 style={{ 
                 fontSize: '16px', 
                 fontWeight: 'bold',
@@ -501,15 +500,15 @@ export const Template3Display: React.FC<Template3DisplayProps> = ({
                         {exp.startDate} - {exp.currentlyWorking ? 'Present' : exp.endDate}
                       </p>
                       {exp.description && (
-                        <p style={{ 
+                        <div style={{ 
                           fontSize: '10px',
                           color: mediumTextColor,
                           margin: '0',
                           lineHeight: '1.6',
                           textAlign: 'justify'
-                        }}>
-                          {exp.description}
-                        </p>
+                        }}
+                          dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(exp.description || '') }}
+                        />
                       )}
                     </div>
                   </div>
@@ -532,7 +531,7 @@ export const Template3Display: React.FC<Template3DisplayProps> = ({
               paddingBottom: '10px',
               borderBottom: `1px solid ${dividerColor}`
             }}>
-              <span style={{ fontSize: '20px' }}>📁</span>
+              <img src="/icons/project.svg" alt="Projects" style={{ width: 20, height: 20 }} />
               <h2 style={{ 
                 fontSize: '16px', 
                 fontWeight: 'bold',
@@ -584,15 +583,15 @@ export const Template3Display: React.FC<Template3DisplayProps> = ({
                         {project.startDate} - {project.currentlyWorking ? 'Present' : project.endDate}
                       </p>
                       {project.description && (
-                        <p style={{ 
+                        <div style={{ 
                           fontSize: '10px',
                           color: mediumTextColor,
                           margin: '0',
                           lineHeight: '1.6',
                           textAlign: 'justify'
-                        }}>
-                          {project.description}
-                        </p>
+                        }}
+                          dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(project.description || '') }}
+                        />
                       )}
                     </div>
                   </div>
@@ -647,7 +646,7 @@ export const Template3Display: React.FC<Template3DisplayProps> = ({
               paddingBottom: '10px',
               borderBottom: `1px solid ${dividerColor}`
             }}>
-              <span style={{ fontSize: '20px' }}>💻</span>
+              <img src="/icons/tech.svg" alt="Technical Summary" style={{ width: 20, height: 20 }} />
               <h2 style={{ 
                 fontSize: '16px', 
                 fontWeight: 'bold',
@@ -658,15 +657,13 @@ export const Template3Display: React.FC<Template3DisplayProps> = ({
                 Technical Summary
               </h2>
             </div>
-            <p style={{ 
+            <div style={{ 
               fontSize: '10px',
               color: mediumTextColor,
               lineHeight: '1.6',
               textAlign: 'justify',
               margin: '0'
-            }}>
-              {skillsLinks.technicalSummary}
-            </p>
+            }} dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(skillsLinks.technicalSummary || '') }} />
           </div>
         )}
 

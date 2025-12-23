@@ -560,20 +560,31 @@ const PaginatedResume: React.FC<{ data: ResumeData; supportsPhoto?: boolean; onP
     leftBlocks.forEach(b => measure.appendChild(b));
     rightBlocks.forEach(b => measure.appendChild(b));
 
+    // Page geometry (A4 @ ~96dpi)
+    const PAGE_WIDTH = 794; // approx px
+    const PAGE_PADDING_H = 40 * 2; // left + right padding used in layout
+    const PAGE_INNER_WIDTH = PAGE_WIDTH - PAGE_PADDING_H;
+    const COLUMN_GAP = 40; // gap between columns
+    const COLUMN_WIDTH = Math.floor((PAGE_INNER_WIDTH - COLUMN_GAP) / 2);
+
     // Heights
     const headerHeight = header.offsetHeight || 0;
     const summaryHeight = summary.offsetHeight || 0;
     // Build queues, splitting any blocks that exceed a single page height
-    const measureHtml = (html: string) => {
+    const measureHtml = (html: string, column: 'left' | 'right' | 'full' = 'full') => {
       const tmp = document.createElement('div');
       tmp.innerHTML = html;
+      // constrain width when measuring column content so we estimate the
+      // vertical space more accurately (narrower columns increase height)
+      if (column === 'left' || column === 'right') tmp.style.width = `${COLUMN_WIDTH}px`;
+      else tmp.style.width = `${PAGE_INNER_WIDTH}px`;
       measure.appendChild(tmp);
       const h = tmp.offsetHeight;
       measure.removeChild(tmp);
       return h;
     };
 
-    const splitTextToFit = (text: string, limit: number, wrapperTag = 'div') => {
+    const splitTextToFit = (text: string, limit: number, wrapperTag = 'div', column: 'left' | 'right' | 'full' = 'full') => {
       const parts: string[] = [];
       let remaining = text.trim();
       while (remaining.length > 0) {
@@ -585,6 +596,8 @@ const PaginatedResume: React.FC<{ data: ResumeData; supportsPhoto?: boolean; onP
           const testStr = remaining.slice(0, mid);
           const wrapper = document.createElement(wrapperTag);
           wrapper.innerHTML = escapeHtml(testStr);
+          if (column === 'left' || column === 'right') wrapper.style.width = `${COLUMN_WIDTH}px`;
+          else wrapper.style.width = `${PAGE_INNER_WIDTH}px`;
           measure.appendChild(wrapper);
           const h = wrapper.offsetHeight;
           measure.removeChild(wrapper);
@@ -602,7 +615,7 @@ const PaginatedResume: React.FC<{ data: ResumeData; supportsPhoto?: boolean; onP
       return parts;
     };
 
-    const splitHtmlToFit = (html: string, limit: number) => {
+    const splitHtmlToFit = (html: string, limit: number, column: 'left' | 'right' | 'full' = 'full') => {
       const parts: string[] = [];
       const tmp = document.createElement('div');
       tmp.innerHTML = html;
@@ -630,7 +643,7 @@ const PaginatedResume: React.FC<{ data: ResumeData; supportsPhoto?: boolean; onP
             }
             // split oversized node by text
             const largeText = node.innerText || '';
-            const splitParts = splitTextToFit(largeText, limit, node.tagName.toLowerCase());
+            const splitParts = splitTextToFit(largeText, limit, node.tagName.toLowerCase(), column);
             parts.push(...splitParts);
           }
         }
@@ -640,28 +653,26 @@ const PaginatedResume: React.FC<{ data: ResumeData; supportsPhoto?: boolean; onP
 
       // fallback: split by text
       const fullText = tmp.innerText || '';
-      return splitTextToFit(fullText, limit, 'div');
+      return splitTextToFit(fullText, limit, 'div', column);
     };
 
     const leftQueue: { html: string; h: number }[] = [];
     for (const b of leftBlocks) {
-      const raw = b.offsetHeight;
-      const h = Math.ceil(raw * MEASURE_SAFETY_FACTOR);
-      if (h <= PAGE_HEIGHT - PAGE_EPSILON) leftQueue.push({ html: b.outerHTML, h });
+      const hMeasured = Math.ceil(measureHtml(b.outerHTML, 'left') * MEASURE_SAFETY_FACTOR);
+      if (hMeasured <= PAGE_HEIGHT - PAGE_EPSILON) leftQueue.push({ html: b.outerHTML, h: hMeasured });
       else {
-        const parts = splitHtmlToFit(b.outerHTML, PAGE_HEIGHT - PAGE_EPSILON);
-        for (const p of parts) leftQueue.push({ html: p, h: Math.ceil(measureHtml(p) * MEASURE_SAFETY_FACTOR) });
+        const parts = splitHtmlToFit(b.outerHTML, PAGE_HEIGHT - PAGE_EPSILON, 'left');
+        for (const p of parts) leftQueue.push({ html: p, h: Math.ceil(measureHtml(p, 'left') * MEASURE_SAFETY_FACTOR) });
       }
     }
 
     const rightQueue: { html: string; h: number }[] = [];
     for (const b of rightBlocks) {
-      const raw = b.offsetHeight;
-      const h = Math.ceil(raw * MEASURE_SAFETY_FACTOR);
-      if (h <= PAGE_HEIGHT - PAGE_EPSILON) rightQueue.push({ html: b.outerHTML, h });
+      const hMeasured = Math.ceil(measureHtml(b.outerHTML, 'right') * MEASURE_SAFETY_FACTOR);
+      if (hMeasured <= PAGE_HEIGHT - PAGE_EPSILON) rightQueue.push({ html: b.outerHTML, h: hMeasured });
       else {
-        const parts = splitHtmlToFit(b.outerHTML, PAGE_HEIGHT - PAGE_EPSILON);
-        for (const p of parts) rightQueue.push({ html: p, h: Math.ceil(measureHtml(p) * MEASURE_SAFETY_FACTOR) });
+        const parts = splitHtmlToFit(b.outerHTML, PAGE_HEIGHT - PAGE_EPSILON, 'right');
+        for (const p of parts) rightQueue.push({ html: p, h: Math.ceil(measureHtml(p, 'right') * MEASURE_SAFETY_FACTOR) });
       }
     }
 
