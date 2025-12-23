@@ -4,6 +4,9 @@ import { getProfileProgress } from "@/services/dashboardServices";
 import {
   getInterviewSlotsByUserId,
   getNextInterviewsByUserId,
+  getInterviewScheduleById,
+  getInterviewSlotById,
+  updateInterviewSlot,
 } from "@/services/interviewPrepService";
 import {
   Users,
@@ -23,6 +26,9 @@ export default function Dashboard() {
   const gradientColor = "linear-gradient(180deg, #FF9D48 0%, #FF8251 100%)";
   const navigate = useNavigate();
   const [upcomingInterview, setUpcomingInterview] = useState(null);
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
+  const [noSchedule, setNoSchedule] = useState(false);
   useEffect(() => {
     const userData = JSON.parse(localStorage.getItem("user"));
 
@@ -40,47 +46,135 @@ export default function Dashboard() {
 
     // fetch user's interview slots and pick the nearest upcoming (or most recent)
     const parseSlotDate = (slot) => {
-      const keys = [
-        "start_time",
-        "start",
-        "scheduled_at",
-        "scheduled_for",
-        "slot_time",
-        "date",
-        "start_datetime",
-        "time",
+      if (!slot) return null;
+      // prefer explicit UTC start_time if provided by API
+      const candidates = [
+        slot.start_time_utc,
+        slot.start_time,
+        slot.start,
+        slot.scheduled_at,
+        slot.scheduled_for,
+        slot.slot_time,
+        slot.date,
+        slot.start_datetime,
+        slot.time,
+        slot.slot_date,
+        slot.slotDate,
       ];
-      for (const k of keys) {
-        if (!slot) continue;
-        const v = slot[k] ?? slot["slot_date"] ?? slot["slotDate"];
+
+      for (const v of candidates) {
         if (!v) continue;
         const d = new Date(v);
-        // Use getTime() for numeric check — isNaN expects a number (Date is not assignable to number)
         if (!isNaN(d.getTime())) return d;
       }
+
       return null;
     };
 
     if (userId && token) {
+      const ordinal = (n) => {
+        const v = n % 100;
+        if (v >= 11 && v <= 13) return n + "th";
+        switch (n % 10) {
+          case 1:
+            return n + "st";
+          case 2:
+            return n + "nd";
+          case 3:
+            return n + "rd";
+          default:
+            return n + "th";
+        }
+      };
+
+      const formatSlotDate = (slot) => {
+        if (!slot) return null;
+        const parse = (v) => {
+          if (!v) return null;
+          const d = new Date(v);
+          return isNaN(d.getTime()) ? null : d;
+        };
+
+        const start = parse(slot.start_time_utc ?? slot.start ?? slot.scheduled_at ?? slot.scheduled_for ?? slot.slot_time ?? slot.__date);
+        const end = parse(slot.end_time_utc ?? slot.end ?? slot.slot_end ?? null);
+
+        if (start && end) {
+          const month = start.toLocaleString(undefined, { month: "long" });
+          const day = ordinal(start.getDate());
+          const year = start.getFullYear();
+          const startTime = start.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+          const endTime = end.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+          return `${month} ${day} ${year}, ${startTime} - ${endTime}`;
+        }
+
+        if (start) return start.toLocaleString();
+        return null;
+      };
+
       const processResponse = (res) => {
-        const slots = Array.isArray(res) ? res : res?.data || [];
+        // If API explicitly reports no schedule, mark that state so UI hides action buttons
+        if (res && typeof res === "object" && typeof res.message === "string") {
+          const msg = res.message.toLowerCase();
+          if (msg.includes("interview schedule not found") || msg.includes("not found")) {
+            setNoSchedule(true);
+            setUpcomingInterview(null);
+            return;
+          }
+        }
+        // Normalise response into an array of slots. The API may return:
+        // - an array (res)
+        // - an object with `data` containing the array (res.data)
+        // - a single slot object (res)
+        let slots = [];
+        if (Array.isArray(res)) {
+          slots = res;
+        } else if (Array.isArray(res?.data)) {
+          slots = res.data;
+        } else if (res && typeof res === "object") {
+          // if it's a single slot object (contains expected keys), wrap it
+          const hasSlotKeys = !!(
+            res.start_time_utc ||
+            res.interview_schedule_id ||
+            res.interview_slot_id ||
+            res.scheduled_at ||
+            res.slot_time
+          );
+          if (hasSlotKeys) slots = [res];
+        }
+        // Attach parsed date and filter out cancelled / ended / expired slots
         const withDates = (slots || [])
           .map((s) => ({ ...s, __date: parseSlotDate(s) }))
-          .filter((s) => s.__date);
+          .filter((s) => {
+            if (!s.__date) return false;
+            const status = (s.interview_status || s.status || "").toString().toLowerCase();
+            if (!status) return true;
+            if (status.includes("cancel")) return false;
+            if (status.includes("end") || status.includes("complete") || status.includes("expired")) return false;
+            return true;
+          });
 
         const now = new Date();
+        // Only consider future slots as upcoming. Do not show past/expired/cancelled slots.
         const future = withDates.filter((s) => s.__date > now);
 
         let chosen = null;
         if (future.length) {
           future.sort((a, b) => a.__date - b.__date);
           chosen = future[0];
-        } else if (withDates.length) {
-          withDates.sort((a, b) => b.__date - a.__date);
-          chosen = withDates[0];
+        } else {
+          // no future valid slots — don't pick a past one
+          chosen = null;
         }
 
         if (chosen) {
+          setNoSchedule(false);
+          const formatted = formatSlotDate(chosen) ||
+            (chosen.__date ? chosen.__date.toLocaleString() : null) ||
+            chosen.date ||
+            chosen.scheduled_at ||
+            chosen.scheduled_for ||
+            chosen.slot_time || null;
+
           const normalized = {
             ...chosen,
             title:
@@ -96,12 +190,7 @@ export default function Dashboard() {
               chosen.interviewer?.avatar ??
               chosen.interviewer?.image ??
               null,
-            date:
-              chosen.date ??
-              chosen.scheduled_at ??
-              chosen.scheduled_for ??
-              chosen.slot_time ??
-              (chosen.__date ? chosen.__date.toLocaleString() : null),
+            date: formatted,
           };
 
           setUpcomingInterview(normalized);
@@ -121,12 +210,39 @@ export default function Dashboard() {
     }
   }, []);
 
+  const handleCancel = async () => {
+    if (!upcomingInterview) return;
+    const slotId = upcomingInterview?.interview_slot_id;
+    if (!slotId) {
+      setShowCancelModal(false);
+      return;
+    }
+
+    setCancelling(true);
+    try {
+      const user = JSON.parse(localStorage.getItem("user") || "{}");
+      const userId = user?.user_id;
+      const token = user?.token;
+      if (userId && token) {
+        await updateInterviewSlot(userId, token, slotId, { interview_status: "cancelled" });
+      }
+
+      // remove upcoming interview from dashboard
+      setUpcomingInterview(null);
+      setShowCancelModal(false);
+    } catch (err) {
+      console.error("Failed to cancel interview", err);
+      setShowCancelModal(false);
+    } finally {
+      setCancelling(false);
+    }
+  };
+
   const dashboardData = {
     upcomingInterview: {
-      title: "Mock Interview",
-      date: "August 22nd 2025, 10:00 AM - 11:00 AM",
-      image:
-        "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=400&h=300&fit=crop",
+      title: "No upcoming interviews",
+      date: "",
+      image: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=400&h=300&fit=crop",
     },
     prepSmarter: [
       {
@@ -167,6 +283,61 @@ export default function Dashboard() {
   return (
     <div className="h-screen flex flex-col overflow-hidden">
       <DashNav heading={"Welcome to BoWizzy"} />
+
+      {showCancelModal && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black/30 backdrop-blur-sm z-50">
+          <div className="bg-white w-[420px] rounded-2xl shadow-xl p-10 relative text-center">
+
+            <button
+              onClick={() => setShowCancelModal(false)}
+              className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 cursor-pointer p-1 rounded-full hover:bg-gray-100 transition"
+              aria-label="Close modal"
+            >
+              X
+            </button>
+
+            <div className="mx-auto mb-6 w-24 h-24 rounded-full flex items-center justify-center shadow-inner relative"
+              style={{
+                background: "radial-gradient(circle, #FFF 45%, #FFEFB8 75%)",
+                border: "4px solid #F5CC46",
+                boxShadow: "0 4px 12px rgba(255, 200, 0, 0.4), inset 0 0 12px rgba(255, 220, 0, 0.6)"
+              }}
+            >
+              <span className="text-4xl text-[#555] font-bold">!</span>
+            </div>
+
+            <p className="text-gray-700 text-lg leading-relaxed mb-8">
+              Are you sure you want to cancel this Mock Interview?
+            </p>
+
+            <div className="flex items-center justify-center gap-4">
+              <button
+                onClick={() => setShowCancelModal(false)}
+                className="px-6 py-2 border border-[#FF8351] text-[#FF8351] font-semibold rounded-xl hover:bg-orange-50 transition cursor-pointer hover:shadow-sm"
+              >
+                Go Back
+              </button>
+
+              <button
+                onClick={handleCancel}
+                disabled={cancelling}
+                className={`px-6 py-2 text-white font-semibold rounded-xl ${cancelling ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer hover:shadow-lg transform transition hover:-translate-y-0.5'}`}
+                style={{ background: "linear-gradient(180deg, #FF9D48 0%, #FF8251 100%)" }}
+                aria-busy={cancelling}
+              >
+                {cancelling ? (
+                  <>
+                    <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin inline-block mr-2" />
+                    Cancelling...
+                  </>
+                ) : (
+                  'Cancel Interview'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       <div className="flex-1 overflow-auto bg-gray-50">
         <div className="p-4">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -249,7 +420,7 @@ export default function Dashboard() {
                   </h2>
                   <button
                     onClick={() => navigate("/interview-prep")}
-                    className="text-xs"
+                    className="text-xs cursor-pointer hover:underline"
                     style={{ color: "#FF8251" }}
                   >
                     View All
@@ -269,22 +440,67 @@ export default function Dashboard() {
                       {upcomingInterview?.title || dashboardData.upcomingInterview.title}
                     </h3>
                     <p className="text-xs text-gray-500 mb-2">
-                      {upcomingInterview?.__date
-                        ? upcomingInterview.__date.toLocaleString()
-                        : upcomingInterview?.date || dashboardData.upcomingInterview.date}
+                      {(() => {
+                        const displayDate = upcomingInterview?.date || dashboardData.upcomingInterview.date;
+                        return displayDate && displayDate !== "" ? displayDate : "No upcoming interviews scheduled";
+                      })()}
                     </p>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => navigate("/interview-prep")}
-                        className="px-3 py-1 rounded text-xs text-white font-medium"
+                    {upcomingInterview && !noSchedule && (
+                      <div className="flex gap-2">
+                        <button
+                          onClick={async () => {
+                          // Call the interview-slot API (to ensure backend hit) then navigate to details
+                          try {
+                            const slotId = upcomingInterview?.interview_slot_id;
+                            const scheduleId = upcomingInterview?.interview_schedule_id;
+                            const user = JSON.parse(localStorage.getItem("user") || "{}");
+                            const userId = user?.user_id;
+                            const token = user?.token;
+
+                            if (slotId && userId && token) {
+                              // call the slot endpoint as requested (e.g. /users/81/mock-interview/interview-slot/59)
+                              await getInterviewSlotById(userId, token, slotId);
+                              navigate(`/interview-prep/interview-details/${slotId}`);
+                              return;
+                            }
+
+                            if (scheduleId && userId && token) {
+                              const resp = await getInterviewScheduleById(userId, token, scheduleId);
+                              const resolvedSlotId = resp?.interview_slot_id ?? resp?.interview_slot?.id;
+                              if (resolvedSlotId) {
+                                // ensure the slot endpoint is called
+                                await getInterviewSlotById(userId, token, resolvedSlotId);
+                                navigate(`/interview-prep/interview-details/${resolvedSlotId}`);
+                                return;
+                              }
+                            }
+
+                            // Fallback: if we have a slot id in the object, navigate
+                            if (upcomingInterview?.interview_slot_id) {
+                              navigate(`/interview-prep/interview-details/${upcomingInterview.interview_slot_id}`);
+                              return;
+                            }
+
+                            // Final fallback: go to the listing page
+                            navigate("/interview-prep");
+                          } catch (err) {
+                            console.error('Failed to load interview details', err);
+                            navigate('/interview-prep');
+                          }
+                        }}
+                        className="px-3 py-1 rounded text-xs text-white font-medium cursor-pointer hover:shadow-md transform transition hover:-translate-y-0.5"
                         style={{ background: gradientColor }}
                       >
                         View Details
-                      </button>
-                      <button className="px-3 py-1 rounded text-xs border border-gray-300">
-                        Cancel
-                      </button>
-                    </div>
+                        </button>
+                        <button
+                          onClick={() => setShowCancelModal(true)}
+                          className="px-3 py-1 rounded text-xs border border-gray-300 cursor-pointer hover:bg-gray-50"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

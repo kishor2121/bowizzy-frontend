@@ -72,6 +72,15 @@ export const getNextInterviewsByUserId = async (userId, token) => {
     return response.data;
 };
 
+export const getInterviewScheduleById = async (userId, token, scheduleId) => {
+    const response = await api.get(`/users/${userId}/mock-interview/interview-schedule/${scheduleId}`, {
+        headers: {
+            Authorization: `Bearer ${token}`,
+        },
+    });
+    return response.data;
+};
+
 export const cancelInterviewSlot = async (userId, token, slotId) => {
     const payload = { interview_status: 'cancelled' };
     const response = await api.put(
