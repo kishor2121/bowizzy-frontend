@@ -26,7 +26,29 @@ const TakeMockInterview = () => {
   const [isVerified, setIsVerified] = useState<boolean | null>(null); // null = checking, true/false = known
   const [selectedInterview, setSelectedInterview] = useState<Interview | null>(null);
   const [viewType, setViewType] = useState<'scheduled' | 'available' | 'saved' | null>(null);
-  const [formData, setFormData] = useState({
+  type FormDataType = {
+    firstName: string;
+    lastName: string;
+    email: string;
+    mobile: string;
+    linkedin_url: string;
+    photo: any;
+    educations: any[];
+    experiences: any[];
+    accountHolderName: string;
+    bankName: string;
+    branchName: string;
+    accountNumber: string;
+    confirmAccountNumber: string;
+    ifscCode: string;
+    accountType: string;
+    // `education` holds the structured education form returned from the API when loaded
+    education?: any;
+    // optional extra fields used later
+    jobRole?: string;
+  };
+
+  const [formData, setFormData] = useState<FormDataType>({
     firstName: "",
     lastName: "",
     email: "",

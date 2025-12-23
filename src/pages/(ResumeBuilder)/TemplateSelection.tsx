@@ -94,7 +94,7 @@ export default function TemplateSelection() {
 
               {templates.map((template) => {
                 // Determine allowed templates based on planType
-                const freeList = ["template1", "template2", "template3"];
+                const freeList = ["template1", "template2", "template3", "template4", "template5", "template6", "template7", "template8", "template9", "template10"];
                 const plusList = ["template1", "template2", "template3", "template4", "template5", "template6"];
                 let allowedTemplates: string[] = freeList;
                 const plan = (planType || "").toLowerCase();

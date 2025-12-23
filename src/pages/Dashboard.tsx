@@ -55,7 +55,8 @@ export default function Dashboard() {
         const v = slot[k] ?? slot["slot_date"] ?? slot["slotDate"];
         if (!v) continue;
         const d = new Date(v);
-        if (!isNaN(d)) return d;
+        // Use getTime() for numeric check — isNaN expects a number (Date is not assignable to number)
+        if (!isNaN(d.getTime())) return d;
       }
       return null;
     };
