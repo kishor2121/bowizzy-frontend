@@ -2,9 +2,10 @@ import React from "react";
 
 interface ProgressStepperProps {
   currentStep: number;
+  onStepClick?: (step: number) => void;
 }
 
-const ProgressStepper = ({ currentStep }: ProgressStepperProps) => {
+const ProgressStepper = ({ currentStep, onStepClick }: ProgressStepperProps) => {
   const steps = [
     { label: "Personal", step: 1 },
     { label: "Education", step: 2 },
@@ -20,17 +21,33 @@ const ProgressStepper = ({ currentStep }: ProgressStepperProps) => {
         {steps.map((stepItem, index) => (
           <React.Fragment key={stepItem.step}>
             {/* Step */}
-            <div className="flex flex-col items-center relative z-10">
+            <div
+              className={`flex flex-col items-center relative z-10 select-none ${
+                onStepClick ? "cursor-pointer" : ""
+              }`}
+              onClick={() => {
+                if (!onStepClick) return;
+                // Allow going back to any completed step, or forward only one step at a time
+                const allowed = stepItem.step <= currentStep || stepItem.step === currentStep + 1;
+                if (allowed) onStepClick(stepItem.step);
+              }}
+              role={onStepClick ? "button" : undefined}
+            >
               <span className="text-sm mb-2 text-center font-medium text-gray-900">
                 {stepItem.label}
               </span>
               <div
-                className={`w-4 h-4 rounded-full border-2 ${
-                  currentStep >= stepItem.step
-                    ? "border-[#FF8351]"
-                    : "border-[#FFE6D5]"
+                className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+                  currentStep >= stepItem.step ? "border-[#FF8351]" : "border-[#FFE6D5]"
                 }`}
-              ></div>
+              >
+                {/* optional inner fill for completed steps */}
+                <div
+                  className={`w-2 h-2 rounded-full ${
+                    currentStep >= stepItem.step ? "bg-[#FF8351]" : "bg-transparent"
+                  }`}
+                />
+              </div>
             </div>
 
             {/* Connecting Line */}

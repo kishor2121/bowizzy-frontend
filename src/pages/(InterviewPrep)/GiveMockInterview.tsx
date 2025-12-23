@@ -205,15 +205,22 @@ const GiveMockInterview = () => {
     const handleYearSelection = (year) => {
         setBookingData(prev => {
             let newYearsExp = [];
-            
-            if (prev.yearsExp.includes(year) && year === prev.yearsExp[prev.yearsExp.length - 1]) {
-                newYearsExp = prev.yearsExp.filter(y => y < year);
-            } else if (!prev.yearsExp.includes(year)) {
-                newYearsExp = Array.from({ length: year }, (_, i) => i + 1);
+
+            // Special-case: allow selecting 0 for freshers. Selecting 0 sets yearsExp to [0].
+            if (year === 0) {
+                if (prev.yearsExp.includes(0) && prev.yearsExp[prev.yearsExp.length - 1] === 0) {
+                    newYearsExp = prev.yearsExp.filter(y => y < 0); // becomes []
+                } else {
+                    newYearsExp = [0];
+                }
             } else {
-                newYearsExp = Array.from({ length: year }, (_, i) => i + 1);
+                if (prev.yearsExp.includes(year) && year === prev.yearsExp[prev.yearsExp.length - 1]) {
+                    newYearsExp = prev.yearsExp.filter(y => y < year);
+                } else {
+                    newYearsExp = Array.from({ length: year }, (_, i) => i + 1);
+                }
             }
-            
+
             const experienceString = calculateExperienceString(newYearsExp, prev.monthsExp);
 
             return {
@@ -227,13 +234,19 @@ const GiveMockInterview = () => {
     const handleMonthSelection = (month) => {
         setBookingData(prev => {
             let newMonthsExp = [];
-            
-            if (prev.monthsExp.includes(month) && month === prev.monthsExp[prev.monthsExp.length - 1]) {
-                 newMonthsExp = prev.monthsExp.filter(m => m < month);
-            } else if (!prev.monthsExp.includes(month)) {
-                newMonthsExp = Array.from({ length: month }, (_, i) => i + 1);
+            // Allow selecting 0 months for freshers. Selecting 0 sets monthsExp to [0].
+            if (month === 0) {
+                if (prev.monthsExp.includes(0) && prev.monthsExp[prev.monthsExp.length - 1] === 0) {
+                    newMonthsExp = prev.monthsExp.filter(m => m < 0); // becomes []
+                } else {
+                    newMonthsExp = [0];
+                }
             } else {
-                newMonthsExp = Array.from({ length: month }, (_, i) => i + 1);
+                if (prev.monthsExp.includes(month) && month === prev.monthsExp[prev.monthsExp.length - 1]) {
+                    newMonthsExp = prev.monthsExp.filter(m => m < month);
+                } else {
+                    newMonthsExp = Array.from({ length: month }, (_, i) => i + 1);
+                }
             }
             
             const experienceString = calculateExperienceString(prev.yearsExp, newMonthsExp);
@@ -406,7 +419,10 @@ const GiveMockInterview = () => {
         if (bookingData.selectedSkills.length === 0) {
             errors.push('At least one skill is required');
         }
-        if (totalExpMonths === 0) {
+        // Require experience only if the user hasn't explicitly selected years or months.
+        // Users who selected 0 (freshers) will have yearsExp or monthsExp length > 0 and are allowed.
+        const hasSelectedExperience = (Array.isArray(bookingData.yearsExp) && bookingData.yearsExp.length > 0) || (Array.isArray(bookingData.monthsExp) && bookingData.monthsExp.length > 0);
+        if (!hasSelectedExperience) {
             errors.push('Experience is required');
         }
         if (!bookingData.resumeUrl) {
@@ -447,6 +463,8 @@ const GiveMockInterview = () => {
             candidate_id: userId,
             job_role: bookingData.role,
             experience: `${totalYears} years ${totalMonths} months`,
+            experience_years: Number(totalYears),
+            experience_months: Number(totalMonths),
             skills: bookingData.selectedSkills,
             resume_url: bookingData.resumeUrl,
             raw_date_string: formatDateForAPI(bookingData.selectedDate),
@@ -839,7 +857,7 @@ const GiveMockInterview = () => {
                             <div className="mb-5">
                                 <span className="text-[#3A3A3A] text-sm font-medium block mb-3">YEARS</span>
                                 <div className="flex items-center gap-1 flex-wrap">
-                                    {Array.from({ length: 20 }, (_, i) => i + 1).map((year) => (
+                                    {Array.from({ length: 21 }, (_, i) => i).map((year) => (
                                         <button
                                             key={year}
                                             onClick={() => handleYearSelection(year)}
@@ -864,7 +882,7 @@ const GiveMockInterview = () => {
                             <div>
                                 <span className="text-[#3A3A3A] text-sm font-medium block mb-3">MONTHS</span>
                                 <div className="flex items-center gap-1 flex-wrap">
-                                    {Array.from({ length: 12 }, (_, i) => i + 1).map((month) => (
+                                    {Array.from({ length: 12 }, (_, i) => i).map((month) => (
                                         <button
                                             key={month}
                                             onClick={() => handleMonthSelection(month)}

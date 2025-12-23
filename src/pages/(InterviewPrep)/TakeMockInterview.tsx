@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import api from "@/api";
 import DashNav from "@/components/dashnav/dashnav";
 import PersonalDetails from "./components/PersonalDetails";
 import EducationDetails from "./components/EducationDetails";
@@ -22,7 +23,7 @@ interface Interview {
 
 const TakeMockInterview = () => {
   const [currentStep, setCurrentStep] = useState(1);
-  const [isVerified, setIsVerified] = useState(false); // Set to false for verification flow
+  const [isVerified, setIsVerified] = useState<boolean | null>(null); // null = checking, true/false = known
   const [selectedInterview, setSelectedInterview] = useState<Interview | null>(null);
   const [viewType, setViewType] = useState<'scheduled' | 'available' | 'saved' | null>(null);
   type FormDataType = {
@@ -193,6 +194,34 @@ const TakeMockInterview = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentStep]);
 
+  // Run verification check once on mount
+  useEffect(() => {
+    const checkVerification = async () => {
+      try {
+        const parsed = JSON.parse(localStorage.getItem("user") || "{}");
+        const userId = parsed?.user_id;
+        const token = parsed?.token;
+        if (!userId || !token) {
+          setIsVerified(false);
+          return;
+        }
+
+        const resp = await api.get(`/users/${userId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        const payload = resp?.data || {};
+        const verified = payload?.is_verified ?? payload?.user?.is_verified ?? payload?.isVerified ?? false;
+        setIsVerified(!!verified);
+      } catch (err) {
+        console.error("Error fetching verification status:", err);
+        setIsVerified(false);
+      }
+    };
+
+    checkVerification();
+  }, []);
+
   const handleNext = () => {
     if (currentStep < 5) {
       setCurrentStep(currentStep + 1);
@@ -259,7 +288,9 @@ const TakeMockInterview = () => {
 
       <div className="flex-1 max-h-screen overflow-auto bg-[#F0F0F0] p-2 sm:p-4 lg:p-6">
         <div className="w-full mx-auto">
-          {isVerified ? (
+          {isVerified === null ? (
+            <div className="p-4 text-center text-gray-500">Checking verification...</div>
+          ) : isVerified ? (
             selectedInterview ? (
               <InterviewDetailsView
                 interview={selectedInterview}
@@ -285,7 +316,17 @@ const TakeMockInterview = () => {
                     candidates with genuine professionals.
                   </p>
 
-                  <ProgressStepper currentStep={currentStep} />
+                  <ProgressStepper
+                    currentStep={currentStep}
+                    onStepClick={(step: number) => {
+                      // Prevent skipping more than one step forward
+                      if (step <= currentStep) {
+                        setCurrentStep(step);
+                      } else if (step === currentStep + 1) {
+                        setCurrentStep(step);
+                      }
+                    }}
+                  />
 
                   {/* Divider */}
                   <div className="border-t border-gray-200 my-6"></div>
