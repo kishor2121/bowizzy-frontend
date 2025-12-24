@@ -72,6 +72,15 @@ export const getNextInterviewsByUserId = async (userId, token) => {
     return response.data;
 };
 
+export const getCompletedInterviewsCount = async (userId, token) => {
+    const response = await api.get(`/users/${userId}/mock-interview/interview-schedule/count-completed-interviews`, {
+        headers: {
+            Authorization: `Bearer ${token}`,
+        },
+    });
+    return response.data;
+};
+
 export const getInterviewScheduleById = async (userId, token, scheduleId) => {
     const response = await api.get(`/users/${userId}/mock-interview/interview-schedule/${scheduleId}`, {
         headers: {
