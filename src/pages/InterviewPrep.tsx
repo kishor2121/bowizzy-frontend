@@ -4,7 +4,8 @@ import DashNav from "@/components/dashnav/dashnav";
 import { useNavigate } from "react-router-dom";
 import { 
     getInterviewSlotsByUserId, 
-    cancelInterviewSlot 
+    cancelInterviewSlot,
+    getCompletedInterviewsCount,
 } from "@/services/interviewPrepService";
 
 const InterviewPrep = () => {
@@ -17,6 +18,7 @@ const InterviewPrep = () => {
     const [allSlots, setAllSlots] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [completedCount, setCompletedCount] = useState(0);
 
     const [showAllUpcoming, setShowAllUpcoming] = useState(false);
     const [showCancelModal, setShowCancelModal] = useState(false);
@@ -92,6 +94,13 @@ const InterviewPrep = () => {
             });
             
             setAllSlots(normalizedSlots);
+                // fetch completed interviews count for the stats card
+                try {
+                    const cnt = await getCompletedInterviewsCount(userId, token);
+                    setCompletedCount(cnt?.completed_interviews ?? 0);
+                } catch (e) {
+                    console.warn('Failed to fetch completed interviews count', e);
+                }
         } catch (err) {
             console.error("Failed to fetch interview slots:", err);
             setError("Failed to load interview data.");
@@ -112,7 +121,11 @@ const InterviewPrep = () => {
     const displayedUpcoming = showAllUpcoming
         ? upcomingInterviews
         : upcomingInterviews.slice(0, 4);
-    const displayedPast = pastInterviews;
+    const displayedPast = pastInterviews.slice().sort((a, b) => {
+        const aDate = new Date(a.end_time_utc ?? a.start_time_utc ?? a.completedDate);
+        const bDate = new Date(b.end_time_utc ?? b.start_time_utc ?? b.completedDate);
+        return bDate - aDate; // most recent first
+    });
         
     const openCancelModal = (slot) => {
         setSlotToCancel(slot);
@@ -182,8 +195,10 @@ const InterviewPrep = () => {
         const { is_payment_done, status, id, start_time_utc, end_time_utc } = interview;
 
         const now = new Date();
+        const startTime = start_time_utc ? new Date(start_time_utc) : null;
         const endTime = end_time_utc ? new Date(end_time_utc) : (start_time_utc ? new Date(start_time_utc) : null);
         const hasEnded = endTime ? (endTime < now) : false;
+        const hasStarted = startTime ? (now >= startTime && !hasEnded) : false;
 
         if (is_payment_done === false) {
         return (
@@ -233,7 +248,7 @@ const InterviewPrep = () => {
             return (
                 <div className="w-full flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                     <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-                        {!hasEnded && (
+                        {hasStarted && (
                             <button
                                 onClick={() => handleViewDetails(id)}
                                 className="w-full sm:w-auto px-4 py-2 bg-[#4ADE80] text-white rounded-md text-sm font-medium hover:bg-green-500 cursor-pointer"
@@ -384,12 +399,12 @@ const InterviewPrep = () => {
                                 Interview(s) given till now
                             </h2>
 
-                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 justify-items-stretch">
+                            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-4 gap-3 justify-items-stretch">
                                 {[
                                     {
                                         icon: "👥",
                                         count: "Mock Sessions",
-                                        label: "5 sessions",
+                                        label: `${completedCount} sessions`,
                                         bg: "bg-[#EDE7F6]",
                                         iconBg: "bg-[#D1C4E9]",
                                     },
@@ -455,7 +470,7 @@ const InterviewPrep = () => {
                                 Past Performance
                             </h2>
 
-                            <div className="space-y-3 max-h-[420px] overflow-y-auto pr-2">
+                            <div className="space-y-3 max-h-[640px] overflow-y-auto pr-2">
                                 {displayedPast.length > 0 ? (
                                     displayedPast.map((interview) => (
                                         <div
@@ -494,19 +509,7 @@ const InterviewPrep = () => {
                             {/* Removed see all / show less toggle — Past Performance is scrollable */}
                         </div>
 
-                        <div className="bg-[#FFF9F5] rounded-2xl p-5">
-                            <h3 className="text-[#3A3A3A] text-xs font-semibold mb-2 uppercase tracking-wide">
-                                PREPARING FOR A NEW CAREER PATH?
-                            </h3>
-                            <p className="text-[#FF8351] text-lg font-bold mb-4 leading-tight">
-                                Create a New Role that ensures your resume, skills, and
-                                interview practice match the domain.
-                            </p>
-                            <button className="px-5 py-2 bg-white border-2 border-[#FF9D48] text-[#FF9D48] rounded-lg text-sm font-semibold hover:bg-orange-50 flex items-center gap-2 cursor-pointer">
-                                Create new role
-                                <ArrowRight size={14} />
-                            </button>
-                        </div>
+                        
                     </div>
                 </div>
             </div>
