@@ -9,7 +9,7 @@ interface SavedInterviewCardProps {
     time: string;
   };
   onViewDetails?: (interview: any) => void;
-  onRemove?: (interview: any) => void;
+  onRemove?: (payload: { saved_slot_id?: string | number; interview_slot_id?: string | number; id?: string | number }) => void;
 }
 
 const SavedInterviewCard: React.FC<SavedInterviewCardProps> = ({
@@ -41,7 +41,7 @@ const SavedInterviewCard: React.FC<SavedInterviewCardProps> = ({
         </button>
         <button
           className="flex-1 px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 rounded hover:bg-gray-200 transition-colors"
-          onClick={() => onRemove && onRemove(interview)}
+          onClick={() => onRemove && onRemove({ saved_slot_id: (interview as any).saved_slot_id, interview_slot_id: (interview as any).interview_slot_id, id: interview.id })}
         >
           Remove
         </button>

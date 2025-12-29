@@ -227,18 +227,38 @@ const InterviewDetailsView: React.FC<InterviewDetailsViewProps> = ({
       }
       const data = await getSavedInterviewSlots(userId, token);
       const items: any[] = Array.isArray(data) ? data : (data?.saved_interview_slots ? data.saved_interview_slots : (data || []));
-      // filter out expired interview slots (if start time exists and is in the past)
+      const normalize = (item: any): Interview => {
+        const slot = item.interview_slot || item;
+        const get = (k: string) => slot[k];
+        const start = get('start_time_utc') ?? get('start_time') ?? slot.date ?? null;
+        const end = get('end_time_utc') ?? get('end_time') ?? null;
+        return {
+          id: String(slot.interview_slot_id ?? slot.id ?? item.saved_slot_id ?? Math.random()),
+          saved_slot_id: item.saved_slot_id ?? item.id ?? slot.saved_slot_id ?? undefined,
+          interview_slot_id: String(slot.interview_slot_id ?? slot.id ?? ''),
+          interview_code: slot.interview_code ?? slot.code ?? undefined,
+          job_role: slot.job_role ?? slot.title ?? undefined,
+          title: slot.job_role ?? slot.title ?? 'Interview',
+          experience: slot.experience ?? slot.experienceLevel ?? '',
+          date: start ? new Date(start).toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' }) : (slot.date ?? ''),
+          time: start ? `${new Date(start).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', hour12: true })}${end ? ' - ' + new Date(end).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', hour12: true }) : ''}` : (slot.time ?? ''),
+          start_time_utc: start ?? undefined,
+          end_time_utc: end ?? undefined,
+          skills: slot.skills ?? [],
+          resume_url: slot.resume_url ?? slot.resumeUrl ?? undefined,
+          interview_mode: slot.interview_mode ?? slot.mode ?? undefined,
+          candidate_id: slot.candidate_id ?? slot.candidateId ?? undefined,
+          is_payment_done: slot.is_payment_done ?? slot.isPaymentDone ?? undefined,
+          priority: slot.priority ?? undefined,
+        } as Interview;
+      };
+
       const now = Date.now();
-      const filtered = items.filter((s) => {
-        // prefer nested interview_slot start fields when present
-        const slot = s.interview_slot || s;
-        const startVal = slot.start_time_utc || slot.start_time || (slot.date && slot.time ? `${slot.date} ${slot.time}` : null) || slot.startDate || slot.start || s.start_time_utc || s.start_time;
-        if (!startVal) return true; // keep if no start info
-        const parsed = new Date(startVal);
-        if (isNaN(parsed.getTime())) return true; // keep if unparseable
-        return parsed.getTime() > now; // keep only future starts
+      const mapped = items.map(normalize).filter(i => {
+        const end = i.end_time_utc ? new Date(i.end_time_utc) : (i.start_time_utc ? new Date(i.start_time_utc) : null);
+        return !(end && end.getTime() < now);
       });
-      setSavedList(filtered as Interview[]);
+      setSavedList(mapped as Interview[]);
     } catch (err) {
       console.error("Fetching saved interviews failed:", err);
       setSavedError("Failed to load saved interviews");
@@ -619,6 +639,7 @@ const InterviewDetailsView: React.FC<InterviewDetailsViewProps> = ({
                   };
                   const cardInterview = {
                     id: slot.interview_slot_id ?? slot.id ?? savedInterview.saved_slot_id,
+                    saved_slot_id: savedInterview.saved_slot_id ?? slot.saved_slot_id ?? undefined,
                     interview_slot_id: slot.interview_slot_id ?? slot.id,
                     interview_code: slot.interview_code,
                     title: slot.job_role || slot.title || '',
@@ -642,21 +663,21 @@ const InterviewDetailsView: React.FC<InterviewDetailsViewProps> = ({
                           'saved'
                         )
                       }
-                      onRemove={() => {
-                        // call remove via currentSavedSlotId or savedInterview.saved_slot_id
+                      onRemove={async (payload) => {
                         const parsed = JSON.parse(localStorage.getItem("user") || "{}");
                         const token = parsed?.token || localStorage.getItem("token");
                         const userId = parsed?.user_id || parsed?.userId || parsed?.id || localStorage.getItem("user_id");
-                        const savedSlotId = savedInterview.saved_slot_id ?? currentSavedSlotId;
+                        // Prefer the saved_slot_id attached to the savedInterview record first,
+                        // then payload.saved_slot_id, then payload.id/interview_slot_id, then fallback.
+                        const savedSlotId = (savedInterview as any).saved_slot_id ?? payload?.saved_slot_id ?? payload?.id ?? payload?.interview_slot_id ?? currentSavedSlotId;
+                        console.debug('Removing saved slot - resolved ids:', { savedInterviewId: (savedInterview as any).saved_slot_id, payload }, 'resolvedSavedSlotId:', savedSlotId);
                         if (userId && token && savedSlotId) {
-                          (async () => {
-                            try {
-                              await removeSavedInterviewSlot(userId, token, savedSlotId);
-                              await fetchSavedSlots();
-                            } catch (e) {
-                              console.warn('Failed to remove saved slot', e);
-                            }
-                          })();
+                          try {
+                            await removeSavedInterviewSlot(userId, token, savedSlotId);
+                            await fetchSavedSlots();
+                          } catch (e) {
+                            console.warn('Failed to remove saved slot', e);
+                          }
                         }
                       }}
                     />

@@ -4,7 +4,7 @@ import InterviewCard from "./InterviewCard";
 import SavedInterviewCard from "./SavedInterviewCard";
 import InterviewDetailsView from "./InterviewDetailsView";
 import VerifiedDashboardHeader from "./VerifiedDashboardHeader";
-import { saveInterviewSlot, getSavedInterviewSlots } from '@/services/interviewPrepService';
+import { saveInterviewSlot, getSavedInterviewSlots, removeSavedInterviewSlot } from '@/services/interviewPrepService';
 
 interface Interview {
   id: string;
@@ -248,6 +248,34 @@ const VerifiedDashboard = ({ onViewDetails: externalOnViewDetails }: VerifiedDas
       mounted = false;
     };
   }, []);
+
+  const normalizeSavedItem = (item: any): Interview => {
+    const slot = item.interview_slot || item;
+    const get = (k: string) => slot[k];
+    const start = get('start_time_utc') ?? get('start_time') ?? slot.date ?? null;
+    const end = get('end_time_utc') ?? get('end_time') ?? null;
+    return {
+      id: String(slot.interview_slot_id ?? slot.id ?? item.saved_slot_id ?? Math.random()),
+      interview_slot_id: String(slot.interview_slot_id ?? slot.id ?? ''),
+      // attach saved_slot_id so callers can delete
+      // @ts-ignore - dynamic shape
+      saved_slot_id: item.saved_slot_id ?? item.id ?? slot.saved_slot_id ?? undefined,
+      interview_code: slot.interview_code ?? slot.code ?? undefined,
+      job_role: slot.job_role ?? slot.title ?? undefined,
+      title: slot.job_role ?? slot.title ?? 'Interview',
+      experience: slot.experience ?? slot.experienceLevel ?? '',
+      date: start ? new Date(start).toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' }) : (slot.date ?? ''),
+      time: start ? `${new Date(start).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', hour12: true })}${end ? ' - ' + new Date(end).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', hour12: true }) : ''}` : (slot.time ?? ''),
+      start_time_utc: start ?? undefined,
+      end_time_utc: end ?? undefined,
+      skills: slot.skills ?? [],
+      resume_url: slot.resume_url ?? slot.resumeUrl ?? undefined,
+      interview_mode: slot.interview_mode ?? slot.mode ?? undefined,
+      candidate_id: slot.candidate_id ?? slot.candidateId ?? undefined,
+      is_payment_done: slot.is_payment_done ?? slot.isPaymentDone ?? undefined,
+      priority: slot.priority ?? undefined,
+    } as Interview;
+  };
 
   const displayedScheduled = showAllScheduled
     ? scheduledInterviews
@@ -664,6 +692,40 @@ const VerifiedDashboard = ({ onViewDetails: externalOnViewDetails }: VerifiedDas
                         'saved'
                       )
                     }
+                    onRemove={async (payload) => {
+                      try {
+                        const parsed = JSON.parse(localStorage.getItem("user") || "{}");
+                        const token = parsed?.token || localStorage.getItem("token");
+                        const userId = parsed?.user_id || parsed?.userId || parsed?.id || localStorage.getItem("user_id");
+                        // Prefer saved_slot_id from the saved item when present, then payload.
+                        const resolvedSavedSlotId = (savedInterviews[index] && (savedInterviews[index] as any).saved_slot_id) ?? payload?.saved_slot_id ?? payload?.id ?? payload?.interview_slot_id;
+                        console.debug('VerifiedDashboard remove - payload:', payload, 'resolvedSavedSlotId:', resolvedSavedSlotId);
+                        if (userId && token && resolvedSavedSlotId) {
+                          await removeSavedInterviewSlot(userId, token, resolvedSavedSlotId);
+                        }
+                      } catch (err) {
+                        console.error('Failed to remove saved slot', err);
+                      } finally {
+                        try {
+                          const parsed = JSON.parse(localStorage.getItem("user") || "{}");
+                          const token = parsed?.token || localStorage.getItem("token");
+                          const userId = parsed?.user_id || parsed?.userId || parsed?.id || localStorage.getItem("user_id");
+                          if (userId && token) {
+                            const data = await getSavedInterviewSlots(userId, token);
+                            const items: any[] = Array.isArray(data) ? data : (data?.saved_interview_slots ? data.saved_interview_slots : (data || []));
+                            const mapped = items.map(normalizeSavedItem).filter(i => {
+                              const end = i.end_time_utc ? new Date(i.end_time_utc) : (i.start_time_utc ? new Date(i.start_time_utc) : null);
+                              return !(end && end.getTime() < Date.now());
+                            });
+                            setSavedInterviews(mapped);
+                          } else {
+                            setSavedInterviews([]);
+                          }
+                        } catch (e) {
+                          console.warn('Failed to refresh saved list after removal', e);
+                        }
+                      }
+                    }}
                   />
                 ))
               ) : (
