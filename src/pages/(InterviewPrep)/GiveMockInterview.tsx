@@ -922,60 +922,64 @@ const GiveMockInterview = () => {
 
                             {/* LEFT SIDE – Resume Cards */}
                             <div className="flex-1 mb-0">
-                                <div className="flex items-center gap-4">
-                                    {loadingResumes ? (
-                                        <div className="text-sm text-gray-500">Loading resumes...</div>
-                                    ) : resumeTemplates.length > 0 ? (
-                                        resumeTemplates.map((t, idx) => {
-                                            const tid = resolveTemplateId(t) ?? idx;
-                                            const title = t?.template_name ?? t?.title ?? t?.name ?? `Resume ${idx + 1}`;
-                                            return (
+                                <div className="overflow-x-auto snap-x snap-mandatory" style={{ maxWidth: '512px' }}>
+                                    <div className="flex items-center gap-4 w-max">
+                                        {loadingResumes ? (
+                                            <div className="text-sm text-gray-500">Loading resumes...</div>
+                                        ) : resumeTemplates.length > 0 ? (
+                                            resumeTemplates.map((t, idx) => {
+                                                const tid = resolveTemplateId(t) ?? idx;
+                                                const title = t?.template_name ?? t?.title ?? t?.name ?? `Resume ${idx + 1}`;
+                                                return (
+                                                    <div
+                                                        key={tid}
+                                                        onClick={() => handleSelectTemplate(t)}
+                                                        className={`w-40 h-56 rounded-xl bg-white shadow-sm border cursor-pointer relative overflow-hidden transition flex-shrink-0 snap-start ${
+                                                            bookingData.selectedResume === tid && !bookingData.uploadedResumeFile
+                                                                ? 'border-[#F26D3A]'
+                                                                : 'border-gray-200'
+                                                        }`}
+                                                        style={{ scrollSnapAlign: 'start' }}
+                                                    >
+                                                        <img src="/resume-placeholder.png" className="w-full h-full object-cover opacity-90" />
+
+                                                        <div className="absolute top-2 right-2 w-5 h-5 rounded-full border border-gray-400 bg-white flex items-center justify-center">
+                                                            {bookingData.selectedResume === tid && !bookingData.uploadedResumeFile ? (
+                                                                <div className="w-3 h-3 rounded-full bg-[#F26D3A]" />
+                                                            ) : null}
+                                                        </div>
+
+                                                        <div className="absolute bottom-2 left-2 right-2 text-[11px] leading-tight text-[#3A3A3A] font-medium">
+                                                            {title}
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })
+                                        ) : (
+                                            [0, 1].map((idx) => (
                                                 <div
-                                                    key={tid}
-                                                    onClick={() => handleSelectTemplate(t)}
-                                                    className={`w-40 h-56 rounded-xl bg-white shadow-sm border cursor-pointer relative overflow-hidden transition flex-shrink-0 ${
-                                                        bookingData.selectedResume === tid && !bookingData.uploadedResumeFile
+                                                    key={idx}
+                                                    onClick={() => handleSelectDefaultResume(idx)}
+                                                    className={`w-40 h-56 rounded-xl bg-white shadow-sm border cursor-pointer relative overflow-hidden transition flex-shrink-0 snap-start ${
+                                                        bookingData.selectedResume === idx && !bookingData.uploadedResumeFile
                                                             ? 'border-[#F26D3A]'
                                                             : 'border-gray-200'
                                                     }`}
+                                                    style={{ scrollSnapAlign: 'start' }}
                                                 >
                                                     <img src="/resume-placeholder.png" className="w-full h-full object-cover opacity-90" />
-
                                                     <div className="absolute top-2 right-2 w-5 h-5 rounded-full border border-gray-400 bg-white flex items-center justify-center">
-                                                        {bookingData.selectedResume === tid && !bookingData.uploadedResumeFile ? (
+                                                        {bookingData.selectedResume === idx && !bookingData.uploadedResumeFile ? (
                                                             <div className="w-3 h-3 rounded-full bg-[#F26D3A]" />
                                                         ) : null}
                                                     </div>
-
                                                     <div className="absolute bottom-2 left-2 right-2 text-[11px] leading-tight text-[#3A3A3A] font-medium">
-                                                        {title}
+                                                        Aarav-Mehta-Python-Developer-{idx + 1}
                                                     </div>
                                                 </div>
-                                            );
-                                        })
-                                    ) : (
-                                        [0, 1].map((idx) => (
-                                            <div
-                                                key={idx}
-                                                onClick={() => handleSelectDefaultResume(idx)}
-                                                className={`w-40 h-56 rounded-xl bg-white shadow-sm border cursor-pointer relative overflow-hidden transition flex-shrink-0 ${
-                                                    bookingData.selectedResume === idx && !bookingData.uploadedResumeFile
-                                                        ? 'border-[#F26D3A]'
-                                                        : 'border-gray-200'
-                                                }`}
-                                            >
-                                                <img src="/resume-placeholder.png" className="w-full h-full object-cover opacity-90" />
-                                                <div className="absolute top-2 right-2 w-5 h-5 rounded-full border border-gray-400 bg-white flex items-center justify-center">
-                                                    {bookingData.selectedResume === idx && !bookingData.uploadedResumeFile ? (
-                                                        <div className="w-3 h-3 rounded-full bg-[#F26D3A]" />
-                                                    ) : null}
-                                                </div>
-                                                <div className="absolute bottom-2 left-2 right-2 text-[11px] leading-tight text-[#3A3A3A] font-medium">
-                                                    Aarav-Mehta-Python-Developer-{idx + 1}
-                                                </div>
-                                            </div>
-                                        ))
-                                    )}
+                                            ))
+                                        )}
+                                    </div>
                                 </div>
 
                                 {/* DOTS */}
