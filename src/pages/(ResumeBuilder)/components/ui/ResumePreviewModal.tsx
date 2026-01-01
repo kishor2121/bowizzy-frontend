@@ -75,6 +75,40 @@ const ResumePreviewModal: React.FC<ResumePreviewModalProps> = ({
     setShowNameDialog(true);
   };
 
+  // Try to fetch remote profile photo and convert to data URL so react-pdf can embed it reliably
+  const embedProfilePhoto = async (d: ResumeData): Promise<ResumeData> => {
+    const clone: ResumeData = JSON.parse(JSON.stringify(d));
+    const url = clone?.personal?.profilePhotoUrl;
+    if (!url) return clone;
+    if (String(url).startsWith('data:')) return clone; // already embedded
+
+    try {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error('Failed to fetch image');
+      const blob = await res.blob();
+      const reader = new FileReader();
+      const dataUrl: string = await new Promise((resolve, reject) => {
+        reader.onerror = () => reject(new Error('Failed to read image blob'));
+        reader.onload = () => resolve(String(reader.result));
+        reader.readAsDataURL(blob);
+      });
+      clone.personal.profilePhotoUrl = dataUrl;
+      return clone;
+    } catch (err) {
+      // fallback to an initials SVG data URL if fetch fails
+      try {
+        const initials = ((clone.personal?.firstName || '')[0] || '') + ((clone.personal?.lastName || '')[0] || '');
+        const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><rect width='100%' height='100%' fill='#f0f0f0'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-size='72' fill='#004b87' font-family='Helvetica, Arial, sans-serif' font-weight='bold'>${initials}</text></svg>`;
+        // btoa is safe for SVG here since characters are ASCII
+        const dataUrl = 'data:image/svg+xml;base64,' + btoa(svg);
+        clone.personal.profilePhotoUrl = dataUrl;
+      } catch (e) {
+        // ignore, return clone without change
+      }
+      return clone;
+    }
+  };
+
   const handleNameSubmit = async () => {
     if (!resumeName.trim()) return;
 
@@ -93,8 +127,9 @@ const ResumePreviewModal: React.FC<ResumePreviewModalProps> = ({
       if (!PDFComponent) throw new Error("No PDF template available to generate PDF.");
       if (!templateId) throw new Error("No template selected.");
 
-      // Generate PDF blob using react-pdf utility
-      const doc = <PDFComponent data={resumeData} />;
+      // Prepare data (embed profile image as data URL if needed) and generate PDF blob using react-pdf utility
+      const preparedData = await embedProfilePhoto(resumeData);
+      const doc = <PDFComponent data={preparedData} />;
       const asPdf = pdf(doc);
       const blob: Blob = await asPdf.toBlob();
       const file = new File([blob], `${resumeName.trim() || "resume"}.pdf`, { type: "application/pdf" });
@@ -489,7 +524,8 @@ const ResumePreviewModal: React.FC<ResumePreviewModalProps> = ({
                               pdf.save(`${resumeName.trim() || 'resume'}.pdf`);
                             } else {
                               // Fallback: use react-pdf generation
-                              const doc = <PDFComponent data={resumeData} />;
+                              const preparedData = await embedProfilePhoto(resumeData);
+                              const doc = <PDFComponent data={preparedData} />;
                               const asPdf = pdf(doc);
                               const blob: Blob = await asPdf.toBlob();
                               const url = URL.createObjectURL(blob);

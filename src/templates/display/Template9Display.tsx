@@ -6,7 +6,7 @@ interface Template9DisplayProps {
 }
 
 const Template9Display: React.FC<Template9DisplayProps> = ({ data }) => {
-  const { personal, education, experience, skillsLinks, certifications } = data;
+  const { personal, education, experience, projects, skillsLinks, certifications } = data;
 
   const htmlToText = (s?: string) => {
     if (!s) return '';
@@ -19,6 +19,15 @@ const Template9Display: React.FC<Template9DisplayProps> = ({ data }) => {
         .trim();
     } catch (e) {
       return s || '';
+    }
+  };
+
+  const sanitizeLine = (line?: string) => {
+    if (!line) return '';
+    try {
+      return String(line).replace(/^\s*>+\s*/, '');
+    } catch (e) {
+      return line || '';
     }
   };
 
@@ -148,6 +157,42 @@ const Template9Display: React.FC<Template9DisplayProps> = ({ data }) => {
                       {htmlToText(w.description).split('\n').map((line, idx) => (
                         line.trim() && <div key={idx}>• {line.trim()}</div>
                       ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </section>
+          )}
+
+          {/* Projects */}
+          {projects && projects.length > 0 && projects.some(p => p.enabled && p.projectTitle) && (
+            <section style={{ marginBottom: 18 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>
+                <h2 style={{ fontSize: 13, color: '#222', margin: 0 }}>Projects</h2>
+                <div style={{ width: 26, height: 3, background: '#d0d0d0', borderRadius: 2 }} />
+              </div>
+              {projects.filter(p => p.enabled && p.projectTitle).map((p, i) => (
+                <div key={i} style={{ marginBottom: 12 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                    <div style={{ fontSize: 11, fontWeight: 700 }}>{p.projectTitle}</div>
+                    <div style={{ fontSize: 10, color: '#666' }}>{p.startDate} - {p.currentlyWorking ? 'Present' : p.endDate}</div>
+                  </div>
+                  {p.description && (
+                    <div style={{ fontSize: 11, color: '#444', lineHeight: 1.5, marginTop: 6 }}>
+                      {htmlToText(p.description).split(/\n|\r\n/).filter(Boolean).map((line, idx) => (
+                        <div key={idx}>• {sanitizeLine(line)}</div>
+                      ))}
+                    </div>
+                  )}
+
+                  {p.rolesResponsibilities && (
+                    <div style={{ marginTop: 8 }}>
+                      <div style={{ fontSize: 11, fontWeight: 700, marginBottom: 6 }}>Roles & Responsibilities</div>
+                      <ul style={{ paddingLeft: 16, margin: 0 }}>
+                        {htmlToText(p.rolesResponsibilities).split(/\n|\r\n/).filter(Boolean).map((line, idx) => (
+                          <li key={idx} style={{ marginBottom: 6 }}>{sanitizeLine(line)}</li>
+                        ))}
+                      </ul>
                     </div>
                   )}
                 </div>

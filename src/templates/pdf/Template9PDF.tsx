@@ -22,10 +22,13 @@ const styles = StyleSheet.create({
     paddingLeft: 12,
   },
   photo: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
     marginBottom: 8,
+    objectFit: 'cover',
+    borderWidth: 6,
+    borderColor: 'rgba(0,0,0,0.03)',
   },
   name: {
     fontSize: 18,
@@ -45,13 +48,22 @@ const styles = StyleSheet.create({
 interface Template9PDFProps { data: ResumeData }
 
 const Template9PDF: React.FC<Template9PDFProps> = ({ data }) => {
-  const { personal, education, experience, skillsLinks, certifications } = data;
+  const { personal, education, experience, projects, skillsLinks, certifications } = data;
 
   const htmlToText = (s?: string) => {
     if (!s) return '';
     try {
       return String(s).replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]+>/g, '').trim();
     } catch (e) { return s || ''; }
+  };
+
+  const sanitizeLine = (line?: string) => {
+    if (!line) return '';
+    try {
+      return String(line).replace(/^\s*>+\s*/, '');
+    } catch (e) {
+      return line || '';
+    }
   };
 
   const skills = skillsLinks.skills.filter((s:any)=>s.enabled && s.skillName).map((s:any)=>s.skillName||'');
@@ -64,7 +76,13 @@ const Template9PDF: React.FC<Template9PDFProps> = ({ data }) => {
       <Page size="A4" style={styles.page}>
         <View style={styles.container}>
           <View style={styles.left}>
-            {personal.profilePhotoUrl && <Image src={personal.profilePhotoUrl} style={styles.photo} />}
+            {personal.profilePhotoUrl ? (
+              <Image src={personal.profilePhotoUrl} style={styles.photo} />
+            ) : (
+              <View style={[styles.photo, { backgroundColor: '#f0f0f0', alignItems: 'center', justifyContent: 'center' }]}>
+                <Text style={{ fontSize: 20, color: '#004b87', fontWeight: 'bold' }}>{((personal.firstName||'')[0] || '') + ((personal.lastName||'')[0] || '')}</Text>
+              </View>
+            )}
             <Text style={styles.name}>{(personal.firstName||'').toUpperCase()} {(personal.lastName||'').toUpperCase()}</Text>
             {experience.jobRole && <Text style={styles.text}>{experience.jobRole}</Text>}
 
@@ -155,6 +173,37 @@ const Template9PDF: React.FC<Template9PDFProps> = ({ data }) => {
                 ))}
               </View>
             )}
+
+                {/* Projects */}
+                {projects && projects.length > 0 && projects.some((p:any)=>p.enabled && p.projectTitle) && (
+                  <View style={styles.section}>
+                    <View style={styles.labelRow}>
+                      <Text style={styles.labelText}>Projects</Text>
+                      <View style={styles.labelBar} />
+                    </View>
+                    {projects.filter((p:any)=>p.enabled && p.projectTitle).map((p:any,i:number)=>(
+                      <View key={i} style={{marginBottom:8}}>
+                        <View style={{flexDirection:'row',justifyContent:'space-between'}}>
+                          <Text style={{fontSize:10,fontWeight:'bold'}}>{p.projectTitle}</Text>
+                          <Text style={{fontSize:9,color:'#666'}}>{p.startDate} - {p.currentlyWorking ? 'Present' : p.endDate}</Text>
+                        </View>
+                        {p.description && htmlToText(p.description).split(/\n|\r\n/).map((ln,idx)=>{
+                          const clean = sanitizeLine(ln).trim();
+                          return clean ? <Text key={idx} style={styles.text}>• {clean}</Text> : null;
+                        })}
+                        {p.rolesResponsibilities && (
+                          <View style={{marginTop:6}}>
+                            <Text style={{fontSize:9,fontWeight:'bold'}}>Roles & Responsibilities</Text>
+                            {htmlToText(p.rolesResponsibilities).split(/\n|\r\n/).map((ln,idx)=>{
+                              const clean = sanitizeLine(ln).trim();
+                              return clean ? <Text key={idx} style={styles.text}>• {clean}</Text> : null;
+                            })}
+                          </View>
+                        )}
+                      </View>
+                    ))}
+                  </View>
+                )}
 
             {certifications.length>0 && (
               <View style={styles.section}>

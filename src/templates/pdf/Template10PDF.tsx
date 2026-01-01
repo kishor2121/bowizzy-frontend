@@ -120,13 +120,22 @@ const styles = StyleSheet.create({
 interface Template10PDFProps { data: ResumeData }
 
 const Template10PDF: React.FC<Template10PDFProps> = ({ data }) => {
-  const { personal, education, experience, skillsLinks, certifications } = data;
+  const { personal, education, experience, projects, skillsLinks, certifications } = data;
 
   const htmlToText = (s?: string) => {
     if (!s) return '';
     try {
       return String(s).replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]+>/g, '').trim();
     } catch (e) { return s || ''; }
+  };
+
+  const sanitizeLine = (line?: string) => {
+    if (!line) return '';
+    try {
+      return String(line).replace(/^\s*>+\s*/, '');
+    } catch (e) {
+      return line || '';
+    }
   };
 
   return (
@@ -226,6 +235,34 @@ const Template10PDF: React.FC<Template10PDFProps> = ({ data }) => {
                 ))}
               </View>
             )}
+
+                {/* Projects - render heading together with first project and avoid page breaks inside project blocks */}
+                {projects && projects.length > 0 && projects.some((p: any) => p.enabled && p.projectTitle) && (
+                  <View>
+                    {projects.filter((p: any) => p.enabled && p.projectTitle).map((p: any, i: number) => (
+                      <View key={i} wrap={false} style={{ marginBottom: 12 }}>
+                        {i === 0 && <Text style={[styles.rightSectionLabel, { marginBottom: 6 }]}>PROJECTS</Text>}
+                        <View style={styles.workRow}>
+                          <Text style={styles.rightHeading}>{p.projectTitle}</Text>
+                          <Text style={styles.subtext}>{p.startDate} - {p.currentlyWorking ? 'Present' : p.endDate}</Text>
+                        </View>
+                        {p.description && htmlToText(p.description).split(/\n|\r\n/).map((ln, idx) => {
+                          const clean = sanitizeLine(ln).trim();
+                          return clean ? <Text key={idx} style={{ fontSize: 8.5, color: '#666', marginBottom: 4 }}>• {clean}</Text> : null;
+                        })}
+                        {p.rolesResponsibilities && (
+                          <View style={{ marginTop: 6 }}>
+                            <Text style={{ fontSize: 9, fontWeight: 'bold' }}>Roles & Responsibilities</Text>
+                            {htmlToText(p.rolesResponsibilities).split(/\n|\r\n/).map((ln, idx) => {
+                              const clean = sanitizeLine(ln).trim();
+                              return clean ? <Text key={idx} style={{ fontSize: 8.5, color: '#666', marginBottom: 4 }}>• {clean}</Text> : null;
+                            })}
+                          </View>
+                        )}
+                      </View>
+                    ))}
+                  </View>
+                )}
 
             {/* References / Certifications */}
             {certifications.length > 0 && (

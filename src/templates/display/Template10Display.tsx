@@ -6,7 +6,7 @@ interface Template10DisplayProps {
 }
 
 const Template10Display: React.FC<Template10DisplayProps> = ({ data }) => {
-  const { personal, education, experience, skillsLinks, certifications } = data;
+  const { personal, education, experience, projects, skillsLinks, certifications } = data;
 
   const htmlToText = (s?: string) => {
     if (!s) return '';
@@ -19,6 +19,15 @@ const Template10Display: React.FC<Template10DisplayProps> = ({ data }) => {
         .trim();
     } catch (e) {
       return s || '';
+    }
+  };
+
+  const sanitizeLine = (line?: string) => {
+    if (!line) return '';
+    try {
+      return String(line).replace(/^\s*>+\s*/, '');
+    } catch (e) {
+      return line || '';
     }
   };
 
@@ -136,6 +145,42 @@ const Template10Display: React.FC<Template10DisplayProps> = ({ data }) => {
                       {htmlToText(w.description).split('\n').map((line, idx) => (
                         line.trim() && <div key={idx} style={{ marginBottom: 6 }}>• {line.trim()}</div>
                       ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </section>
+          )}
+
+          {/* Projects */}
+          {projects && projects.length > 0 && projects.some(p => p.enabled && p.projectTitle) && (
+            <section style={{ marginBottom: 24 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 16 }}>
+                <h2 style={{ fontSize: 12, color: '#222', margin: 0, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.2 }}>Projects</h2>
+                <div style={{ flex: 1, height: 1, background: '#999' }} />
+              </div>
+              {projects.filter(p => p.enabled && p.projectTitle).map((p, i) => (
+                <div key={i} style={{ marginBottom: 18 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: '#222' }}>{p.projectTitle}</div>
+                    <div style={{ fontSize: 10, color: '#999' }}>{p.startDate} - {p.currentlyWorking ? 'Present' : p.endDate}</div>
+                  </div>
+                  {p.description && (
+                    <div style={{ fontSize: 10, color: '#666', lineHeight: 1.6 }}>
+                      {htmlToText(p.description).split(/\n|\r\n/).filter(Boolean).map((line, idx) => (
+                        <div key={idx} style={{ marginBottom: 6 }}>• {sanitizeLine(line)}</div>
+                      ))}
+                    </div>
+                  )}
+
+                  {p.rolesResponsibilities && (
+                    <div style={{ marginTop: 8 }}>
+                      <div style={{ fontSize: 11, fontWeight: 700, marginBottom: 6 }}>Roles & Responsibilities</div>
+                      <ul style={{ paddingLeft: 16, margin: 0 }}>
+                        {htmlToText(p.rolesResponsibilities).split(/\n|\r\n/).filter(Boolean).map((line, idx) => (
+                          <li key={idx} style={{ marginBottom: 6 }}>{sanitizeLine(line)}</li>
+                        ))}
+                      </ul>
                     </div>
                   )}
                 </div>
