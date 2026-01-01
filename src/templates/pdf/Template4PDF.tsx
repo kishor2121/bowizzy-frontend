@@ -62,6 +62,15 @@ const Template4PDF: React.FC<Template4PDFProps> = ({ data }) => {
     }
   };
 
+  const sanitizeLines = (s?: string) => {
+    if (!s) return '';
+    try {
+      return String(s).replace(/^\s*>+\s*/gm, '').trim();
+    } catch (e) {
+      return s || '';
+    }
+  };
+
   return (
     <Document>
       <Page size="A4" style={styles.page}>
@@ -154,8 +163,8 @@ const Template4PDF: React.FC<Template4PDFProps> = ({ data }) => {
                     <Text style={{ fontSize: 10, fontFamily: 'Times-Bold', color: '#2d3748' }}>{project.projectTitle}</Text>
                     <Text style={{ fontSize: 9, color: '#4a5568' }}>{project.startDate} - {project.currentlyWorking ? 'Present' : project.endDate}</Text>
                   </View>
-                  {project.description && <Text style={styles.text}>{htmlToText(project.description)}</Text>}
-                  {project.rolesResponsibilities && <Text style={styles.text}><Text style={{ fontFamily: 'Times-Bold' }}>Roles & Responsibilities: </Text>{htmlToText(project.rolesResponsibilities)}</Text>}
+                  {project.description && <Text style={styles.text}>{sanitizeLines(htmlToText(project.description))}</Text>}
+                  {project.rolesResponsibilities && <Text style={styles.text}><Text style={{ fontFamily: 'Times-Bold' }}>Roles & Responsibilities: </Text>{sanitizeLines(htmlToText(project.rolesResponsibilities))}</Text>}
                 </View>
               ))}
             </View>

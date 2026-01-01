@@ -35,6 +35,28 @@ const Template5PDF: React.FC<Template5PDFProps> = ({ data }) => {
     } catch (e) { return s || ''; }
   };
 
+  // Insert zero-width spaces into very long tokens so PDF layout can wrap them
+  const insertSoftBreaks = (t: string, maxLen = 40) => {
+    if (!t) return '';
+    // Add ZERO WIDTH SPACE (\u200B) after every maxLen consecutive non-space chars
+    try {
+      const re = new RegExp(`([^\\s]{${maxLen}})`, 'g');
+      return t.replace(re, '$1\u200B');
+    } catch (e) {
+      return t;
+    }
+  };
+
+  const fmt = (s?: string) => insertSoftBreaks(htmlToText(s));
+
+  const sanitizeLine = (line: string) => {
+    try {
+      return String(line).replace(/^\s*>+\s*/, '');
+    } catch (e) {
+      return line;
+    }
+  };
+
   return (
     <Document>
       <Page size="A4" style={styles.page}>
@@ -69,9 +91,9 @@ const Template5PDF: React.FC<Template5PDFProps> = ({ data }) => {
                       <Text style={styles.smallMuted}>{w.startDate} - {w.currentlyWorking ? 'Present' : w.endDate}</Text>
                     </View>
                   </View>
-                  {w.description && htmlToText(w.description).split(/\n|\r\n/).map((line, idx) => (
-                    <Text key={idx} style={styles.text}>• {line}</Text>
-                  ))}
+                    {w.description && fmt(w.description).split(/\n|\r\n/).map((line, idx) => (
+                      line.trim() ? <Text key={idx} style={styles.text}>• {line.trim()}</Text> : null
+                    ))}
                 </View>
               ))}
             </View>
@@ -86,7 +108,24 @@ const Template5PDF: React.FC<Template5PDFProps> = ({ data }) => {
                     <Text style={{ fontSize: 11, fontFamily: 'Times-Bold' }}>{p.projectTitle}</Text>
                     <Text style={styles.smallMuted}>{p.startDate} - {p.currentlyWorking ? 'Present' : p.endDate}</Text>
                   </View>
-                  {p.description && <Text style={styles.text}>{htmlToText(p.description)}</Text>}
+                  {p.description && (
+                    <View>
+                      {fmt(p.description).split(/\n|\r\n/).map((line, idx) => {
+                        const clean = sanitizeLine(line).trim();
+                        return clean ? <Text key={idx} style={styles.text}>• {clean}</Text> : null;
+                      })}
+                    </View>
+                  )}
+
+                  {p.rolesResponsibilities && (
+                    <View style={{ marginTop: 4 }}>
+                      <Text style={{ fontSize: 10, fontFamily: 'Times-Bold' }}>Roles & Responsibilities:</Text>
+                      {fmt(p.rolesResponsibilities).split(/\n|\r\n/).map((line, idx) => {
+                        const clean = sanitizeLine(line).trim();
+                        return clean ? <Text key={idx} style={styles.text}>• {clean}</Text> : null;
+                      })}
+                    </View>
+                  )}
                 </View>
               ))}
             </View>

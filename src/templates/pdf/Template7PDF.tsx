@@ -132,6 +132,15 @@ const Template7PDF: React.FC<Template7PDFProps> = ({ data }) => {
     }
   };
 
+  const sanitizeLine = (line?: string) => {
+    if (!line) return '';
+    try {
+      return String(line).replace(/^\s*>+\s*/, '');
+    } catch (e) {
+      return line || '';
+    }
+  };
+
   return (
     <Document>
       <Page size="A4" style={styles.page}>
@@ -242,6 +251,35 @@ const Template7PDF: React.FC<Template7PDFProps> = ({ data }) => {
               {personal.address && <Text>{personal.address}</Text>}
             </Text>
           </View>
+
+          {/* Projects (after Contact) */}
+          {projects && projects.length > 0 && projects.some(p => p.enabled && p.projectTitle) && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Projects</Text>
+              {projects.filter(p => p.enabled && p.projectTitle).map((p, i) => (
+                <View key={i} style={{ marginBottom: 8 }}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                    <Text style={{ fontSize: 10, fontWeight: 'bold' }}>{p.projectTitle}</Text>
+                    <Text style={styles.itemDate}>{p.startDate} - {p.currentlyWorking ? 'Present' : p.endDate}</Text>
+                  </View>
+                  {p.description && htmlToText(p.description).split(/\n|\r\n/).map((line, idx) => {
+                    const clean = sanitizeLine(line).trim();
+                    return clean ? <Text key={idx} style={styles.listItem}>• {clean}</Text> : null;
+                  })}
+
+                  {p.rolesResponsibilities && (
+                    <View style={{ marginTop: 4 }}>
+                      <Text style={{ fontSize: 9, fontWeight: 'bold' }}>Roles & Responsibilities:</Text>
+                      {htmlToText(p.rolesResponsibilities).split(/\n|\r\n/).map((line, idx) => {
+                        const clean = sanitizeLine(line).trim();
+                        return clean ? <Text key={idx} style={styles.listItem}>• {clean}</Text> : null;
+                      })}
+                    </View>
+                  )}
+                </View>
+              ))}
+            </View>
+          )}
 
           {/* Licenses */}
           {certifications.length > 0 && certifications.some(c => c.enabled) && (

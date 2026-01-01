@@ -22,6 +22,14 @@ const Template6Display: React.FC<Template6DisplayProps> = ({ data }) => {
     }
   };
 
+  const sanitizeLine = (line: string) => {
+    try {
+      return String(line).replace(/^\s*>+\s*/, '');
+    } catch (e) {
+      return line;
+    }
+  };
+
   const SectionTitle: React.FC<{ children?: React.ReactNode }> = ({ children }) => (
     <div style={{ background: '#e6e6e6', padding: '8px 14px', marginBottom: 10, borderRadius: 4, display: 'block', width: '100%' }}>
       <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: '#222' }}>{children}</div>
@@ -85,6 +93,41 @@ const Template6Display: React.FC<Template6DisplayProps> = ({ data }) => {
                         <li key={idy} style={{ marginBottom: 6, fontSize: 12 }}>{line}</li>
                       ))}
                     </ul>
+                  )}
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Projects (render after Professional Experience) */}
+        {projects && projects.length > 0 && projects.some(p => p.enabled && p.projectTitle) && (
+          <section style={{ marginBottom: 14 }}>
+            <SectionTitle>Projects</SectionTitle>
+            <div style={{ marginTop: 8 }}>
+              {projects.filter(p => p.enabled && p.projectTitle).map((p, i) => (
+                <div key={i} style={{ marginBottom: 12 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <div style={{ fontSize: 13, fontWeight: 700 }}>{p.projectTitle}</div>
+                    <div style={{ fontSize: 12, color: '#666' }}>{p.startDate} - {p.currentlyWorking ? 'Present' : p.endDate}</div>
+                  </div>
+                  {p.description && (
+                    <ul style={{ marginTop: 8, paddingLeft: 18 }}>
+                      {htmlToText(p.description).split(/\n|\r\n/).filter(Boolean).map((line, idx) => (
+                        <li key={idx} style={{ marginBottom: 6, fontSize: 12 }}>{sanitizeLine ? sanitizeLine(line) : line}</li>
+                      ))}
+                    </ul>
+                  )}
+
+                  {p.rolesResponsibilities && (
+                    <div style={{ marginTop: 8 }}>
+                      <div style={{ fontSize: 11, fontWeight: 700 }}>Roles & Responsibilities:</div>
+                      <ul style={{ marginTop: 8, paddingLeft: 18 }}>
+                        {htmlToText(p.rolesResponsibilities).split(/\n|\r\n/).filter(Boolean).map((line, idx) => (
+                          <li key={idx} style={{ marginBottom: 6 }}>{sanitizeLine ? sanitizeLine(line) : line}</li>
+                        ))}
+                      </ul>
+                    </div>
                   )}
                 </div>
               ))}

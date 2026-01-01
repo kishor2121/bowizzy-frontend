@@ -31,6 +31,15 @@ const Template4Display: React.FC<Template4DisplayProps> = ({ data }) => {
     }
   };
 
+  const sanitizeLines = (s?: string) => {
+    if (!s) return '';
+    try {
+      return String(s).replace(/^\s*>+\s*/gm, '').trim();
+    } catch (e) {
+      return s || '';
+    }
+  };
+
   return (
     <div className="w-[210mm] bg-white" style={{ minHeight: '297mm', fontFamily: 'Times New Roman, serif' }}>
       <div style={{ display: 'flex', minHeight: '100%', padding: '20px 20px' }}>
@@ -144,11 +153,11 @@ const Template4Display: React.FC<Template4DisplayProps> = ({ data }) => {
                   <div style={{ fontSize: 12, fontWeight: 700, color: '#2d3748' }}>{project.projectTitle}</div>
                   <div style={{ fontSize: 11, color: '#4a5568' }}>{project.startDate} - {project.currentlyWorking ? 'Present' : project.endDate}</div>
                   {project.description && (
-                    <p style={{ fontSize: 11, color: '#4a5568', marginTop: 6, textAlign: 'justify', whiteSpace: 'pre-wrap' }}>{htmlToText(project.description)}</p>
+                    <p style={{ fontSize: 11, color: '#4a5568', marginTop: 6, textAlign: 'justify', whiteSpace: 'pre-wrap' }}>{sanitizeLines(htmlToText(project.description))}</p>
                   )}
                   {project.rolesResponsibilities && (
                     <p style={{ fontSize: 11, color: '#4a5568', marginTop: 6, textAlign: 'justify' }}>
-                      <strong>Roles & Responsibilities:</strong> {htmlToText(project.rolesResponsibilities)}
+                      <strong>Roles & Responsibilities:</strong> {sanitizeLines(htmlToText(project.rolesResponsibilities))}
                     </p>
                   )}
                 </div>
@@ -226,5 +235,4 @@ const Template4Display: React.FC<Template4DisplayProps> = ({ data }) => {
     </div>
   );
 };
-
 export default Template4Display;

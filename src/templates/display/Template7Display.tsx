@@ -22,6 +22,14 @@ const Template7Display: React.FC<Template7DisplayProps> = ({ data }) => {
     }
   };
 
+  const sanitizeLine = (line: string) => {
+    try {
+      return String(line).replace(/^\s*>+\s*/, '');
+    } catch (e) {
+      return line;
+    }
+  };
+
   return (
     <div className="w-[210mm] bg-white" style={{ minHeight: '297mm', fontFamily: 'Georgia, serif', color: '#222' }}>
       {/* Header - Full Width */}
@@ -154,6 +162,43 @@ const Template7Display: React.FC<Template7DisplayProps> = ({ data }) => {
               {personal.address && <div>{personal.address}</div>}
             </div>
           </section>
+
+          {/* Projects (show after Contact on right column) */}
+          {projects && projects.length > 0 && projects.some(p => p.enabled && p.projectTitle) && (
+            <section style={{ marginBottom: 22 }}>
+              <h2 style={{ fontSize: 10, fontWeight: 700, color: '#004b87', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: 10, paddingBottom: 6, borderBottom: '1px solid #004b87' }}>
+                Projects
+              </h2>
+              {projects.filter(p => p.enabled && p.projectTitle).map((p, i) => (
+                <div key={i} style={{ marginBottom: 12 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                    <div style={{ fontSize: 10, fontWeight: 700 }}>{p.projectTitle}</div>
+                    <div style={{ fontSize: 9, color: '#999' }}>{p.startDate} - {p.currentlyWorking ? 'Present' : p.endDate}</div>
+                  </div>
+                  {p.description && (
+                    <div style={{ fontSize: 10, color: '#444', marginTop: 6 }}>
+                      <ul style={{ marginTop: 6, paddingLeft: 18 }}>
+                        {htmlToText(p.description).split(/\n|\r\n/).filter(Boolean).map((line, idx) => (
+                          <li key={idx} style={{ marginBottom: 6 }}>{sanitizeLine(line)}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {p.rolesResponsibilities && (
+                    <div style={{ marginTop: 6 }}>
+                      <div style={{ fontSize: 10, fontWeight: 700, marginBottom: 6 }}>Roles & Responsibilities</div>
+                      <ul style={{ paddingLeft: 18 }}>
+                        {htmlToText(p.rolesResponsibilities).split(/\n|\r\n/).filter(Boolean).map((line, idx) => (
+                          <li key={idx} style={{ marginBottom: 6 }}>{sanitizeLine(line)}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </section>
+          )}
 
           {/* Certifications/Licenses */}
           {certifications.length > 0 && certifications.some(c => c.enabled) && (

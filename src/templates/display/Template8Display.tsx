@@ -22,6 +22,14 @@ const Template8Display: React.FC<Template8DisplayProps> = ({ data }) => {
     }
   };
 
+  const sanitizeLine = (line: string) => {
+    try {
+      return String(line).replace(/^\s*>+\s*/, '');
+    } catch (e) {
+      return line;
+    }
+  };
+
   return (
     <div className="w-[210mm] bg-white" style={{ minHeight: '297mm', fontFamily: 'Calibri, sans-serif', color: '#222' }}>
       <div style={{ padding: '40px' }}>
@@ -87,6 +95,45 @@ const Template8Display: React.FC<Template8DisplayProps> = ({ data }) => {
           </section>
         )}
 
+        {/* Projects */}
+        {projects && projects.length > 0 && projects.some(p => p.enabled && p.projectTitle) && (
+          <section style={{ marginBottom: 20, display: 'flex', gap: '30px', paddingBottom: 20, borderBottom: '1px solid #ccc' }}>
+            <div style={{ width: '110px', flexShrink: 0 }}>
+              <h2 style={{ fontSize: 11, fontWeight: 700, color: '#004b87', textTransform: 'uppercase', margin: 0, letterSpacing: '0.5px', paddingTop: 2 }}>Projects</h2>
+            </div>
+            <div style={{ flex: 1 }}>
+              {projects.filter(p => p.enabled && p.projectTitle).map((p, i) => (
+                <div key={i} style={{ marginBottom: 12 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                    <div style={{ fontSize: 10, fontWeight: 700 }}>{p.projectTitle}</div>
+                    <div style={{ fontSize: 9, color: '#666' }}>{p.startDate} - {p.currentlyWorking ? 'Present' : p.endDate}</div>
+                  </div>
+                  {p.description && (
+                    <div style={{ fontSize: 10, color: '#444', marginTop: 6 }}>
+                      <ul style={{ paddingLeft: 18, marginTop: 6 }}>
+                        {htmlToText(p.description).split(/\n|\r\n/).filter(Boolean).map((line, idx) => (
+                          <li key={idx} style={{ marginBottom: 6 }}>{sanitizeLine(line)}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {p.rolesResponsibilities && (
+                    <div style={{ marginTop: 6 }}>
+                      <div style={{ fontSize: 10, fontWeight: 700, marginBottom: 6 }}>Roles & Responsibilities</div>
+                      <ul style={{ paddingLeft: 18 }}>
+                        {htmlToText(p.rolesResponsibilities).split(/\n|\r\n/).filter(Boolean).map((line, idx) => (
+                          <li key={idx} style={{ marginBottom: 6 }}>{sanitizeLine(line)}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
         {/* Education */}
         {education.higherEducationEnabled && education.higherEducation.length > 0 && (
           <section style={{ marginBottom: 20, display: 'flex', gap: '30px', paddingBottom: 20, borderBottom: '1px solid #ccc' }}>
@@ -135,7 +182,7 @@ const Template8Display: React.FC<Template8DisplayProps> = ({ data }) => {
 
         {/* Key Skills */}
         {skillsLinks.skills.length > 0 && (
-          <section style={{ marginBottom: 20, display: 'flex', gap: '30px' }}>
+          <section style={{ marginBottom: 20, display: 'flex', gap: '30px', paddingBottom: 20, borderBottom: '1px solid #ccc' }}>
             <div style={{ width: '110px', flexShrink: 0 }}>
               <h2 style={{ fontSize: 11, fontWeight: 700, color: '#004b87', textTransform: 'uppercase', margin: 0, letterSpacing: '0.5px', paddingTop: 2 }}>
                 Key Skills
@@ -155,15 +202,19 @@ const Template8Display: React.FC<Template8DisplayProps> = ({ data }) => {
 
         {/* Certifications */}
         {certifications.length > 0 && certifications.some(c => c.enabled) && (
-          <section style={{ marginBottom: 20 }}>
-            <h2 style={{ fontSize: 11, fontWeight: 700, color: '#004b87', textTransform: 'uppercase', margin: '0 0 12px 0', letterSpacing: '0.5px', paddingBottom: 8, borderBottom: '1px solid #999' }}>
-              Certifications
-            </h2>
-            {certifications.filter(c => c.enabled && c.certificateTitle).map((c, i) => (
-              <div key={i} style={{ fontSize: 10, color: '#444', marginBottom: 6 }}>
-                • {c.certificateTitle}
-              </div>
-            ))}
+          <section style={{ marginBottom: 20, display: 'flex', gap: '30px', paddingBottom: 0 }}>
+            <div style={{ width: '110px', flexShrink: 0 }}>
+              <h2 style={{ fontSize: 11, fontWeight: 700, color: '#004b87', textTransform: 'uppercase', margin: 0, letterSpacing: '0.5px', paddingTop: 2 }}>
+                Certifications
+              </h2>
+            </div>
+            <div style={{ flex: 1 }}>
+              {certifications.filter(c => c.enabled && c.certificateTitle).map((c, i) => (
+                <div key={i} style={{ fontSize: 10, color: '#444', marginBottom: 6 }}>
+                  • {c.certificateTitle}
+                </div>
+              ))}
+            </div>
           </section>
         )}
       </div>

@@ -27,6 +27,15 @@ const Template5Display: React.FC<Template5DisplayProps> = ({ data }) => {
     }
   };
 
+  const sanitizeLine = (line: string) => {
+    // Remove leading '>' quote markers (often created by pasted blockquotes) from each line
+    try {
+      return String(line).replace(/^\s*>+\s*/, '');
+    } catch (e) {
+      return line;
+    }
+  };
+
   return (
     <div style={{ maxWidth: '210mm', margin: '0 auto', background: '#fff', fontFamily: 'Times New Roman, serif' }}>
       <div style={{ padding: 28 }}>
@@ -85,7 +94,25 @@ const Template5Display: React.FC<Template5DisplayProps> = ({ data }) => {
                   <div style={{ fontSize: 12, fontWeight: 700 }}>{p.projectTitle}</div>
                   <div style={{ fontSize: 11, color: '#a84f3b' }}>{p.startDate} - {p.currentlyWorking ? 'Present' : p.endDate}</div>
                 </div>
-                {p.description && <p style={{ marginTop: 6 }}>{htmlToText(p.description)}</p>}
+                {p.description && (
+                  // Render multiline descriptions as bullet list to match experience formatting
+                  <ul style={{ marginTop: 8, paddingLeft: 18, color: '#444', wordBreak: 'break-word', overflowWrap: 'break-word' }}>
+                    {htmlToText(p.description).split(/\n|\r\n/).filter(Boolean).map((line, idx) => (
+                      <li key={idx} style={{ marginBottom: 6, wordBreak: 'break-word', overflowWrap: 'break-word' }}>{sanitizeLine(line)}</li>
+                    ))}
+                  </ul>
+                )}
+
+                {p.rolesResponsibilities && (
+                  <div style={{ marginTop: 6 }}>
+                    <div style={{ fontSize: 12, fontWeight: 700 }}>Roles & Responsibilities:</div>
+                    <ul style={{ marginTop: 8, paddingLeft: 18, color: '#444', wordBreak: 'break-word', overflowWrap: 'break-word' }}>
+                      {htmlToText(p.rolesResponsibilities).split(/\n|\r\n/).filter(Boolean).map((line, idx) => (
+                        <li key={idx} style={{ marginBottom: 6, wordBreak: 'break-word', overflowWrap: 'break-word' }}>{sanitizeLine(line)}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
               </div>
             ))}
           </section>

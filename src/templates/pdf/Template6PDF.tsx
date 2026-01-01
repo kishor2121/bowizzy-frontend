@@ -30,6 +30,16 @@ const Template6PDF: React.FC<Template6PDFProps> = ({ data }) => {
     } catch (e) { return s || ''; }
   };
 
+  const sanitizeLine = (line?: string) => {
+    if (!line) return '';
+    try {
+      return String(line).replace(/^\s*>+\s*/, '');
+    } catch (e) {
+      return line || '';
+    }
+  };
+
+
   return (
     <Document>
       <Page size="A4" style={styles.page}>
@@ -89,6 +99,37 @@ const Template6PDF: React.FC<Template6PDFProps> = ({ data }) => {
               </View>
             </View>
           )}
+
+            {/* Projects (after Experience) */}
+            {projects && projects.length > 0 && projects.some(p => p.enabled && p.projectTitle) && (
+              <View style={styles.section}>
+                <View style={styles.pillTitle}><Text style={styles.pillTitleText}>Projects</Text></View>
+                <View style={{ marginTop: 6 }}>
+                  {projects.filter(p => p.enabled && p.projectTitle).map((p, i) => (
+                    <View key={i} style={{ marginBottom: 8 }}>
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                        <Text style={{ fontSize: 11, fontWeight: 'bold' }}>{p.projectTitle}</Text>
+                        <Text style={styles.smallMuted}>{p.startDate} - {p.currentlyWorking ? 'Present' : p.endDate}</Text>
+                      </View>
+                      {p.description && htmlToText(p.description).split(/\n|\r\n/).map((line, idx) => {
+                        const clean = sanitizeLine(line).trim();
+                        return clean ? <Text key={idx} style={styles.text}>• {clean}</Text> : null;
+                      })}
+
+                      {p.rolesResponsibilities && (
+                        <View style={{ marginTop: 4 }}>
+                          <Text style={{ fontSize: 10, fontWeight: 'bold' }}>Roles & Responsibilities:</Text>
+                          {htmlToText(p.rolesResponsibilities).split(/\n|\r\n/).map((line, idx) => {
+                            const clean = sanitizeLine(line).trim();
+                            return clean ? <Text key={idx} style={styles.text}>• {clean}</Text> : null;
+                          })}
+                        </View>
+                      )}
+                    </View>
+                  ))}
+                </View>
+              </View>
+            )}
 
           {education.higherEducationEnabled && education.higherEducation.length > 0 && (
             <View style={styles.section}>
