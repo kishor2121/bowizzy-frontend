@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import DashNav from "@/components/dashnav/dashnav";
 import { Check, X } from "lucide-react";
 import * as subscriptionService from "@/services/subscriptionService";
@@ -88,6 +88,7 @@ type PremiumProps = {
 
 export default function Premium({ modal = false, onClose }: PremiumProps) {
   const navigate = useNavigate();
+  const location = useLocation();
   const [loading, setLoading] = useState<string | null>(null);
   const [currentPlan, setCurrentPlan] = useState<string>("");
   const [userInfo, setUserInfo] = useState<any>(null);
@@ -131,11 +132,27 @@ export default function Premium({ modal = false, onClose }: PremiumProps) {
       const planType = planId === "premium" ? "premium" : "premium_plus";
       const durationMonths = planId === "premium" ? 3 : 6;
 
+      // If we were navigated from TemplateSelection with pendingTemplates, include them in subscription creation
+      const params = new URLSearchParams(location.search);
+      const pending = params.get("pendingTemplates");
+      let pendingArr: number[] | undefined = undefined;
+      if (pending) {
+        try {
+          const parsedPending = JSON.parse(pending);
+          if (Array.isArray(parsedPending)) {
+            pendingArr = parsedPending.map(Number).filter((n) => !Number.isNaN(n));
+          }
+        } catch (e) {
+          // ignore parse errors
+        }
+      }
+
       const subscription = await subscriptionService.subscribeUser(
         userId,
         planType,
         durationMonths,
-        token
+        token,
+        pendingArr
       );
 
       if (subscription && subscription.id) {
@@ -146,9 +163,22 @@ export default function Premium({ modal = false, onClose }: PremiumProps) {
           plan_type: planType,
         };
         localStorage.setItem("user", JSON.stringify(updatedUser));
+        
+        // If rendered as a modal, close the modal first so it doesn't stay on top
+        if (modal && onClose) {
+          try { onClose(); } catch (e) { /* ignore */ }
+        }
 
         // Navigate to templates or dashboard
-        navigate("/resume-builder/templates");
+        // After subscribing, send user to template selection so they can pick paid extras
+        // Preserve any pendingTemplates that were passed in (so they are auto-saved)
+        const params = new URLSearchParams(location.search);
+        const pending = params.get("pendingTemplates");
+        let path = `/template-selection?selectTemplates=true&plan=${planType}`;
+        if (pending) {
+          path += `&pendingTemplates=${encodeURIComponent(pending)}`;
+        }
+        navigate(path);
       }
     } catch (error: any) {
       console.error("Subscription error:", error);
@@ -161,6 +191,12 @@ export default function Premium({ modal = false, onClose }: PremiumProps) {
   // If rendered as a modal, return compact panel without the DashNav/layout
   const content = (
     <div className="w-full max-w-4xl">
+      {/* If coming from template selection after save, show confirmation */}
+      {new URLSearchParams(location.search).get("saved") && (
+        <div className="mb-4 p-3 rounded bg-green-50 text-green-700 text-sm">
+          Templates saved successfully. Continue to choose your plan.
+        </div>
+      )}
       <div className="text-center mb-6">
         <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-3">SELECT A PLAN</h1>
         <p className="text-gray-600 text-sm">Choose the plan that best fits your needs</p>
@@ -208,6 +244,23 @@ export default function Premium({ modal = false, onClose }: PremiumProps) {
                 {loading === plan.id && <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />}
                 {!loading || loading !== plan.id ? plan.buttonText : "Processing..."}
               </button>
+
+              {plan.id !== 'free' && (
+                <div className="mb-6">
+                  <button
+                    onClick={() => {
+                      // If this Premium is rendered as a modal, close it first
+                      if (modal && onClose) {
+                        try { onClose(); } catch (e) { /* ignore */ }
+                      }
+                      navigate(`/template-selection?selectTemplates=true&plan=${plan.id}`);
+                    }}
+                    className="w-full py-2 rounded-lg text-sm bg-white border border-gray-200 hover:bg-gray-50"
+                  >
+                    Customize templates
+                  </button>
+                </div>
+              )}
 
               <div className="space-y-4">
                 {plan.features.map((feature, idx) => (
