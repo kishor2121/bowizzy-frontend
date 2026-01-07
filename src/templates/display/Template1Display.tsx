@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import DOMPurify from 'dompurify';
+import { FiPhone, FiMail, FiMapPin } from 'react-icons/fi';
 import type { ResumeData } from '@/types/resume';
 
 interface Template1DisplayProps {
@@ -50,70 +51,79 @@ export const Template1Display: React.FC<Template1DisplayProps> = ({
   return (
     <div className="w-[210mm] bg-white" style={{ minHeight: '297mm', fontFamily: 'Times New Roman, serif' }}>
       {/* Header Section */}
-      <div style={{ padding: '25px 40px 20px 40px', borderBottom: '2px solid #6b7280' }}>
-        <div className="flex items-start justify-between">
-          {/* Left - Name and Title */}
-          <div>
-            <h1 style={{ 
-              fontSize: '32px', 
-              fontWeight: '700', 
-              color: '#1f2937',
-              letterSpacing: '1px',
-              marginBottom: '2px',
-              lineHeight: '1'
-            }}>
-              {personal.firstName.toUpperCase()} <span style={{ fontWeight: '600' }}>{personal.lastName.toUpperCase()}</span>
-            </h1>
-            <p style={{ fontSize: '13px', color: '#4b5563', marginTop: '6px', letterSpacing: '0.5px' }}>
+      <div style={{ padding: '30px 40px 8px 40px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexDirection: 'column', background: 'rgb(231, 235, 235)' }}>
+        <div style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', flex: '0 0 auto' }}>
+            <div style={{ display: 'inline-block' }}>
+              <h1 style={{ 
+                fontSize: '40px', 
+                fontWeight: 800, 
+                color: 'rgb(26, 23, 23)',
+                letterSpacing: '2px',
+                marginBottom: '6px',
+                lineHeight: '1',
+                fontFamily: 'Georgia, serif',
+                display: 'inline-block'
+              }}>
+                {personal.firstName.toUpperCase()} <span style={{ fontWeight: 900 }}>{personal.lastName.toUpperCase()}</span>
+              </h1>
+              {/* Decorative short underline matching name width (dark rgb) */}
+              <div style={{ display: 'inline-block', width: '100%', height: '3px', maxWidth: '360px', background: 'rgb(26, 23, 23)', marginTop: '4px', marginBottom: '8px' }} />
+            </div>
+
+            <p style={{ fontSize: '13px', color: '#6b7280', marginTop: '6px', letterSpacing: '0.5px', textTransform: 'capitalize' }}>
               {experience.jobRole}
             </p>
           </div>
 
-          {/* Right - Contact Info */}
-          <div style={{ fontSize: '10px', color: '#4b5563', textAlign: 'right', minWidth: '150px' }}>
-            <div style={{ marginBottom: '5px' }}>
-              {personal.mobileNumber}
+          {/* Right - Contact Info (react-icons, right aligned) */}
+          <div style={{ fontSize: '11px', color: 'rgb(26, 23, 23)', textAlign: 'right', minWidth: '180px', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '2px', fontWeight: 600 }}>
+              <FiPhone style={{ color: 'rgb(26, 23, 23)', width: '18px', height: '18px' }} aria-hidden />
+              <span style={{ fontSize: '12px' }}>{personal.mobileNumber}</span>
             </div>
-            <div style={{ marginBottom: '5px' }}>
-              {personal.email}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <FiMail style={{ color: 'rgb(26, 23, 23)', width: '16px', height: '16px' }} aria-hidden />
+              <span style={{ fontSize: '12px' }}>{personal.email}</span>
             </div>
-            <div>
-              {personal.address}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <FiMapPin style={{ color: 'rgb(26, 23, 23)', width: '16px', height: '16px' }} aria-hidden />
+              <span style={{ fontSize: '12px' }}>{personal.address}</span>
             </div>
           </div>
+        </div>
+
+        {/* Thick colored bar across the full width (dark rgb) */}
+        <div style={{ width: '100%', marginTop: '14px' }}>
+          <div style={{ height: '6px', background: 'rgb(26, 23, 23)', width: '100%' }} />
         </div>
       </div>
 
       {/* Summary Section */}
       {personal.aboutCareerObjective && (
         <div className="resume-section" style={{ padding: '20px 40px' }}>
-          <h2 style={{ 
-            fontSize: '14px', 
-            fontWeight: 'bold', 
-            color: '#2d3748',
-            textAlign: 'center',
-            letterSpacing: '3px',
-            marginBottom: '12px'
-          }}>
-            SUMMARY
-          </h2>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '12px' }}>
+            <h2 style={{ fontSize: '14px', fontWeight: '600', color: '#2d3748', letterSpacing: '3px', margin: '0', textAlign: 'center' }}>SUMMARY</h2>
+            <div style={{ width: '260px', height: '2px', background: '#cbd5e0', marginTop: '10px' }} />
+          </div>
+
           {/* Render as sanitized HTML so any editor-generated tags are interpreted correctly */}
           <div style={{ 
             fontSize: '10px', 
             color: '#4a5568', 
             textAlign: 'justify',
-            lineHeight: '1.6'
+            lineHeight: '1.6',
+            marginTop: '12px'
           }}
-          // Use dangerouslySetInnerHTML after sanitizing to prevent XSS
           dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(personal.aboutCareerObjective || '') }}
           />
         </div>
       )}
 
       {/* Two Column Layout */}
-      <div className="flex" style={{ padding: '0 40px 30px 40px', gap: '40px' }}>
+      <div className="flex" style={{ padding: '0 40px 30px 40px', gap: '20px', alignItems: 'stretch' }}>
         {/* Left Column */}
-        <div style={{ width: '48%' }}>
+        <div style={{ width: '48%', paddingRight: '24px' }}>
           {/* Education Section */}
           {(education.higherEducationEnabled && education.higherEducation.length > 0) && (
             <div className="resume-section" style={{ marginBottom: '24px' }}>
@@ -246,7 +256,7 @@ export const Template1Display: React.FC<Template1DisplayProps> = ({
         </div>
 
         {/* Right Column */}
-        <div style={{ width: '48%' }}>
+        <div style={{ width: '48%', borderLeft: '1px solid #e5e7eb', paddingLeft: '24px' }}>
           {/* Professional Experience Section */}
           {experience.workExperiences.length > 0 && experience.workExperiences.some(exp => exp.enabled) && (
             <div className="resume-section" style={{ marginBottom: '24px' }}>
@@ -427,7 +437,7 @@ const PaginatedResume: React.FC<{ data: ResumeData; supportsPhoto?: boolean; onP
                   as it can crash some browsers (heavy DOM insertion). Offer a button to render
                   the printable pages on demand. */}
               {pages.length > PRINT_PAGE_RENDER_LIMIT && !allowPrintRender && (
-                <div style={{ margin: '8px 0', padding: '6px 10px', background: '#fff3f2', color: '#991b1b', borderRadius: 6 }}>
+                <div style={{ margin: '8px 0', padding: '6px 10px', background: '#f3eeeeff', color: '#991b1b', borderRadius: 6 }}>
                   Printable pages suppressed ({pages.length} pages). Rendering all pages can be heavy and may crash the browser.
                   <button style={{ marginLeft: 8, padding: '4px 8px' }} onClick={() => setAllowPrintRender(true)}>Render printable pages</button>
                 </div>

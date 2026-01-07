@@ -91,6 +91,9 @@ const styles = StyleSheet.create({
   },
   rightColumn: {
     width: "48%",
+    borderLeftWidth: 1,
+    borderLeftColor: "#e5e7eb",
+    paddingLeft: 12,
   },
   // Section Styles
   section: {
@@ -284,25 +287,26 @@ export const Template1PDF: React.FC<Template1PDFProps> = ({ data }) => {
       <Page size="A4" style={styles.page}>
         {/* Header */}
         <View style={styles.header}>
-          <View style={styles.nameSection}>
-            <Text style={styles.name}>
-              {personal.firstName.toUpperCase()}{" "}
-              {personal.lastName.toUpperCase()}
-            </Text>
-            <Text style={styles.jobTitle}>
-              {experience.jobRole || "Executive Secretary"}
-            </Text>
+          <View style={{ width: "100%", flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" }}>
+            <View style={styles.nameSection}>
+              <Text style={styles.name}>
+                {personal.firstName.toUpperCase()} {personal.lastName.toUpperCase()}
+              </Text>
+              <View style={styles.nameDivider} />
+              <Text style={styles.jobTitle}>{experience.jobRole || "Executive Secretary"}</Text>
+            </View>
+
+            <View style={styles.contactSection}>
+              <Text style={styles.contactItem}>{personal.mobileNumber || "+123-456-7890"}</Text>
+              <Text style={styles.contactItem}>{personal.email || "hello@reallygreatsite.com"}</Text>
+              <Text style={styles.contactItem}>{personal.address || "123 Anywhere St., Any City"}</Text>
+            </View>
           </View>
-          <View style={styles.contactSection}>
-            <Text style={styles.contactItem}>
-              {personal.mobileNumber || "+123-456-7890"}
-            </Text>
-            <Text style={styles.contactItem}>
-              {personal.email || "hello@reallygreatsite.com"}
-            </Text>
-            <Text style={styles.contactItem}>
-              {personal.address || "123 Anywhere St., Any City"}
-            </Text>
+
+          {/* Hairline + thick bar (ensure spacing to avoid overlap) */}
+          <View style={{ marginTop: 14 }}>
+            <View style={styles.headerThin} />
+            <View style={styles.headerThick} />
           </View>
         </View>
 
@@ -310,6 +314,7 @@ export const Template1PDF: React.FC<Template1PDFProps> = ({ data }) => {
         {personal.aboutCareerObjective && (
           <View style={styles.summary}>
             <Text style={styles.summaryTitle}>SUMMARY</Text>
+            <View style={{ width: 260, height: 2, backgroundColor: '#cbd5e0', marginTop: 6, marginBottom: 10, alignSelf: 'center' }} />
             <Text style={styles.summaryText}>{htmlToPlainText(personal.aboutCareerObjective)}</Text>
           </View>
         )}
