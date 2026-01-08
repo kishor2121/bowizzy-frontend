@@ -21,6 +21,8 @@ export const Template2Display: React.FC<Template2DisplayProps> = ({
 		certifications,
 	} = data;
 
+	const getYear = (s?: string) => (s ? s.split('-')[0] : '');
+
 	return (
 		<div
 			className="w-[210mm] bg-white"
@@ -105,7 +107,7 @@ export const Template2Display: React.FC<Template2DisplayProps> = ({
 											{edu.degree || "Bachelor of Science in Psychology"}
 										</p>
 										<p className="text-gray-500" style={{ fontSize: "9px" }}>
-											{edu.startYear} - {edu.endYear || "2018"}
+											{getYear(edu.startYear)} - {getYear(edu.endYear) || "2018"}
 										</p>
 									</div>
 								))}
@@ -134,7 +136,7 @@ export const Template2Display: React.FC<Template2DisplayProps> = ({
 											Pre University - {education.preUniversity.boardType}
 										</p>
 										<p style={{ fontSize: "9px", color: "#718096" }}>
-											{education.preUniversity.yearOfPassing}
+											{getYear(education.preUniversity.yearOfPassing)}
 										</p>
 									</div>
 								)}
@@ -162,7 +164,7 @@ export const Template2Display: React.FC<Template2DisplayProps> = ({
 										SSLC - {education.sslc.boardType}
 									</p>
 									<p style={{ fontSize: "9px", color: "#718096" }}>
-										{education.sslc.yearOfPassing}
+										{getYear(education.sslc.yearOfPassing)}
 									</p>
 								</div>
 							)}
@@ -190,7 +192,7 @@ export const Template2Display: React.FC<Template2DisplayProps> = ({
 												className="text-gray-800"
 												style={{ fontSize: "10px" }}
 											>
-												➔
+												<svg width="12" height="14" viewBox="0 0 24 24" style={{ marginRight: 8 }} aria-hidden><path d="M3 12 H11" stroke="#666666" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" fill="none" /><path d="M11 7 L18 12 L11 17 Z" fill="#666666" /></svg>
 											</span>
 											<span
 												className="text-gray-600"
@@ -322,18 +324,24 @@ export const Template2Display: React.FC<Template2DisplayProps> = ({
 												{project.currentlyWorking ? "Present" : project.endDate}
 											</p>
 											{project.description && (
-												<p
-													className="mt-1 text-gray-600 leading-relaxed text-justify"
-													style={{ fontSize: "10px" }}
-													dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(project.description || '', {FORBID_ATTR: ['style']}) }}
-												/>
-											)}
-											{project.rolesResponsibilities && (
-												<p
-													className="mt-1 text-gray-600 leading-relaxed text-justify"
-													style={{ fontSize: "10px" }}
-													dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(project.rolesResponsibilities || '', {FORBID_ATTR: ['style']}) }}
-												/>
+										<div>
+											<div style={{ fontSize: "10px", fontWeight: 700, color: "#2d3748", marginTop: 6 }}>Description:</div>
+											<p
+												className="mt-1 text-gray-600 leading-relaxed text-justify"
+												style={{ fontSize: "10px" }}
+												dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(project.description || '', {FORBID_ATTR: ['style']}) }}
+											/>
+										</div>
+										)}
+										{project.rolesResponsibilities && (
+										<div>
+											<div style={{ fontSize: "10px", fontWeight: 700, color: "#2d3748", marginTop: 6 }}>Roles & Responsibilities:</div>
+											<p
+												className="mt-1 text-gray-600 leading-relaxed text-justify"
+												style={{ fontSize: "10px" }}
+												dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(project.rolesResponsibilities || '', {FORBID_ATTR: ['style']}) }}
+											/>
+										</div>
 											)}
 										</div>
 									))}

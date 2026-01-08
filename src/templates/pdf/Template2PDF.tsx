@@ -185,6 +185,8 @@ export const Template2PDF: React.FC<Template2PDFProps> = ({ data }) => {
 		certifications,
 	} = data;
 
+	const getYear = (s?: string) => (s ? s.split('-')[0] : '');
+
 	const htmlToPlainText = (html?: string) => {
 		if (!html) return '';
 		const sanitized = DOMPurify.sanitize(html || '');
@@ -262,7 +264,7 @@ export const Template2PDF: React.FC<Template2PDFProps> = ({ data }) => {
 												{edu.degree}
 											</Text>
 											<Text style={styles.educationDate}>
-												{edu.startYear} - {edu.endYear || "2018"}
+												{getYear(edu.startYear)} - {getYear(edu.endYear) || "2018"}
 											</Text>
 										</View>
 									))}
@@ -276,7 +278,7 @@ export const Template2PDF: React.FC<Template2PDFProps> = ({ data }) => {
 												Pre University  - {education.preUniversity.boardType}
 											</Text>
 											<Text style={styles.educationDate}>
-												{education.preUniversity.yearOfPassing}
+												{getYear(education.preUniversity.yearOfPassing)}
 											</Text>
 										</View>
 									)}
@@ -289,7 +291,7 @@ export const Template2PDF: React.FC<Template2PDFProps> = ({ data }) => {
 											SSLC - {education.sslc.boardType}
 										</Text>
 										<Text style={styles.educationDate}>
-											{education.sslc.yearOfPassing}
+											{getYear(education.sslc.yearOfPassing)}
 										</Text>
 									</View>
 								)}
@@ -303,8 +305,9 @@ export const Template2PDF: React.FC<Template2PDFProps> = ({ data }) => {
 									.filter((s) => s.enabled && s.skillName)
 									.map((skill, idx) => (
 										<View key={idx} style={styles.skillItem}>
-											<Svg width={10} height={10} viewBox="0 0 24 24" style={{ marginRight: 6 }}>
-												<Path d="M8 5 L16 12 L8 19" stroke="#666666" strokeWidth={1.6} fill="none" strokeLinecap="round" strokeLinejoin="round" />
+											<Svg width={12} height={14} viewBox="0 0 24 24" style={{ marginRight: 8 }}>
+												<Path d="M3 12 H11" stroke="#666666" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" fill="none" />
+										<Path d="M11 7 L18 12 L11 17 Z" fill="#666666" />
 											</Svg>
 											<Text>{skill.skillName}</Text>
 										</View>
