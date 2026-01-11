@@ -18,6 +18,8 @@ import Template14Display from './display/Template14Display';
 import Template14PDF from './pdf/Template14PDF';
 import Template15Display from './display/Template15Display';
 import Template15PDF from './pdf/Template15PDF';
+import Template16Display from './display/Template16Display';
+import Template16PDF from './pdf/Template16PDF';
 import Template2PDF from './pdf/Template2PDF';
 import Template3PDF from './pdf/Template3PDF';
 import Template4PDF from './pdf/Template4PDF';
@@ -192,7 +194,18 @@ const TEMPLATE_REGISTRY: TemplateInfo[] = [
     pdfComponent: Template15PDF,
     pageCount: 1,
     supportsPhoto: false,
-  },  // Add more templates here...
+  },
+  {
+    id: 'template16',
+    name: 'Professional Left Header',
+    category: 'Professional',
+    thumbnail: '/resume-templates/thumbnails/template16.jpg',
+    displayComponent: Template16Display,
+    pdfComponent: Template16PDF,
+    pageCount: 1,
+    supportsPhoto: false,
+  },
+  // Add more templates here...
 ];
 
 export const getTemplateById = (id: string): TemplateInfo | undefined => {
