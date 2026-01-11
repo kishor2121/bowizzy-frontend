@@ -27,7 +27,7 @@ export default function TemplateSelection() {
 
   const PAID_EXTRA_TEMPLATE_IDS = ["template9", "template10"]; // templates that cost ₹100 each
   const EXTRA_PRICE = 100;
-  const DEFAULT_TEMPLATES = ["template1", "template2", "template3", "template4", "template5", "template6", "template7", "template8", "template9","template10", "template11","template12", "template13", "template14"];
+  const DEFAULT_TEMPLATES = ["template1", "template2", "template3", "template4", "template5", "template6", "template7", "template8", "template9","template10", "template11","template12", "template13", "template14", "template15"];
 
   const handleTemplateSelect = (templateId: string, locked: boolean) => {
     if (selectionMode) {

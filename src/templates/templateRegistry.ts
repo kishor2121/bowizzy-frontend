@@ -16,6 +16,8 @@ import Template13Display from './display/Template13Display';
 import Template13PDF from './pdf/Template13PDF';
 import Template14Display from './display/Template14Display';
 import Template14PDF from './pdf/Template14PDF';
+import Template15Display from './display/Template15Display';
+import Template15PDF from './pdf/Template15PDF';
 import Template2PDF from './pdf/Template2PDF';
 import Template3PDF from './pdf/Template3PDF';
 import Template4PDF from './pdf/Template4PDF';
@@ -181,8 +183,16 @@ const TEMPLATE_REGISTRY: TemplateInfo[] = [
     pdfComponent: Template14PDF,
     pageCount: 1,
     supportsPhoto: false,
-  },
-  // Add more templates here...
+  },  {
+    id: 'template15',
+    name: 'Centered Blue Classic',
+    category: 'Professional',
+    thumbnail: '/resume-templates/thumbnails/template15.jpg',
+    displayComponent: Template15Display,
+    pdfComponent: Template15PDF,
+    pageCount: 1,
+    supportsPhoto: false,
+  },  // Add more templates here...
 ];
 
 export const getTemplateById = (id: string): TemplateInfo | undefined => {
