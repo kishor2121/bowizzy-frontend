@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import DOMPurify from 'dompurify';
-import { FiPhone, FiMail, FiMapPin } from 'react-icons/fi';
+import { FiPhone, FiMail, FiMapPin, FiLinkedin, FiGithub } from 'react-icons/fi';
 import type { ResumeData } from '@/types/resume';
 
 interface Template11DisplayProps {
@@ -96,8 +96,26 @@ const Template11Display: React.FC<Template11DisplayProps> = ({
       {/* Header Section - Classic Serif look */}
       <div style={{ padding: '18px 36px 6px 36px' }}>
         <h1 style={{ fontSize: '36px', fontWeight: 700, color: '#111827', margin: 0, lineHeight: '1', fontFamily: 'Georgia, serif' }}>{personal.firstName} {personal.middleName ? ' ' + personal.middleName : ''} {personal.lastName}</h1>
+        {personal.aboutCareerObjective && (
+          <div style={{ fontSize: 11, color: '#444', marginTop: 8, maxWidth: '70%', marginLeft: 'auto', marginRight: 'auto', textAlign: 'center' }}>
+            {DOMPurify.sanitize(personal.aboutCareerObjective)}
+          </div>
+        )}
         <div style={{ fontSize: '11px', color: '#6b7280', marginTop: 8 }}>
           { [personal.email, personal.mobileNumber, personal.address].filter(Boolean).join(' | ') }
+        </div>
+
+        <div style={{ marginTop: 8, display: 'flex', justifyContent: 'center', gap: 12, color: '#6b7280' }}>
+          {((skillsLinks && skillsLinks.links && skillsLinks.links.linkedinProfile) || (personal as any).linkedinProfile) && (
+            <a href={(skillsLinks && skillsLinks.links && skillsLinks.links.linkedinProfile) || (personal as any).linkedinProfile} target="_blank" rel="noreferrer" style={{ color: '#0a66c2', display: 'inline-flex', alignItems: 'center', gap: 6, textDecoration: 'none' }}>
+              <FiLinkedin /> <span style={{ fontSize: 11 }}>LinkedIn</span>
+            </a>
+          )}
+          {((skillsLinks && skillsLinks.links && skillsLinks.links.githubProfile) || (personal as any).githubProfile) && (
+            <a href={(skillsLinks && skillsLinks.links && skillsLinks.links.githubProfile) || (personal as any).githubProfile} target="_blank" rel="noreferrer" style={{ color: '#111', display: 'inline-flex', alignItems: 'center', gap: 6, textDecoration: 'none' }}>
+              <FiGithub /> <span style={{ fontSize: 11 }}>GitHub</span>
+            </a>
+          )}
         </div>
       </div>
 

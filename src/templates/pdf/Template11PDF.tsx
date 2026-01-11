@@ -51,6 +51,17 @@ const styles = StyleSheet.create({
     color: "#4b5563",
     minWidth: 180,
   },
+  objective: {
+    fontSize: 10,
+    color: '#444',
+    marginTop: 6,
+  },
+  linkText: {
+    fontSize: 9,
+    color: '#0a66c2',
+    marginTop: 6,
+    marginRight: 10,
+  },
 
   sectionTitle: {
     fontSize: 12,
@@ -178,7 +189,16 @@ const Template11PDF: React.FC<Template11PDFProps> = ({ data }) => {
         <View style={styles.header}>
             <View style={styles.nameSection}>
               <Text style={styles.name}>{personal.firstName} {personal.middleName ? ' ' + personal.middleName : ''} {personal.lastName}</Text>
+              {personal.aboutCareerObjective ? <Text style={styles.objective}>{htmlToPlainText(personal.aboutCareerObjective)}</Text> : null}
               <Text style={styles.contactLine}>{[personal.email, personal.mobileNumber, personal.address].filter(Boolean).join(' | ')}</Text>
+              <View style={{ flexDirection: 'row', marginTop: 6 }}>
+                {((skillsLinks && (skillsLinks as any).links && (skillsLinks as any).links.linkedinProfile) || (personal as any).linkedinProfile) && (
+                  <Text style={styles.linkText}>LinkedIn</Text>
+                )}
+                {((skillsLinks && (skillsLinks as any).links && (skillsLinks as any).links.githubProfile) || (personal as any).githubProfile) && (
+                  <Text style={[styles.linkText, { color: '#111' }]}>GitHub</Text>
+                )}
+              </View>
             </View>
         </View>
 
