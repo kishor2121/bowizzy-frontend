@@ -12,6 +12,8 @@ import Template11Display from './display/Template11Display';
 import Template12Display from './display/Template12Display';
 import Template1PDF from './pdf/Template1PDF';
 import Template12PDF from './pdf/Template12PDF';
+import Template13Display from './display/Template13Display';
+import Template13PDF from './pdf/Template13PDF';
 import Template2PDF from './pdf/Template2PDF';
 import Template3PDF from './pdf/Template3PDF';
 import Template4PDF from './pdf/Template4PDF';
@@ -140,7 +142,7 @@ const TEMPLATE_REGISTRY: TemplateInfo[] = [
   },  
   {
     id: 'template11',
-    name: 'Classic Serif Resume',
+    name: 'Classic Professional',
     category: 'Professional',
     thumbnail: '/resume-templates/thumbnails/template11.jpg',
     displayComponent: Template11Display,
@@ -150,11 +152,21 @@ const TEMPLATE_REGISTRY: TemplateInfo[] = [
   },
   {
     id: 'template12',
-    name: 'Centered Classic (Template 12)',
+    name: 'Classic Professional',
     category: 'Professional',
     thumbnail: '/resume-templates/thumbnails/template12.jpg',
     displayComponent: Template12Display,
     pdfComponent: Template12PDF,
+    pageCount: 1,
+    supportsPhoto: false,
+  },
+    {
+    id: 'template13',
+    name: 'Classic Professional',
+    category: 'Professional',
+    thumbnail: '/resume-templates/thumbnails/template13.jpg',
+    displayComponent: Template13Display,
+    pdfComponent: Template13PDF,
     pageCount: 1,
     supportsPhoto: false,
   },
