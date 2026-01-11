@@ -1,3 +1,4 @@
+/* Disabled templates 1-10 imports — only templates 11-17 enabled. Uncomment if you need to re-enable them.
 import Template1Display from './display/Template1Display';
 import Template2Display from './display/Template2Display';
 import Template3Display from './display/Template3Display';
@@ -8,9 +9,12 @@ import Template7Display from './display/Template7Display';
 import Template8Display from './display/Template8Display';
 import Template9Display from './display/Template9Display';
 import Template10Display from './display/Template10Display';
+*/
 import Template11Display from './display/Template11Display';
 import Template12Display from './display/Template12Display';
+/*
 import Template1PDF from './pdf/Template1PDF';
+*/
 import Template12PDF from './pdf/Template12PDF';
 import Template13Display from './display/Template13Display';
 import Template13PDF from './pdf/Template13PDF';
@@ -47,6 +51,7 @@ export interface TemplateInfo {
 
 // Template Registry
 const TEMPLATE_REGISTRY: TemplateInfo[] = [
+/* Disabled templates 1-10 registry entries — only templates 11-17 are enabled. Uncomment to re-enable. 
   {
     id: 'template1',
     name: 'Executive Professional',
@@ -147,7 +152,8 @@ const TEMPLATE_REGISTRY: TemplateInfo[] = [
     pdfComponent: Template10PDF,
     pageCount: 1,
     supportsPhoto: true,
-  },  
+  },
+*/  
   {
     id: 'template11',
     name: 'Classic Professional',
