@@ -26,6 +26,8 @@ import Template16Display from './display/Template16Display';
 import Template16PDF from './pdf/Template16PDF';
 import Template17Display from './display/Template17Display';
 import Template17PDF from './pdf/Template17PDF';
+import Template18Display from './display/Template18Display';
+import Template18PDF from './pdf/Template18PDF';
 import Template2PDF from './pdf/Template2PDF';
 import Template3PDF from './pdf/Template3PDF';
 import Template4PDF from './pdf/Template4PDF';
@@ -220,6 +222,16 @@ const TEMPLATE_REGISTRY: TemplateInfo[] = [
     thumbnail: '/resume-templates/thumbnails/template17.jpg',
     displayComponent: Template17Display,
     pdfComponent: Template17PDF,
+    pageCount: 1,
+    supportsPhoto: false,
+  },
+  {
+    id: 'template18',
+    name: 'Centered Classic',
+    category: 'Professional',
+    thumbnail: '/resume-templates/thumbnails/template18.jpg',
+    displayComponent: Template18Display,
+    pdfComponent: Template18PDF,
     pageCount: 1,
     supportsPhoto: false,
   },
