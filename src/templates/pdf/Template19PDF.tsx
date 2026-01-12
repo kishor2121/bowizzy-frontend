@@ -1,0 +1,194 @@
+import React from 'react';
+import DOMPurify from 'dompurify';
+import { Document, Page, View, Text, StyleSheet } from '@react-pdf/renderer';
+import type { ResumeData } from '@/types/resume';
+
+const styles = StyleSheet.create({
+  page: { padding: 24, fontFamily: 'Times-Roman', fontSize: 10 },
+  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, padding: 12, backgroundColor: '#f3f4f6', borderBottomWidth: 1, borderBottomColor: '#e5e7eb' },
+  name: { fontSize: 20, fontFamily: 'Times-Bold' },
+  role: { fontSize: 11, color: '#6b7280', fontFamily: 'Times-Bold' },
+  contact: { fontSize: 10, color: '#374151' },
+  sectionHeading: { fontSize: 10, fontFamily: 'Times-Bold', letterSpacing: 1.2, textTransform: 'uppercase', color: '#111827' },
+  divider: { height: 1, backgroundColor: '#ddd', marginTop: 6, width: '100%' },
+  leftCol: { flex: 1, paddingRight: 12 },
+  rightCol: { width: 220 }
+});
+
+const htmlToPlainText = (html?: string) => {
+  if (!html) return '';
+  const sanitized = DOMPurify.sanitize(html || '');
+  const withBreaks = sanitized.replace(/<br\s*\/?/gi, '\n').replace(/<\/p>|<\/li>/gi, '\n');
+  const decoded = withBreaks.replace(/&nbsp;/g, ' ').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
+  try {
+    if (typeof document !== 'undefined') {
+      const tmp = document.createElement('div');
+      tmp.innerHTML = decoded;
+      return (tmp.textContent || tmp.innerText || '').trim();
+    }
+  } catch (e) { }
+  return decoded.replace(/<[^>]+>/g, '').trim();
+};
+
+const htmlToLines = (html?: string) => {
+  const plain = htmlToPlainText(html);
+  if (!plain) return [] as string[];
+  return plain.split(/\n|\r\n/).map(l => l.trim()).filter(Boolean);
+};
+
+const formatMonthYear = (s?: string) => {
+  if (!s) return '';
+  const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  try {
+    const str = String(s).trim();
+    const ymd = str.match(/^(\d{4})-(\d{2})(?:-\d{2})?$/);
+    if (ymd) return `${months[parseInt(ymd[2],10)-1]} ${ymd[1]}`;
+    const mY = str.match(/^(\d{2})\/(\d{4})$/);
+    if (mY) return `${months[parseInt(mY[1],10)-1]} ${mY[2]}`;
+  } catch (e) {}
+  return String(s);
+};
+
+const formatMonthYearParts = (s?: string) => {
+  if (!s) return { month: '', year: '' };
+  const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  try {
+    const str = String(s).trim();
+    const ymd = str.match(/^(\d{4})-(\d{2})(?:-\d{2})?$/);
+    if (ymd) return { month: months[parseInt(ymd[2],10)-1], year: ymd[1] };
+    const mY = str.match(/^(\d{2})\/(\d{4})$/);
+    if (mY) return { month: months[parseInt(mY[1],10)-1], year: mY[2] };
+  } catch (e) {}
+  const yearMatch = String(s).match(/(\d{4})/);
+  if (yearMatch) {
+    return { month: String(s).replace(yearMatch[1], '').trim(), year: yearMatch[1] };
+  }
+  return { month: String(s), year: '' };
+};
+
+interface Template19PDFProps { data: ResumeData }
+
+const Template19PDF: React.FC<Template19PDFProps> = ({ data }) => {
+  const { personal, experience, education, skillsLinks, certifications } = data;
+  const role = (experience && (experience as any).jobRole) || (experience.workExperiences && experience.workExperiences.find((w: any) => w.enabled && w.jobTitle) && experience.workExperiences.find((w: any) => w.enabled && w.jobTitle).jobTitle) || '';
+  const contactLine = [personal.email, personal.mobileNumber, (skillsLinks && skillsLinks.links && skillsLinks.links.linkedinProfile) || ''].filter(Boolean).join(' | ');
+
+  return (
+    <Document>
+      <Page size="A4" style={styles.page}>
+        <View style={styles.headerRow}>
+          <View>
+            <Text style={styles.name}>{personal.firstName} {(personal.middleName || '')} {personal.lastName}</Text>
+            {role && <Text style={styles.role}>{role}</Text>}
+          </View>
+          <View style={{ textAlign: 'right' }}>
+            {personal.email && <Text style={[styles.contact, { color: '#2563eb' }]}>{personal.email}</Text>}
+            {personal.mobileNumber && <Text style={[styles.contact, { marginTop: 6 }]}>{personal.mobileNumber}</Text>}
+            {skillsLinks && skillsLinks.links && skillsLinks.links.linkedinProfile && <Text style={[styles.contact, { marginTop: 6 }]}>{skillsLinks.links.linkedinProfile}</Text>}
+            {personal.address && <Text style={[styles.contact, { marginTop: 6 }]}>{String(personal.address).split(',')[0]}</Text>}
+          </View>
+        </View>
+
+        <View>
+          <View style={{ alignItems: 'center' }}>
+            <Text style={{ fontFamily: 'Times-Bold', fontSize: 10, marginBottom: 6 }}>SUMMARY</Text>
+            <View style={{ height: 1, backgroundColor: '#ddd', width: '100%' }} />
+          </View>
+          {personal.aboutCareerObjective ? <Text style={{ marginTop: 12, color: '#444', textAlign: 'justify' }}>{htmlToPlainText(personal.aboutCareerObjective)}</Text> : null}
+
+          <View style={{ flexDirection: 'row', marginTop: 12 }}>
+            {/* Left sidebar */}
+            <View style={[styles.rightCol, { paddingRight: 12 }]}> 
+              <Text style={styles.sectionHeading}>Skills</Text>
+              <View style={styles.divider} />
+              <View style={{ marginTop: 8 }}>{(skillsLinks.skills || []).filter((s:any)=>s.enabled && s.skillName).map((s:any,i:number)=>(<Text key={i} style={{ marginBottom: 6 }}>• {s.skillName}</Text>))}</View>
+
+              <View style={{ marginTop: 12 }}>
+                <Text style={styles.sectionHeading}>Education</Text>
+                <View style={styles.divider} />
+                <View style={{ marginTop: 8 }}>{education.higherEducationEnabled && education.higherEducation.slice().map((edu:any,i:number)=>(
+                  <View key={i} style={{ marginBottom: 8 }}>
+                    <Text style={{ fontSize: 10, fontFamily: 'Times-Bold' }}>{edu.instituteName}</Text>
+                    <Text style={{ color: '#6b7280', marginTop: 4 }}>{edu.degree}{edu.endYear ? ` • ${formatMonthYear(edu.endYear)}` : ''}</Text>
+                  </View>
+                ))}</View>
+              </View>
+
+              <View style={{ marginTop: 12 }}>
+                <Text style={styles.sectionHeading}>Language</Text>
+                <View style={styles.divider} />
+                <View style={{ marginTop: 8 }}>{(((personal as any).languagesKnown || (personal as any).languages || [])).map((l:string,i:number)=>(<Text key={i} style={{ marginBottom: 6 }}>• {l}</Text>))}</View>
+              </View>
+
+              <View style={{ marginTop: 12 }}>
+                <Text style={styles.sectionHeading}>Achievements</Text>
+                <View style={styles.divider} />
+                <View style={{ marginTop: 8 }}>{(certifications || []).filter((c:any)=>c.enabled && c.certificateTitle).map((c:any,i:number)=>(<Text key={i} style={{ marginBottom: 6 }}>• {c.certificateTitle}{c.providedBy ? ` — ${c.providedBy}` : ''}</Text>))}</View>
+              </View>
+
+            </View>
+
+            {/* Right main content */}
+            <View style={styles.leftCol}>
+              <Text style={styles.sectionHeading}>Professional Experience</Text>
+              <View style={styles.divider} />
+
+              <View style={{ marginTop: 8 }}>
+                {experience.workExperiences.filter((w:any)=>w.enabled).map((w:any,i:number)=> (
+                  <View key={i} style={{ marginBottom: 10 }}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                      <Text style={{ fontSize: 11, fontFamily: 'Times-Bold' }}>{w.jobTitle}</Text>
+                      <View style={{ flexDirection: 'row' }}>
+                        {(() => {
+                          const sParts = formatMonthYearParts(w.startDate);
+                          return (
+                            <>
+                              <Text style={{ fontSize: 11, color: '#6b7280' }}>{sParts.month}{sParts.month ? ' ' : ''}</Text>
+                              <Text style={{ fontSize: 11, color: '#6b7280', fontFamily: 'Times-Bold' }}>{sParts.year}</Text>
+                            </>
+                          );
+                        })()}
+
+                        <Text style={{ fontSize: 11, color: '#6b7280', fontFamily: 'Times-Bold' }}> {' '}-{' '}</Text>
+
+                        {w.currentlyWorking ? (
+                          <Text style={{ fontSize: 11, color: '#6b7280', fontFamily: 'Times-Bold' }}>Present</Text>
+                        ) : (() => {
+                          const eParts = formatMonthYearParts(w.endDate);
+                          return (
+                            <>
+                              <Text style={{ fontSize: 11, color: '#6b7280' }}>{eParts.month}{eParts.month ? ' ' : ''}</Text>
+                              <Text style={{ fontSize: 11, color: '#6b7280', fontFamily: 'Times-Bold' }}>{eParts.year}</Text>
+                            </>
+                          );
+                        })()}
+                      </View>
+                    </View>
+
+                    <Text style={{ marginTop: 6, color: '#444' }}>{w.companyName}{w.location ? ` — ${w.location}` : ''}</Text>
+
+                    {w.description && (
+                      <View style={{ marginTop: 6 }}>
+                        {htmlToLines(w.description).map((ln:any, idx:number) => (
+                          <View key={idx} style={{ flexDirection: 'row', marginBottom: 4 }}>
+                            <Text style={{ width: 12 }}>•</Text>
+                            <Text style={{ flex: 1, color: '#444' }}>{ln}</Text>
+                          </View>
+                        ))}
+                      </View>
+                    )}
+
+                  </View>
+                ))}
+              </View>
+
+            </View>
+          </View>
+
+        </View>
+      </Page>
+    </Document>
+  );
+};
+
+export default Template19PDF;
