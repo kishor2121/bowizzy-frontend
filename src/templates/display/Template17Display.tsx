@@ -1,5 +1,6 @@
 import React from 'react';
 import DOMPurify from 'dompurify';
+import { FiPhone, FiMail, FiMapPin } from 'react-icons/fi';
 import type { ResumeData } from '@/types/resume';
 
 interface Template17DisplayProps { data: ResumeData }
@@ -40,15 +41,15 @@ const Template17Display: React.FC<Template17DisplayProps> = ({ data }) => {
         {/* Left sidebar */}
         <aside style={{ width: 220, background: '#f3f4f6', padding: 24, boxSizing: 'border-box' }}>
           <h2 style={{ margin: 0, fontSize: 20, color: '#0f172a' }}>{personal.firstName} {(personal.middleName || '')} {personal.lastName}</h2>
-          {role && <div style={{ color: '#6b7280', marginTop: 6 }}>{role}</div>}
+          {role && <div style={{ color: '#000', marginTop: 6, fontWeight: 700 }}>{role}</div>}
 
           <div style={{ marginTop: 20 }}>
             <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: 1, color: '#374151' }}>DETAILS</div>
             <div style={{ height: 1, background: '#e5e7eb', marginTop: 6, marginBottom: 8 }} />
             <div style={{ color: '#374151', fontSize: 13 }}>
-              {personal.email && <div style={{ marginTop: 8 }}>{personal.email}</div>}
-              {personal.mobileNumber && <div style={{ marginTop: 8 }}>{personal.mobileNumber}</div>}
-              {personal.address && <div style={{ marginTop: 8 }}>{String(personal.address).split(',')[0]}</div>}
+              {personal.email && <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8 }}><FiMail style={{ color: '#374151' }} /><a href={`mailto:${personal.email}`} style={{ color: '#374151', textDecoration: 'none' }}>{personal.email}</a></div>}
+              {personal.mobileNumber && <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8 }}><FiPhone style={{ color: '#374151' }} /><a href={`tel:${personal.mobileNumber}`} style={{ color: '#374151', textDecoration: 'none' }}>{personal.mobileNumber}</a></div>}
+              {personal.address && <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8 }}><FiMapPin style={{ color: '#374151' }} /><div>{String(personal.address).split(',')[0]}</div></div>}
             </div>
           </div>
 
@@ -104,10 +105,13 @@ const Template17Display: React.FC<Template17DisplayProps> = ({ data }) => {
               {education.higherEducationEnabled && education.higherEducation.slice().map((edu:any,i:number) => (
                 <div key={i} style={{ marginBottom: 12 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <div style={{ fontWeight: 700 }}>{edu.instituteName}</div>
+                    <div style={{ fontWeight: 700 }}>{edu.degree}{edu.fieldOfStudy ? ` in ${edu.fieldOfStudy}` : ''}</div>
                     <div style={{ color: '#6b7280' }}>{(edu.endYear ? String(edu.endYear).match(/(\d{4})/)?.[1] : '')}</div>
                   </div>
-                  <div style={{ color: '#6b7280', marginTop: 4 }}>{edu.degree}</div>
+                  <div style={{ color: '#444', marginTop: 4 }}>{edu.instituteName}</div>
+                  {edu.resultFormat && edu.result ? (
+                    <div style={{ marginTop: 6, color: '#444', fontWeight: 700 }}>{edu.resultFormat}: {edu.result}</div>
+                  ) : null}
                 </div>
               ))}
             </div>

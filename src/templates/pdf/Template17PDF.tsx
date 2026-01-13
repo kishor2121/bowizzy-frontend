@@ -7,7 +7,7 @@ const styles = StyleSheet.create({
   page: { flexDirection: 'row', padding: 0, fontFamily: 'Times-Roman', fontSize: 10 },
   sidebar: { width: 220, backgroundColor: '#f3f4f6', padding: 18 },
   name: { fontSize: 20, fontFamily: 'Times-Bold', color: '#0f172a' },
-  role: { fontSize: 11, color: '#6b7280', marginTop: 6 },
+  role: { fontSize: 11, color: '#000', marginTop: 6, fontFamily: 'Times-Bold' },
   sectionHeading: { fontSize: 10, fontFamily: 'Times-Bold', letterSpacing: 1.2, textTransform: 'uppercase', color: '#111827' },
   divider: { height: 1, backgroundColor: '#e5e7eb', marginTop: 6, width: '100%' },
   content: { flex: 1, padding: 18, paddingLeft: 24 }
@@ -62,9 +62,9 @@ const Template17PDF: React.FC<Template17PDFProps> = ({ data }) => {
           {role && <Text style={styles.role}>{role}</Text>}
 
           <View style={{ marginTop: 12 }}>
-            {personal.email && <Text style={{ fontSize: 10, color: '#374151' }}>{personal.email}</Text>}
-            {personal.mobileNumber && <Text style={{ fontSize: 10, color: '#374151', marginTop: 6 }}>{personal.mobileNumber}</Text>}
-            {personal.address && <Text style={{ fontSize: 10, color: '#374151', marginTop: 6 }}>{String(personal.address).split(',')[0]}</Text>}
+            {personal.email && <Text style={{ fontSize: 10, color: '#374151' }}>✉️  {personal.email}</Text>}
+            {personal.mobileNumber && <Text style={{ fontSize: 10, color: '#374151', marginTop: 6 }}>📞  {personal.mobileNumber}</Text>}
+            {personal.address && <Text style={{ fontSize: 10, color: '#374151', marginTop: 6 }}>📍  {String(personal.address).split(',')[0]}</Text>}
           </View>
 
           <View style={{ marginTop: 18 }}>
@@ -112,10 +112,13 @@ const Template17PDF: React.FC<Template17PDFProps> = ({ data }) => {
               {education.higherEducationEnabled && education.higherEducation.slice().map((edu:any, i:number) => (
                 <View key={i} style={{ marginBottom: 10 }}>
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                    <Text style={{ fontSize: 11, fontFamily: 'Times-Bold' }}>{edu.instituteName}</Text>
+                    <Text style={{ fontSize: 11, fontFamily: 'Times-Bold' }}>{edu.degree}{edu.fieldOfStudy ? ` in ${edu.fieldOfStudy}` : ''}</Text>
                     <Text style={{ fontSize: 10, color: '#6b7280' }}>{formatYear(edu.endYear)}</Text>
                   </View>
-                  <Text style={{ marginTop: 6, color: '#6b7280' }}>{edu.degree}</Text>
+                  <Text style={{ marginTop: 6, color: '#444' }}>{edu.instituteName}</Text>
+                  {edu.resultFormat && edu.result ? (
+                    <Text style={{ fontSize: 10, color: '#444', fontFamily: 'Times-Bold', marginTop: 4 }}>{edu.resultFormat}: {edu.result}</Text>
+                  ) : null}
                 </View>
               ))}
             </View>
