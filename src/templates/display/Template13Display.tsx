@@ -1,5 +1,6 @@
 import React from 'react';
 import DOMPurify from 'dompurify';
+import { FiPhone, FiMail, FiMapPin, FiLinkedin, FiGithub } from 'react-icons/fi';
 
 import type { ResumeData } from '@/types/resume';
 
@@ -66,20 +67,32 @@ const Template13Display: React.FC<Template13DisplayProps> = ({ data }) => {
 <h1 style={{ margin: 0, marginBottom: 4, fontSize: 28, fontFamily: 'Georgia, serif', fontWeight: 700, lineHeight: 1 }}>{personal.firstName} {(personal.middleName || '')} {personal.lastName}</h1>
         <div style={{ marginTop: 4, fontSize: 11, color: '#6b7280' }}>
           {(() => {
-            const contactParts = [personal.address && String(personal.address).split(',')[0], personal.email, personal.mobileNumber].filter(Boolean);
+            const address = personal.address && String(personal.address).split(',')[0];
+            const email = personal.email;
+            const phone = personal.mobileNumber;
             const linkedin = (skillsLinks && (skillsLinks as any).links && (skillsLinks as any).links.linkedinProfile) || (personal as any).linkedinProfile;
             const github = (skillsLinks && (skillsLinks as any).links && (skillsLinks as any).links.githubProfile) || (personal as any).githubProfile;
-            return (
-              <>
-                <span>{contactParts.join(' | ')}</span>
-                {(linkedin || github) && <span> | </span>}
-                {linkedin && <a href={(skillsLinks as any).links?.linkedinProfile || (personal as any).linkedinProfile} target="_blank" rel="noreferrer" style={{ color: '#6b7280', textDecoration: 'none' }}>{(skillsLinks as any).links?.linkedinProfile || (personal as any).linkedinProfile}</a>}
-                {linkedin && github && <span> | </span>}
-                {github && <a href={(skillsLinks as any).links?.githubProfile || (personal as any).githubProfile} target="_blank" rel="noreferrer" style={{ color: '#6b7280', textDecoration: 'none' }}>{(skillsLinks as any).links?.githubProfile || (personal as any).githubProfile}</a>}
-              </>
+
+            const parts: any[] = [];
+            if (address) parts.push(
+              <span key="addr" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><FiMapPin style={{ verticalAlign: 'middle', color: '#6b7280' }} /><span>{address}</span></span>
             );
+            if (email) parts.push(
+              <span key="email" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><FiMail style={{ verticalAlign: 'middle', color: '#6b7280' }} /><a href={`mailto:${email}`} style={{ color: '#6b7280', textDecoration: 'none' }}>{email}</a></span>
+            );
+            if (phone) parts.push(
+              <span key="phone" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><FiPhone style={{ verticalAlign: 'middle', color: '#6b7280' }} /><a href={`tel:${phone}`} style={{ color: '#6b7280', textDecoration: 'none' }}>{phone}</a></span>
+            );
+            if (linkedin) parts.push(
+              <span key="ln" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><FiLinkedin style={{ verticalAlign: 'middle', color: '#0A66C2' }} /><a href={linkedin} target="_blank" rel="noreferrer" style={{ color: '#6b7280', textDecoration: 'none' }}>{linkedin}</a></span>
+            );
+            if (github) parts.push(
+              <span key="gh" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><FiGithub style={{ verticalAlign: 'middle', color: '#111827' }} /><a href={github} target="_blank" rel="noreferrer" style={{ color: '#6b7280', textDecoration: 'none' }}>{github}</a></span>
+            );
+
+            return parts.reduce((acc, cur, idx) => (idx === 0 ? [cur] : [...acc, <span key={`sep-${idx}`} style={{ margin: '0 6px' }}>|</span>, cur]), [] as any[]);
           })()}
-        </div>
+        </div> 
         <div style={{ height: 1, background: '#cfcfcf', marginTop: 12, width: '100%' }} />
       </div>
 

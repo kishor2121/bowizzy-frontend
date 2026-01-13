@@ -1,6 +1,6 @@
 import React from 'react';
 import DOMPurify from 'dompurify';
-import { Document, Page, View, Text, StyleSheet } from '@react-pdf/renderer';
+import { Document, Page, View, Text, StyleSheet, Svg, Path } from '@react-pdf/renderer';
 import type { ResumeData } from '@/types/resume';
 
 const styles = StyleSheet.create({
@@ -100,7 +100,38 @@ const Template13PDF: React.FC<Template13PDFProps> = ({ data }) => {
       <Page size="A4" style={styles.page}>
         <View style={styles.header}>
           <Text style={styles.name}>{personal.firstName} {(personal.middleName || '')} {personal.lastName}</Text>
-          <Text style={styles.contact}>{pdfContactLine}</Text>
+          <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', flexWrap: 'wrap' }}>
+            {personal.address && (
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginRight: 8 }}>
+                <Svg width={10} height={10} viewBox="0 0 24 24"><Path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z" fill="#6b7280"/></Svg>
+                <Text style={[styles.contact, { marginLeft: 6 }]}>{String(personal.address).split(',')[0]}</Text>
+              </View>
+            )}
+            {personal.email && (
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginRight: 8 }}>
+                <Svg width={10} height={10} viewBox="0 0 24 24"><Path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1 .9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4-8 5-8-5V6l8 5 8-5v2z" fill="#6b7280"/></Svg>
+                <Text style={[styles.contact, { marginLeft: 6 }]}>{personal.email}</Text>
+              </View>
+            )}
+            {personal.mobileNumber && (
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginRight: 8 }}>
+                <Svg width={10} height={10} viewBox="0 0 24 24"><Path d="M6.62 10.79a15.05 15.05 0 006.59 6.59l2.2-2.2a1 1 0 011.01-.24c1.12.37 2.33.57 3.57.57a1 1 0 011 1v3.5a1 1 0 01-1 1C10.07 21 3 13.93 3 4.5A1 1 0 014 3.5H7.5a1 1 0 011 1c0 1.24.2 2.45.57 3.57a1 1 0 01-.24 1.01l-2.2 2.2z" fill="#6b7280"/></Svg>
+                <Text style={[styles.contact, { marginLeft: 6 }]}>{personal.mobileNumber}</Text>
+              </View>
+            )}
+            {linkedinPresent && (
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginRight: 8 }}>
+                <Svg width={10} height={10} viewBox="0 0 24 24"><Path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1 .9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-9.5 14H7.5V10h2v7zM8.5 9.5c-.66 0-1.2-.54-1.2-1.2S7.84 7.1 8.5 7.1s1.2.54 1.2 1.2-.54 1.2-1.2 1.2zM17.5 17h-2v-3.5c0-.93-.03-2.12-1.29-2.12-1.29 0-1.49 1.01-1.49 2.06V17h-2V10h1.92v1.05h.03c.27-.51.94-1.05 1.93-1.05 2.06 0 2.44 1.36 2.44 3.13V17z" fill="#0A66C2"/></Svg>
+                <Text style={[styles.contact, { marginLeft: 6 }]}>{linkedinPresent}</Text>
+              </View>
+            )}
+            {githubPresent && (
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginRight: 8 }}>
+                <Svg width={10} height={10} viewBox="0 0 24 24"><Path d="M12 .5C5.73 .5 .5 5.73 .5 12c0 5.08 3.29 9.39 7.86 10.91.58.11.79-.25.79-.56 0-.27-.01-1-.02-1.96-3.2.7-3.88-1.55-3.88-1.55-.53-1.35-1.3-1.71-1.3-1.71-1.06-.72.08-.71.08-.71 1.18.08 1.8 1.21 1.8 1.21 1.04 1.78 2.73 1.27 3.4.97.11-.76.41-1.27.74-1.56-2.55-.29-5.23-1.28-5.23-5.68 0-1.25.45-2.27 1.2-3.07-.12-.29-.52-1.45.11-3.02 0 0 .98-.31 3.2 1.17.93-.26 1.93-.39 2.92-.39.99 0 1.99.13 2.92.39 2.22-1.48 3.2-1.17 3.2-1.17.63 1.57.23 2.73.11 3.02.75.8 1.2 1.82 1.2 3.07 0 4.41-2.69 5.39-5.25 5.67.42.36.8 1.08.8 2.18 0 1.57-.01 2.84-.01 3.23 0 .31.21.68.8.56C20.71 21.39 24 17.08 24 12c0-6.27-5.23-11.5-12-11.5z" fill="#111827"/></Svg>
+                <Text style={[styles.contact, { marginLeft: 6 }]}>{githubPresent}</Text>
+              </View>
+            )}
+          </View>
           <View style={styles.divider} />
         </View>
 
