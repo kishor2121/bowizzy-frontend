@@ -71,7 +71,7 @@ interface Template19PDFProps { data: ResumeData }
 const Template19PDF: React.FC<Template19PDFProps> = ({ data }) => {
   const { personal, experience, education, skillsLinks, certifications } = data;
   const role = (experience && (experience as any).jobRole) || (experience.workExperiences && experience.workExperiences.find((w: any) => w.enabled && w.jobTitle) && experience.workExperiences.find((w: any) => w.enabled && w.jobTitle).jobTitle) || '';
-  const contactLine = [personal.email, personal.mobileNumber, (skillsLinks && skillsLinks.links && skillsLinks.links.linkedinProfile) || ''].filter(Boolean).join(' | ');
+  const contactLine = [personal.email, personal.mobileNumber, personal.address, personal.dateOfBirth].filter(Boolean).join(' | ');
 
   return (
     <Document>
@@ -84,8 +84,8 @@ const Template19PDF: React.FC<Template19PDFProps> = ({ data }) => {
           <View style={{ textAlign: 'right' }}>
             {personal.email && <Text style={[styles.contact, { color: '#2563eb' }]}>{personal.email}</Text>}
             {personal.mobileNumber && <Text style={[styles.contact, { marginTop: 6 }]}>{personal.mobileNumber}</Text>}
-            {skillsLinks && skillsLinks.links && skillsLinks.links.linkedinProfile && <Text style={[styles.contact, { marginTop: 6 }]}>{skillsLinks.links.linkedinProfile}</Text>}
             {personal.address && <Text style={[styles.contact, { marginTop: 6 }]}>{String(personal.address).split(',')[0]}</Text>}
+            {personal.dateOfBirth && <Text style={[styles.contact, { marginTop: 6 }]}>{personal.dateOfBirth}</Text>}
           </View>
         </View>
 
@@ -108,8 +108,9 @@ const Template19PDF: React.FC<Template19PDFProps> = ({ data }) => {
                 <View style={styles.divider} />
                 <View style={{ marginTop: 8 }}>{education.higherEducationEnabled && education.higherEducation.slice().map((edu:any,i:number)=>(
                   <View key={i} style={{ marginBottom: 8 }}>
-                    <Text style={{ fontSize: 10, fontFamily: 'Times-Bold' }}>{edu.instituteName}</Text>
-                    <Text style={{ color: '#6b7280', marginTop: 4 }}>{edu.degree}{edu.endYear ? ` • ${formatMonthYear(edu.endYear)}` : ''}</Text>
+                    <Text style={{ fontSize: 10, fontFamily: 'Times-Bold' }}>{edu.universityBoard || edu.instituteName}</Text>
+                    <Text style={{ color: '#151616', marginTop: 4 }}>{edu.degree}{edu.fieldOfStudy ? ` (${edu.fieldOfStudy})` : ''}</Text>
+                    {(edu.resultFormat && edu.result) && <Text style={{ color: '#151616', marginTop: 4 }}>{edu.resultFormat}: {edu.result}</Text>}
                   </View>
                 ))}</View>
               </View>

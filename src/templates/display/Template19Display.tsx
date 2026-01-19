@@ -47,8 +47,8 @@ const Template19Display: React.FC<Template19DisplayProps> = ({ data }) => {
           <div style={{ textAlign: 'right', color: '#374151', fontSize: 12 }}>
             {personal.email && <div><a href={`mailto:${personal.email}`} style={{ color: '#2563eb', textDecoration: 'none' }}>{personal.email}</a></div>}
             {personal.mobileNumber && <div style={{ marginTop: 6 }}>{personal.mobileNumber}</div>}
-            {skillsLinks && skillsLinks.links && skillsLinks.links.linkedinProfile && <div style={{ marginTop: 6 }}>{skillsLinks.links.linkedinProfile}</div>}
             {personal.address && <div style={{ marginTop: 6 }}>{String(personal.address).split(',')[0]}</div>}
+            {personal.dateOfBirth && <div style={{ marginTop: 6 }}>{personal.dateOfBirth}</div>}
           </div>
         </div>
       </div>
@@ -75,8 +75,9 @@ const Template19Display: React.FC<Template19DisplayProps> = ({ data }) => {
               <div style={{ marginTop: 8 }}>
                 {education.higherEducationEnabled && education.higherEducation.slice().map((edu:any,i:number)=>(
                   <div key={i} style={{ marginBottom: 12 }}>
-                    <div style={{ fontWeight: 700 }}>{edu.instituteName}</div>
-                    <div style={{ color: '#6b7280', marginTop: 4 }}>{edu.degree}{edu.endYear ? ` • ${String(edu.endYear).match(/(\d{4})/)?.[1]}` : ''}</div>
+                    <div style={{ fontWeight: 700 }}>{edu.universityBoard || edu.instituteName}</div>
+                    <div style={{ color: '#151616', marginTop: 4 }}>{edu.degree}{edu.fieldOfStudy ? ` (${edu.fieldOfStudy})` : ''}</div>
+                    {(edu.resultFormat && edu.result) && <div style={{ color: '#151616', marginTop: 4 }}>{edu.resultFormat}: {edu.result}</div>}
                   </div>
                 ))}
               </div>
