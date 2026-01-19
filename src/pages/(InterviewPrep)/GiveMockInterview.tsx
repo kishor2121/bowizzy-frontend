@@ -582,6 +582,9 @@ const GiveMockInterview = () => {
         try {
             setLoading(true);
 
+            // Payment flow commented out per request — bypassing Razorpay and confirming interview directly.
+            // The code below that created an order on backend and opened Razorpay has been intentionally commented out:
+            /*
             // create order on backend — send amount in rupees (backend expects rupees)
             const amountPaise = Math.round(planAmount * 100);
             const amountToSend = planAmount; // send rupees so backend can convert to paise
@@ -671,10 +674,22 @@ const GiveMockInterview = () => {
                 });
             }
             rzp.open();
+            */
+
+            // Directly confirm the interview slot (bypassing payment) and show success screen.
+            try {
+                await confirmInterviewSlotPayment(userId, token, bookingData.interviewId);
+                setCurrentScreen('success');
+            } catch (err) {
+                console.error('Confirm interview (bypass payment) failed', err);
+                alert('Failed to confirm interview. Please try again or contact support.');
+            }
 
         } catch (error) {
             console.error('Payment Error:', error);
             alert('Failed to initiate payment. Please try again.');
+            setLoading(false);
+        } finally {
             setLoading(false);
         }
     };
