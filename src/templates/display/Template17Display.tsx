@@ -34,10 +34,10 @@ const formatMonthYear = (s?: string) => {
 const getSkillStars = (level?: string) => {
   const normalizedLevel = String(level || '').toLowerCase().trim();
   switch (normalizedLevel) {
-    case 'beginner': return '★';
-    case 'intermediate': return '★★';
-    case 'advanced': return '★★★★';
-    case 'expert': return '★★★★★';
+    case 'beginner': return '*';
+    case 'intermediate': return '**';
+    case 'advanced': return '****';
+    case 'expert': return '*****';
     default: return '';
   }
 };
@@ -55,19 +55,19 @@ const Template17Display: React.FC<Template17DisplayProps> = ({ data }) => {
           {role && <div style={{ color: '#000', marginTop: 6, fontWeight: 700 }}>{role}</div>}
 
           <div style={{ marginTop: 20 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: 1, color: '#374151' }}>DETAILS</div>
-            <div style={{ height: 1, background: '#e5e7eb', marginTop: 6, marginBottom: 8 }} />
-            <div style={{ color: '#374151', fontSize: 13 }}>
-              {personal.email && <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8 }}><FiMail style={{ color: '#374151' }} /><a href={`mailto:${personal.email}`} style={{ color: '#374151', textDecoration: 'none' }}>{personal.email}</a></div>}
-              {personal.mobileNumber && <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8 }}><FiPhone style={{ color: '#374151' }} /><a href={`tel:${personal.mobileNumber}`} style={{ color: '#374151', textDecoration: 'none' }}>{personal.mobileNumber}</a></div>}
-              {personal.address && <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8 }}><FiMapPin style={{ color: '#374151' }} /><div>{String(personal.address).split(',')[0]}</div></div>}
+            <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: 1, color: '#000' }}>DETAILS</div>
+            <div style={{ height: 1, background: '#999', marginTop: 6, marginBottom: 8 }} />
+            <div style={{ color: '#000', fontSize: 13 }}>
+              {personal.email && <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8 }}><FiMail style={{ color: '#000' }} /><a href={`mailto:${personal.email}`} style={{ color: '#000', textDecoration: 'none' }}>{personal.email}</a></div>}
+              {personal.mobileNumber && <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8 }}><FiPhone style={{ color: '#000' }} /><a href={`tel:${personal.mobileNumber}`} style={{ color: '#000', textDecoration: 'none' }}>{personal.mobileNumber}</a></div>}
+              {personal.address && <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8 }}><FiMapPin style={{ color: '#000' }} /><div>{String(personal.address).split(',')[0]}</div></div>}
             </div>
           </div>
 
           <div style={{ marginTop: 20 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: 1, color: '#374151' }}>SKILLS</div>
-            <div style={{ height: 1, background: '#e5e7eb', marginTop: 6, marginBottom: 8 }} />
-            <div style={{ color: '#374151' }}>
+            <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: 1, color: '#000' }}>SKILLS</div>
+            <div style={{ height: 1, background: '#999', marginTop: 6, marginBottom: 8 }} />
+            <div style={{ color: '#000' }}>
               {(skillsLinks.skills || []).filter(s => s.enabled && s.skillName).slice(0,6).map((s, i) => (
                 <div key={i} style={{ marginBottom: 6, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
                   <span>• {s.skillName}</span>
@@ -78,11 +78,11 @@ const Template17Display: React.FC<Template17DisplayProps> = ({ data }) => {
           </div>
 
           <div style={{ marginTop: 20 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: 1, color: '#374151' }}>LANGUAGES</div>
-            <div style={{ height: 1, background: '#e5e7eb', marginTop: 6, marginBottom: 8 }} />
-            <ul style={{ paddingLeft: 16, color: '#374151' }}>
-              {(((personal as any).languagesKnown || (personal as any).languages || [])).map((l: string, i: number) => <li key={i} style={{ marginBottom: 6 }}>{l}</li>)}
-            </ul>
+            <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: 1, color: '#000' }}>LANGUAGES</div>
+            <div style={{ height: 1, background: '#999', marginTop: 6, marginBottom: 8 }} />
+            <div style={{ color: '#000' }}>
+              {(((personal as any).languagesKnown || (personal as any).languages || [])).map((l: string, i: number) => <div key={i} style={{ marginBottom: 6 }}>• {l}</div>)}
+            </div>
           </div>
 
         </aside>
@@ -105,9 +105,9 @@ const Template17Display: React.FC<Template17DisplayProps> = ({ data }) => {
                 <div key={i} style={{ marginBottom: 12 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                     <div style={{ fontWeight: 700 }}>{w.jobTitle}</div>
-                    <div style={{ color: '#6b7280' }}>{formatMonthYear(w.startDate)} — {w.currentlyWorking ? 'Present' : formatMonthYear(w.endDate)}</div>
-                  </div>
-                  <div style={{ color: '#444', marginTop: 6 }}>{w.companyName}{w.location ? ` — ${w.location}` : ''}</div>
+                  <div style={{ color: '#000' }}>{formatMonthYear(w.startDate)} — {w.currentlyWorking ? 'Present' : formatMonthYear(w.endDate)}</div>
+                </div>
+                <div style={{ color: '#000', marginTop: 6 }}>{w.companyName}{w.location ? ` — ${w.location}` : ''}</div>
                   {w.description && <div style={{ marginTop: 6, paddingLeft: 10 }}>{htmlToLines(w.description).map((ln, idx) => <div key={idx} style={{ marginTop: 6 }}>• {ln}</div>)}</div>}
                 </div>
               ))}
@@ -122,9 +122,9 @@ const Template17Display: React.FC<Template17DisplayProps> = ({ data }) => {
                 <div key={i} style={{ marginBottom: 12 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                     <div style={{ fontWeight: 700 }}>{edu.degree}{edu.fieldOfStudy ? ` in ${edu.fieldOfStudy}` : ''}</div>
-                    <div style={{ color: '#6b7280' }}>{(edu.endYear ? String(edu.endYear).match(/(\d{4})/)?.[1] : '')}</div>
+                    <div style={{ color: '#000' }}>{(edu.endYear ? String(edu.endYear).match(/(\d{4})/)?.[1] : '')}</div>
                   </div>
-                  <div style={{ color: '#444', marginTop: 4 }}>{edu.instituteName}</div>
+                  <div style={{ color: '#000', marginTop: 4 }}>{edu.instituteName}</div>
                   {edu.resultFormat && edu.result ? (
                     <div style={{ marginTop: 6, color: '#444', fontWeight: 700 }}>{edu.resultFormat}: {edu.result}</div>
                   ) : null}

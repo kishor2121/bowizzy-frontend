@@ -75,14 +75,14 @@ const StarIcon = () => (
   </Svg>
 );
 
-const getSkillStarsCount = (level?: string) => {
+const getSkillStars = (level?: string) => {
   const normalizedLevel = String(level || '').toLowerCase().trim();
   switch (normalizedLevel) {
-    case 'beginner': return 1;
-    case 'intermediate': return 2;
-    case 'advanced': return 4;
-    case 'expert': return 5;
-    default: return 0;
+    case 'beginner': return '*';
+    case 'intermediate': return '**';
+    case 'advanced': return '****';
+    case 'expert': return '*****';
+    default: return '';
   }
 };
 
@@ -98,23 +98,23 @@ const Template17PDF: React.FC<Template17PDFProps> = ({ data }) => {
           {role && <Text style={styles.role}>{role}</Text>}
 
           <View style={{ marginTop: 12 }}>
-            <Text style={{ fontSize: 11, fontFamily: 'Times-Bold', letterSpacing: 1, color: '#374151', marginBottom: 6 }}>DETAILS</Text>
-            <View style={{ height: 1, backgroundColor: '#e5e7eb', marginBottom: 8 }} />
-            {personal.email && <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}><IconEmail /><Text style={{ fontSize: 10, color: '#374151' }}>{personal.email}</Text></View>}
-            {personal.mobileNumber && <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}><IconPhone /><Text style={{ fontSize: 10, color: '#374151' }}>{personal.mobileNumber}</Text></View>}
-            {personal.address && <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}><IconLocation /><Text style={{ fontSize: 10, color: '#374151' }}>{String(personal.address).split(',')[0]}</Text></View>}
+            <Text style={{ fontSize: 11, fontFamily: 'Times-Bold', letterSpacing: 1, color: '#000', marginBottom: 6 }}>DETAILS</Text>
+            <View style={{ height: 1, backgroundColor: '#999', marginBottom: 8 }} />
+            {personal.email && <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}><IconEmail /><Text style={{ fontSize: 10, color: '#000' }}>{personal.email}</Text></View>}
+            {personal.mobileNumber && <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}><IconPhone /><Text style={{ fontSize: 10, color: '#000' }}>{personal.mobileNumber}</Text></View>}
+            {personal.address && <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}><IconLocation /><Text style={{ fontSize: 10, color: '#000' }}>{String(personal.address).split(',')[0]}</Text></View>}
           </View>
 
           <View style={{ marginTop: 18 }}>
             <Text style={styles.sectionHeading}>Skills</Text>
-            <View style={styles.divider} />
-            { (skillsLinks.skills || []).filter((s:any)=>s.enabled && s.skillName).slice(0,6).map((s:any,i:number)=>(<View key={i} style={{ marginTop: 6, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}><Text style={{ fontSize: 10, color: '#374151', flex: 1 }}>• {s.skillName}</Text><View style={{ flexDirection: 'row', gap: 1 }}>{ Array.from({ length: getSkillStarsCount(s.skillLevel) }).map((_, idx) => <StarIcon key={idx} />) }</View></View>)) }
+            <View style={{ ...styles.divider, backgroundColor: '#999' }} />
+            { (skillsLinks.skills || []).filter((s:any)=>s.enabled && s.skillName).slice(0,6).map((s:any,i:number)=>(<View key={i} style={{ marginTop: 6, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}><Text style={{ fontSize: 10, color: '#000', flex: 1 }}>• {s.skillName}</Text><Text style={{ fontSize: 10, color: '#000' }}>{getSkillStars(s.skillLevel)}</Text></View>)) }
           </View>
 
           <View style={{ marginTop: 18 }}>
             <Text style={styles.sectionHeading}>Languages</Text>
-            <View style={styles.divider} />
-            {(((personal as any).languagesKnown || (personal as any).languages || [])).map((l:string,i:number)=>(<Text key={i} style={{ marginTop: 6, fontSize: 10, color: '#374151' }}>• {l}</Text>))}
+            <View style={{ ...styles.divider, backgroundColor: '#999' }} />
+            {(((personal as any).languagesKnown || (personal as any).languages || [])).map((l:string,i:number)=>(<Text key={i} style={{ marginTop: 6, fontSize: 10, color: '#000' }}>• {l}</Text>))}
           </View>
 
         </View>
@@ -134,9 +134,9 @@ const Template17PDF: React.FC<Template17PDFProps> = ({ data }) => {
                 <View key={i} style={{ marginBottom: 10 }}>
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
                     <Text style={{ fontSize: 11, fontFamily: 'Times-Bold' }}>{w.jobTitle}</Text>
-                    <Text style={{ fontSize: 10, color: '#6b7280' }}>{formatMonthYear(w.startDate)} — {w.currentlyWorking ? 'Present' : formatMonthYear(w.endDate)}</Text>
+                    <Text style={{ fontSize: 10, color: '#000' }}>{formatMonthYear(w.startDate)} — {w.currentlyWorking ? 'Present' : formatMonthYear(w.endDate)}</Text>
                   </View>
-                  <Text style={{ marginTop: 6, color: '#444' }}>{w.companyName}{w.location ? ` — ${w.location}` : ''}</Text>
+                  <Text style={{ marginTop: 6, color: '#000' }}>{w.companyName}{w.location ? ` — ${w.location}` : ''}</Text>
                   {w.description && <View style={{ marginTop: 6, paddingLeft: 10 }}>{htmlToPlainText(w.description).split('\n').filter(Boolean).map((line, idx) => <Text key={idx} style={{ fontSize: 10, color: '#444', marginTop: 6 }}>• {line}</Text>)}</View>}
                 </View>
               ))}
@@ -151,9 +151,9 @@ const Template17PDF: React.FC<Template17PDFProps> = ({ data }) => {
                 <View key={i} style={{ marginBottom: 10 }}>
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
                     <Text style={{ fontSize: 11, fontFamily: 'Times-Bold' }}>{edu.degree}{edu.fieldOfStudy ? ` in ${edu.fieldOfStudy}` : ''}</Text>
-                    <Text style={{ fontSize: 10, color: '#6b7280' }}>{formatYear(edu.endYear)}</Text>
+                    <Text style={{ fontSize: 10, color: '#000' }}>{formatYear(edu.endYear)}</Text>
                   </View>
-                  <Text style={{ marginTop: 6, color: '#444' }}>{edu.instituteName}</Text>
+                  <Text style={{ marginTop: 6, color: '#000' }}>{edu.instituteName}</Text>
                   {edu.resultFormat && edu.result ? (
                     <Text style={{ fontSize: 10, color: '#444', fontFamily: 'Times-Bold', marginTop: 4 }}>{edu.resultFormat}: {edu.result}</Text>
                   ) : null}
