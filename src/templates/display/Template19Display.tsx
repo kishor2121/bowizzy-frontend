@@ -56,7 +56,7 @@ const Template19Display: React.FC<Template19DisplayProps> = ({ data }) => {
       <div style={{ paddingTop: 12 }}>
         <section style={{ textAlign: 'center', marginTop: 0 }}>
           <div style={{ textTransform: 'uppercase', fontSize: 11, letterSpacing: 1.2, color: '#111827', fontWeight: 700, marginBottom: 6 }}>SUMMARY</div>
-          <div style={{ height: 1, background: '#ddd', width: '100%' }} />
+          <div style={{ height: 1, background: '#999', width: '100%' }} />
           <div style={{ marginTop: 12, color: '#444', maxWidth: 720, marginLeft: 'auto', marginRight: 'auto', textAlign: 'left' }}>{personal.aboutCareerObjective && <div>{DOMPurify.sanitize(personal.aboutCareerObjective).replace(/<[^>]+>/g, '')}</div>}</div>
         </section>
 
@@ -64,14 +64,14 @@ const Template19Display: React.FC<Template19DisplayProps> = ({ data }) => {
           {/* Left sidebar (fixed width) */}
           <aside style={{ width: 260, paddingRight: 12 }}>
             <div style={{ textTransform: 'uppercase', fontSize: 11, letterSpacing: 1.2, color: '#111827', fontWeight: 700 }}>Skills</div>
-            <div style={{ height: 1, background: '#ddd', marginTop: 6, width: '80%' }} />
+            <div style={{ height: 1, background: '#999', marginTop: 6, width: '80%' }} />
             <ul style={{ paddingLeft: 20, marginTop: 8, listStyleType: 'disc' }}>
               {(skillsLinks.skills || []).filter((s:any)=>s.enabled && s.skillName).map((s:any,i:number)=>(<li key={i} style={{ marginBottom: 6 }}>{s.skillName}</li>))}
             </ul>
 
             <div style={{ marginTop: 18 }}>
               <div style={{ textTransform: 'uppercase', fontSize: 11, letterSpacing: 1.2, color: '#111827', fontWeight: 700 }}>Education</div>
-              <div style={{ height: 1, background: '#ddd', marginTop: 6, width: '80%' }} />
+              <div style={{ height: 1, background: '#999', marginTop: 6, width: '80%' }} />
               <div style={{ marginTop: 8 }}>
                 {education.higherEducationEnabled && education.higherEducation.slice().map((edu:any,i:number)=>(
                   <div key={i} style={{ marginBottom: 12 }}>
@@ -85,18 +85,18 @@ const Template19Display: React.FC<Template19DisplayProps> = ({ data }) => {
 
             <div style={{ marginTop: 18 }}>
               <div style={{ textTransform: 'uppercase', fontSize: 11, letterSpacing: 1.2, color: '#111827', fontWeight: 700 }}>Language</div>
-              <div style={{ height: 1, background: '#ddd', marginTop: 6, width: '60%' }} />
-              <ul style={{ paddingLeft: 20, marginTop: 8 }}>
-                {(((personal as any).languagesKnown || (personal as any).languages || [])).map((l:string, i:number)=>(<li key={i} style={{ marginBottom: 6 }}>{l}</li>))}
-              </ul>
+              <div style={{ height: 1, background: '#999', marginTop: 6, width: '60%' }} />
+              <div style={{ marginTop: 8 }}>
+                {(((personal as any).languagesKnown || (personal as any).languages || [])).map((l:string, i:number)=>(<div key={i} style={{ marginBottom: 6 }}>• {l}</div>))}
+              </div>
             </div>
 
             <div style={{ marginTop: 18 }}>
-              <div style={{ textTransform: 'uppercase', fontSize: 11, letterSpacing: 1.2, color: '#111827', fontWeight: 700 }}>Achievements</div>
-              <div style={{ height: 1, background: '#ddd', marginTop: 6, width: '80%' }} />
-              <ul style={{ paddingLeft: 20, marginTop: 8 }}>
-                {(certifications || []).filter((c:any)=>c.enabled && c.certificateTitle).map((c:any,i:number)=>(<li key={i} style={{ marginBottom: 6 }}>{c.certificateTitle}{c.providedBy ? ` — ${c.providedBy}` : ''}</li>))}
-              </ul>
+              <div style={{ textTransform: 'uppercase', fontSize: 11, letterSpacing: 1.2, color: '#111827', fontWeight: 700 }}>Certification</div>
+              <div style={{ height: 1, background: '#999', marginTop: 6, width: '80%' }} />
+              <div style={{ marginTop: 8 }}>
+                {(certifications || []).filter((c:any)=>c.enabled && c.certificateTitle).map((c:any,i:number)=>(<div key={i} style={{ marginBottom: 6 }}>• {c.certificateTitle}{c.providedBy ? ` — ${c.providedBy}` : ''}</div>))}
+              </div>
             </div>
 
           </aside>
@@ -104,16 +104,16 @@ const Template19Display: React.FC<Template19DisplayProps> = ({ data }) => {
           {/* Right main content */}
           <div style={{ flex: 1 }}>
             <div style={{ textTransform: 'uppercase', fontSize: 11, letterSpacing: 1.2, color: '#111827', fontWeight: 700 }}>Professional Experience</div>
-            <div style={{ height: 1, background: '#ddd', marginTop: 6, width: '100%' }} />
+            <div style={{ height: 1, background: '#999', marginTop: 6, width: '100%' }} />
 
             <div style={{ marginTop: 8 }}>
               {experience.workExperiences.filter((w:any)=>w.enabled).map((w:any,i:number)=> (
                 <div key={i} style={{ marginBottom: 18 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                     <div style={{ fontWeight: 800 }}>{w.jobTitle}</div>
-                    <div style={{ color: '#6b7280', fontWeight: 800 }}>{formatMonthYear(w.startDate)} — {w.currentlyWorking ? 'Present' : formatMonthYear(w.endDate)}</div>
+                    <div style={{ color: '#000', fontWeight: 400 }}>{formatMonthYear(w.startDate)} — {w.currentlyWorking ? 'Present' : formatMonthYear(w.endDate)}</div>
                   </div>
-                  <div style={{ color: '#444', marginTop: 6 }}>{w.companyName}{w.location ? ` — ${w.location}` : ''}</div>
+                  <div style={{ color: '#000', marginTop: 6 }}>{w.companyName}{w.location ? ` — ${w.location}` : ''}</div>
                   {w.description && (
                     <div style={{ marginTop: 6, paddingLeft: 12 }}>
                       {htmlToLines(w.description).map((ln, idx) => <div key={idx} style={{ marginTop: 6 }}>• {ln}</div>)}

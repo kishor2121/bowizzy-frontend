@@ -92,7 +92,7 @@ const Template19PDF: React.FC<Template19PDFProps> = ({ data }) => {
         <View>
           <View style={{ alignItems: 'center' }}>
             <Text style={{ fontFamily: 'Times-Bold', fontSize: 10, marginBottom: 6 }}>SUMMARY</Text>
-            <View style={{ height: 1, backgroundColor: '#ddd', width: '100%' }} />
+            <View style={{ height: 1, backgroundColor: '#999', width: '100%' }} />
           </View>
           {personal.aboutCareerObjective ? <Text style={{ marginTop: 12, color: '#444', textAlign: 'justify' }}>{htmlToPlainText(personal.aboutCareerObjective)}</Text> : null}
 
@@ -100,12 +100,12 @@ const Template19PDF: React.FC<Template19PDFProps> = ({ data }) => {
             {/* Left sidebar */}
             <View style={[styles.rightCol, { paddingRight: 12 }]}> 
               <Text style={styles.sectionHeading}>Skills</Text>
-              <View style={styles.divider} />
+              <View style={{ ...styles.divider, backgroundColor: '#999' }} />
               <View style={{ marginTop: 8 }}>{(skillsLinks.skills || []).filter((s:any)=>s.enabled && s.skillName).map((s:any,i:number)=>(<Text key={i} style={{ marginBottom: 6 }}>• {s.skillName}</Text>))}</View>
 
               <View style={{ marginTop: 12 }}>
                 <Text style={styles.sectionHeading}>Education</Text>
-                <View style={styles.divider} />
+                <View style={{ ...styles.divider, backgroundColor: '#999' }} />
                 <View style={{ marginTop: 8 }}>{education.higherEducationEnabled && education.higherEducation.slice().map((edu:any,i:number)=>(
                   <View key={i} style={{ marginBottom: 8 }}>
                     <Text style={{ fontSize: 10, fontFamily: 'Times-Bold' }}>{edu.universityBoard || edu.instituteName}</Text>
@@ -117,13 +117,13 @@ const Template19PDF: React.FC<Template19PDFProps> = ({ data }) => {
 
               <View style={{ marginTop: 12 }}>
                 <Text style={styles.sectionHeading}>Language</Text>
-                <View style={styles.divider} />
+                <View style={{ ...styles.divider, backgroundColor: '#999' }} />
                 <View style={{ marginTop: 8 }}>{(((personal as any).languagesKnown || (personal as any).languages || [])).map((l:string,i:number)=>(<Text key={i} style={{ marginBottom: 6 }}>• {l}</Text>))}</View>
               </View>
 
               <View style={{ marginTop: 12 }}>
-                <Text style={styles.sectionHeading}>Achievements</Text>
-                <View style={styles.divider} />
+                <Text style={styles.sectionHeading}>Certification</Text>
+                <View style={{ ...styles.divider, backgroundColor: '#999' }} />
                 <View style={{ marginTop: 8 }}>{(certifications || []).filter((c:any)=>c.enabled && c.certificateTitle).map((c:any,i:number)=>(<Text key={i} style={{ marginBottom: 6 }}>• {c.certificateTitle}{c.providedBy ? ` — ${c.providedBy}` : ''}</Text>))}</View>
               </View>
 
@@ -132,7 +132,7 @@ const Template19PDF: React.FC<Template19PDFProps> = ({ data }) => {
             {/* Right main content */}
             <View style={styles.leftCol}>
               <Text style={styles.sectionHeading}>Professional Experience</Text>
-              <View style={styles.divider} />
+              <View style={{ ...styles.divider, backgroundColor: '#999' }} />
 
               <View style={{ marginTop: 8 }}>
                 {experience.workExperiences.filter((w:any)=>w.enabled).map((w:any,i:number)=> (
@@ -144,29 +144,29 @@ const Template19PDF: React.FC<Template19PDFProps> = ({ data }) => {
                           const sParts = formatMonthYearParts(w.startDate);
                           return (
                             <>
-                              <Text style={{ fontSize: 11, color: '#6b7280' }}>{sParts.month}{sParts.month ? ' ' : ''}</Text>
-                              <Text style={{ fontSize: 11, color: '#6b7280', fontFamily: 'Times-Bold' }}>{sParts.year}</Text>
+                              <Text style={{ fontSize: 11, color: '#000' }}>{sParts.month}{sParts.month ? ' ' : ''}</Text>
+                              <Text style={{ fontSize: 11, color: '#000' }}>{sParts.year}</Text>
                             </>
                           );
                         })()}
 
-                        <Text style={{ fontSize: 11, color: '#6b7280', fontFamily: 'Times-Bold' }}> {' '}-{' '}</Text>
+                        <Text style={{ fontSize: 11, color: '#000' }}> {' '}-{' '}</Text>
 
                         {w.currentlyWorking ? (
-                          <Text style={{ fontSize: 11, color: '#6b7280', fontFamily: 'Times-Bold' }}>Present</Text>
+                          <Text style={{ fontSize: 11, color: '#000' }}>Present</Text>
                         ) : (() => {
                           const eParts = formatMonthYearParts(w.endDate);
                           return (
                             <>
-                              <Text style={{ fontSize: 11, color: '#6b7280' }}>{eParts.month}{eParts.month ? ' ' : ''}</Text>
-                              <Text style={{ fontSize: 11, color: '#6b7280', fontFamily: 'Times-Bold' }}>{eParts.year}</Text>
+                              <Text style={{ fontSize: 11, color: '#000' }}>{eParts.month}{eParts.month ? ' ' : ''}</Text>
+                              <Text style={{ fontSize: 11, color: '#000' }}>{eParts.year}</Text>
                             </>
                           );
                         })()}
                       </View>
                     </View>
 
-                    <Text style={{ marginTop: 6, color: '#444' }}>{w.companyName}{w.location ? ` — ${w.location}` : ''}</Text>
+                    <Text style={{ marginTop: 6, color: '#000' }}>{w.companyName}{w.location ? ` — ${w.location}` : ''}</Text>
 
                     {w.description && (
                       <View style={{ marginTop: 6 }}>
