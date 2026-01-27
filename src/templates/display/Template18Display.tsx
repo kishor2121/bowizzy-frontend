@@ -111,19 +111,19 @@ const Template18Display: React.FC<Template18DisplayProps> = ({ data }) => {
                     {/* Start date */}
                     {(() => {
                       const s = formatMonthYearParts(w.startDate);
-                      return (<div style={{ whiteSpace: 'nowrap' }}><span style={{ color: '#000' }}>{s.month}{s.month ? ' ' : ''}</span><span style={{ fontWeight: 800, color: '#000' }}>{s.year}</span></div>);
+                      return (<div style={{ whiteSpace: 'nowrap' }}><span style={{ color: '#000' }}>{s.month}{s.month ? ' ' : ''}</span><span style={{ fontWeight: 400, color: '#000' }}>{s.year}</span></div>);
                     })()}
-                    <div style={{ margin: '0 6px', fontWeight: 800, color: '#000' }}>—</div>
+                    <div style={{ margin: '0 6px', fontWeight: 400, color: '#000' }}>—</div>
                     {/* End date or Present */}
-                    {w.currentlyWorking ? (<div style={{ fontWeight: 800, color: '#000' }}>Present</div>) : (() => {
+                    {w.currentlyWorking ? (<div style={{ fontWeight: 400, color: '#000' }}>Present</div>) : (() => {
                       const e = formatMonthYearParts(w.endDate);
-                      return (<div style={{ whiteSpace: 'nowrap' }}><span style={{ color: '#000' }}>{e.month}{e.month ? ' ' : ''}</span><span style={{ fontWeight: 800, color: '#000' }}>{e.year}</span></div>);
+                      return (<div style={{ whiteSpace: 'nowrap' }}><span style={{ color: '#000' }}>{e.month}{e.month ? ' ' : ''}</span><span style={{ fontWeight: 400, color: '#000' }}>{e.year}</span></div>);
                     })()}
                   </div>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6 }}>
                   <div style={{ color: '#000' }}>{w.companyName}</div>
-                  <div style={{ color: '#000', fontWeight: 700 }}>{w.location}</div>
+                  <div style={{ color: '#000', fontWeight: 400 }}>{w.location}</div>
                 </div>
                 {w.description && <div style={{ marginTop: 6, paddingLeft: 10 }} dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(w.description || '') }} />}
               </div>
@@ -141,8 +141,8 @@ const Template18Display: React.FC<Template18DisplayProps> = ({ data }) => {
               <div key={i} style={{ marginBottom: 12 }}>
                 <div style={{ color: '#000', marginTop: 4, fontWeight: 800 }}>{edu.degree}</div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6 }}>
-                  <div style={{ color: '#444' }}>{edu.instituteName}</div>
-                  <div style={{ color: '#000', fontWeight: 800, fontFamily: "'Times New Roman', Times, serif" }}>{edu.endYear ? `Graduated: ${String(edu.endYear).match(/(\d{4})/)?.[1]}` : ''}</div>
+                  <div style={{ color: '#000' }}>{edu.instituteName}</div>
+                  <div style={{ color: '#000', fontWeight: 400, fontFamily: "'Times New Roman', Times, serif" }}>{edu.endYear ? `Graduated: ${String(edu.endYear).match(/(\d{4})/)?.[1]}` : ''}</div>
                 </div>
               </div>
             ))}

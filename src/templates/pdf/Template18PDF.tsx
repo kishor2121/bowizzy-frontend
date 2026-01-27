@@ -167,22 +167,22 @@ const Template18PDF: React.FC<Template18PDFProps> = ({ data }) => {
                         const sParts = formatMonthYearParts(w.startDate);
                         return (
                           <>
-                            <Text style={{ fontSize: 11, color: '#444' }}>{sParts.month}{sParts.month ? ' ' : ''}</Text>
-                            <Text style={{ fontSize: 11, color: '#000', fontFamily: 'Times-Bold' }}>{sParts.year}</Text>
+                            <Text style={{ fontSize: 11, color: '#000' }}>{sParts.month}{sParts.month ? ' ' : ''}</Text>
+                            <Text style={{ fontSize: 11, color: '#000' }}>{sParts.year}</Text>
                           </>
                         );
                       })()}
 
-                      <Text style={{ fontSize: 11, color: '#000', fontFamily: 'Times-Bold' }}> {' '}-{' '}</Text>
+                      <Text style={{ fontSize: 11, color: '#000' }}> {' '}-{' '}</Text>
 
                       {w.currentlyWorking ? (
-                        <Text style={{ fontSize: 11, color: '#000', fontFamily: 'Times-Bold' }}>Present</Text>
+                        <Text style={{ fontSize: 11, color: '#000' }}>Present</Text>
                       ) : (() => {
                         const eParts = formatMonthYearParts(w.endDate);
                         return (
                           <>
                             <Text style={{ fontSize: 11, color: '#000' }}>{eParts.month}{eParts.month ? ' ' : ''}</Text>
-                            <Text style={{ fontSize: 11, color: '#000', fontFamily: 'Times-Bold' }}>{eParts.year}</Text>
+                            <Text style={{ fontSize: 11, color: '#000' }}>{eParts.year}</Text>
                           </>
                         );
                       })()}
@@ -190,7 +190,7 @@ const Template18PDF: React.FC<Template18PDFProps> = ({ data }) => {
                   </View>
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 6 }}>
                     <Text style={{ fontSize: 11, color: '#000' }}>{w.companyName}</Text>
-                    <Text style={{ fontSize: 11, color: '#000', fontFamily: 'Times-Bold' }}>{w.location}</Text>
+                    <Text style={{ fontSize: 11, color: '#000' }}>{w.location}</Text>
                   </View>
                   {w.description && renderBulletedParagraph(w.description)}
                 </View>
@@ -206,8 +206,8 @@ const Template18PDF: React.FC<Template18PDFProps> = ({ data }) => {
                 <View key={i} style={{ marginBottom: 10 }}>
                   <Text style={{ marginTop: 6, color: '#000', fontFamily: 'Times-Bold' }}>{edu.degree}</Text>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 4 }}>
-                  <Text style={{ fontSize: 11, color: '#444' }}>{edu.instituteName}</Text>
-                  <Text style={{ fontSize: 11, color: '#000', fontFamily: 'Times-Bold' }}>{edu.endYear ? `Graduated: ${formatYear(edu.endYear)}` : ''}</Text>
+                  <Text style={{ fontSize: 11, color: '#000' }}>{edu.instituteName}</Text>
+                  <Text style={{ fontSize: 11, color: '#000' }}>{edu.endYear ? `Graduated: ${formatYear(edu.endYear)}` : ''}</Text>
                 </View>
                 </View>
               ))}
