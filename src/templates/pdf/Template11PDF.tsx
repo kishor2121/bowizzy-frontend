@@ -138,33 +138,63 @@ const Template11PDF: React.FC<Template11PDFProps> = ({ data }) => {
     return withBreaks.replace(/<[^>]+>/g, '').trim();
   };
 
+  // Build contact parts including optional links
+  const contactParts = (() => {
+    const parts: string[] = [];
+    if (personal.email) parts.push(personal.email);
+    if (personal.mobileNumber) parts.push(personal.mobileNumber);
+    if (personal.address) parts.push(personal.address);
+    const links = skillsLinks?.links || {} as any;
+    if (links.linkedinProfile) parts.push(links.linkedinProfile);
+    if (links.githubProfile) parts.push(links.githubProfile);
+    if (links.portfolioUrl) parts.push(links.portfolioUrl);
+    return parts.filter(Boolean);
+  })();
+
   const renderBulletedParagraph = (html?: string, textStyle?: any) => {
     if (!html) return null;
     const sanitized = DOMPurify.sanitize(html || '');
+
+    // Try to extract list items first
+    const liRegex = /<li[^>]*>([\s\S]*?)<\/li>/gi;
+    const items: string[] = [];
+    let m: RegExpExecArray | null;
+    while ((m = liRegex.exec(sanitized)) !== null) {
+      let inner = m[1] || '';
+      inner = inner.replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').trim();
+      if (inner) items.push(inner);
+    }
+
+    // If we found list items, render them as bullets
+    if (items.length > 0) {
+      return (
+        <View style={{ marginTop: 6 }}>
+          {items.map((it, idx) => (
+            <View key={idx} style={{ flexDirection: 'row', marginTop: idx > 0 ? 4 : 0, alignItems: 'flex-start' }}>
+              <Text style={{ width: 10, color: '#000000', fontSize: 10 }}>•</Text>
+              <Text style={{ flex: 1, color: '#000000', fontSize: 10, lineHeight: 1.3 }}>{it}</Text>
+            </View>
+          ))}
+        </View>
+      );
+    }
+
+    // Fallback: convert paragraphs and line breaks into lines
     let text = sanitized
       .replace(/<br\s*\/?>/gi, '\n')
       .replace(/<\/p>/gi, '\n')
-      .replace(/<\/li>/gi, '\n')
-      .replace(/<li>/gi, '• ')
       .replace(/<[^>]+>/g, '')
       .replace(/&nbsp;/g, ' ')
-      .replace(/&lt;/g, '<')
-      .replace(/&gt;/g, '>')
       .replace(/&amp;/g, '&')
       .trim();
-    
-    const lines = text.split('\n').filter((l) => l.trim());
-    
+
+    const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+
     return (
       <View style={{ marginTop: 6 }}>
         {lines.map((line, idx) => (
-          <View key={idx} style={{ flexDirection: 'row', marginTop: idx > 0 ? 2 : 0 }}>
-            <Text style={{ width: 12, flexShrink: 0, color: '#000000', fontSize: 10, fontWeight: 'normal' }}>
-              {line.startsWith('•') ? '•' : ''}
-            </Text>
-            <Text style={{ flex: 1, color: '#000000', fontSize: 10, fontWeight: 'normal' }}>
-              {line.startsWith('•') ? line.substring(1).trim() : line}
-            </Text>
+          <View key={idx} style={{ marginTop: idx > 0 ? 6 : 0 }}>
+            <Text style={{ color: '#000000', fontSize: 10, lineHeight: 1.35 }}>{line}</Text>
           </View>
         ))}
       </View>
@@ -249,28 +279,43 @@ const Template11PDF: React.FC<Template11PDFProps> = ({ data }) => {
             {personal.firstName}{personal.middleName ? ' ' + personal.middleName : ''}{personal.lastName ? ' ' + personal.lastName : ''}
           </Text>
           <Text style={{ fontSize: 11, color: '#111827', marginTop: 8, textAlign: 'left' }}>
-            {[personal.email, personal.mobileNumber, personal.address].filter(Boolean).join(' | ')}
+            {contactParts.join(' | ')}
           </Text>
         </View>
 
         {/* Content - Single column like image */}
         <View style={{ paddingLeft: 36, paddingRight: 36, paddingBottom: 36 }}>
+          {/* About / Career Objective Section */}
+          {personal.aboutCareerObjective && personal.aboutCareerObjective.trim() !== '' && (
+            <View style={{ marginBottom: 6 }}>
+              <Text style={styles.sectionTitle}>CAREER OBJECTIVE</Text>
+              <View style={{ height: 1, backgroundColor: '#333', width: '100%', marginBottom: 6 }} />
+              <Text style={styles.objective}>{htmlToPlainText(personal.aboutCareerObjective)}</Text>
+            </View>
+          )}
+
           {/* Experience Section */}
           {experience.workExperiences.length > 0 && (
-            <View style={{ marginBottom: 22 }}>
+            <View style={{ marginBottom: 12 }}>
               <Text style={{ fontSize: 13, fontFamily: 'Times-Bold', color: '#111827', letterSpacing: 1.2, marginBottom: 8 }}>EXPERIENCE</Text>
-              <View style={{ height: 1, backgroundColor: '#333', width: '100%', marginBottom: 12 }} />
+              <View style={{ height: 1, backgroundColor: '#333', width: '100%', marginBottom: 8 }} />
               {experience.workExperiences.filter((w: any) => w.enabled).map((w: any, i: number) => (
                 <View key={i} style={{ marginBottom: 12 }}>
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
-                    <Text style={{ fontSize: 12, fontFamily: 'Times-Bold', color: '#111827' }}>{w.companyName}</Text>
-                    <Text style={{ fontSize: 11, color: '#111827', fontFamily: 'Times-Bold' }}>{formatMonthYear(w.startDate)} - {w.currentlyWorking ? 'Present' : formatMonthYear(w.endDate)}</Text>
-                  </View>
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                    <Text style={{ fontSize: 11, color: '#000000', fontFamily: 'Times-Bold' }}>{w.jobTitle}</Text>
-                    {w.location && <Text style={{ fontSize: 11, color: '#000000', fontFamily: 'Times-Bold' }}>{w.location}</Text>}
-                  </View>
-                  {w.description && renderBulletedParagraph(w.description, { fontSize: 11, color: '#000000', fontWeight: 'normal', lineHeight: 1.6 })}
+                      <Text style={{ fontSize: 12, fontFamily: 'Times-Bold', color: '#111827', flex: 1, marginRight: 8 }}>{w.companyName}</Text>
+                      <Text style={{ fontSize: 11, color: '#111827', fontFamily: 'Times-Bold', width: 120, textAlign: 'right' }}>{formatMonthYear(w.startDate)} - {w.currentlyWorking ? 'Present' : formatMonthYear(w.endDate)}</Text>
+                    </View>
+                    <View style={{ flexDirection: 'row', marginBottom: 6 }}>
+                      <View style={{ flex: 1, paddingRight: 8 }}>
+                        <Text style={{ fontSize: 11, color: '#000000', fontFamily: 'Times-Bold' }}>{w.jobTitle}</Text>
+                      </View>
+                      {w.location && <Text style={{ fontSize: 11, color: '#000000', fontFamily: 'Times-Bold', width: 120, textAlign: 'right' }}>{w.location}</Text>}
+                    </View>
+                    {w.description && (
+                      <View style={{ marginLeft: 12 }}>
+                        {renderBulletedParagraph(w.description, { fontSize: 11, color: '#000000', fontWeight: 'normal', lineHeight: 1.6 })}
+                      </View>
+                    )}
                 </View>
               ))}
             </View>
@@ -278,11 +323,11 @@ const Template11PDF: React.FC<Template11PDFProps> = ({ data }) => {
 
           {/* Education Section */}
           {education.higherEducationEnabled && education.higherEducation.length > 0 && (
-            <View style={{ marginBottom: 22 }}>
+            <View style={{ marginBottom: 8 }}>
               <Text style={{ fontSize: 13, fontFamily: 'Times-Bold', color: '#111827', letterSpacing: 1.2, marginBottom: 8 }}>EDUCATION</Text>
-              <View style={{ height: 1, backgroundColor: '#333', width: '100%', marginBottom: 12 }} />
+              <View style={{ height: 1, backgroundColor: '#333', width: '100%', marginBottom: 6 }} />
               {education.higherEducation.map((edu, idx) => (
-                <View key={idx} style={{ marginBottom: 10 }}>
+                <View key={idx} style={{ marginBottom: 8 }}>
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap' }}>
                     <Text style={{ fontSize: 11, fontFamily: 'Times-Bold', color: '#000000', flex: 1, marginRight: 8 }}>{edu.instituteName}</Text>
                     <Text style={{ fontSize: 10, color: '#000000', fontFamily: 'Times-Bold' }}>{formatMonthYear(edu.startYear)} - {edu.currentlyPursuing ? 'Present' : formatMonthYear(edu.endYear)}</Text>
@@ -297,11 +342,11 @@ const Template11PDF: React.FC<Template11PDFProps> = ({ data }) => {
 
           {/* Certifications Section */}
           {certifications.length > 0 && (
-            <View style={{ marginBottom: 22 }}>
+            <View style={{ marginBottom: 12 }}>
               <Text style={{ fontSize: 13, fontFamily: 'Times-Bold', color: '#111827', letterSpacing: 1.2, marginBottom: 8 }}>TECHNICAL CERTIFICATIONS</Text>
-              <View style={{ height: 1, backgroundColor: '#333', width: '100%', marginBottom: 12 }} />
+              <View style={{ height: 1, backgroundColor: '#333', width: '100%', marginBottom: 8 }} />
               {certifications.filter((c: any) => c.enabled).map((cert: any, idx: number) => (
-                <View key={idx} style={{ marginBottom: 10 }}>
+                <View key={idx} style={{ marginBottom: 8 }}>
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap' }}>
                     <Text style={{ fontSize: 11, fontFamily: 'Times-Bold', color: '#000000', flex: 1, marginRight: 8 }}>{cert.certificateTitle}</Text>
                     <Text style={{ fontSize: 10, color: '#000000', fontFamily: 'Times-Bold' }}>{cert.date}</Text>

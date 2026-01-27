@@ -113,13 +113,29 @@ const Template11Display: React.FC<Template11DisplayProps> = ({
     }
   };
 
+  // Build header contact items including optional links
+  const headerContactItems = React.useMemo(() => {
+    const items: string[] = [];
+    if (personal.email) items.push(personal.email);
+    if (personal.mobileNumber) items.push(personal.mobileNumber);
+    if (personal.address) items.push(personal.address);
+
+    // links live under skillsLinks.links
+    const links = skillsLinks?.links || {} as any;
+    if (links.linkedinProfile) items.push(links.linkedinProfile);
+    if (links.githubProfile) items.push(links.githubProfile);
+    if (links.portfolioUrl) items.push(links.portfolioUrl);
+
+    return items;
+  }, [personal, skillsLinks]);
+
   return (
     <div className="w-[210mm] bg-white" style={{ minHeight: '297mm', fontFamily: 'Times New Roman, serif' }}>
       {/* Header Section - Classic Serif look */}
       <div style={{ padding: '18px 36px 6px 36px' }}>
         <h1 style={{ fontSize: '36px', fontWeight: 700, color: '#111827', margin: 0, lineHeight: '1', fontFamily: 'Georgia, serif', textAlign: 'left' }}>{personal.firstName}{personal.middleName ? ' ' + personal.middleName : ''}{personal.lastName ? ' ' + personal.lastName : ''}</h1>
         <div style={{ fontSize: '11px', color: '#111827', marginTop: 8, textAlign: 'left' }}>
-          { [personal.email, personal.mobileNumber, personal.address].filter(Boolean).join(' | ') }
+          { headerContactItems.filter(Boolean).join(' | ') }
         </div>
       </div>
 
@@ -127,6 +143,15 @@ const Template11Display: React.FC<Template11DisplayProps> = ({
 
       {/* Content - Single column like image */}
       <div style={{ padding: '0 36px 36px 36px' }}>
+        {/* About / Career Objective Section */}
+        {personal.aboutCareerObjective && personal.aboutCareerObjective.trim() !== '' && (
+          <section style={{ marginBottom: 22 }}>
+            <h2 style={{ fontSize: 13, fontWeight: 700, color: '#111827', letterSpacing: 1.2, marginBottom: 8 }}>CAREER OBJECTIVE</h2>
+            <div style={{ height: 1, background: '#333', width: '100%', marginBottom: 12 }} />
+            <div style={{ fontSize: 11, color: '#000000', fontWeight: 'normal', lineHeight: 1.6 }} dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(personal.aboutCareerObjective || '') }} />
+          </section>
+        )}
+
         {/* Experience Section */}
         {experience.workExperiences.length > 0 && (
           <section style={{ marginBottom: 22 }}>
