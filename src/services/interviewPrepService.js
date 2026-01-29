@@ -115,10 +115,10 @@ export const cancelInterviewSlot = async (userId, token, slotId) => {
     return response.data;
 };
 
-export const confirmInterviewSlotPayment = async (userId, token, slotId) => {
+export const confirmInterviewSlotPayment = async (userId, token, slotId, paid_amount) => {
     const response = await api.put(
         `/users/${userId}/mock-interview/interview-slot/confirm-payment/${slotId}`,
-        {},
+        { paid_amount },
         {
             headers: {
                 Authorization: `Bearer ${token}`,
