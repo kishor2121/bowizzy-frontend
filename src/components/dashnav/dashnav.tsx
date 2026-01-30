@@ -66,6 +66,39 @@ export default function DashNav({heading}: {heading: string}) {
         return () => document.removeEventListener('click', onDocClick);
     }, [showCreditsPopup]);
 
+    useEffect(() => {
+        const onRefresh = (ev: Event) => {
+            const detail = (ev as CustomEvent)?.detail;
+            if (detail && (typeof detail.credits !== 'undefined' || typeof detail.coupon_code !== 'undefined')) {
+                if (typeof detail.credits === 'number') setCredits(detail.credits);
+                if (typeof detail.coupon_code === 'string') setCouponCode(detail.coupon_code);
+                return;
+            }
+            (async () => {
+                try {
+                    setCreditsLoading(true);
+                    const userData = JSON.parse(localStorage.getItem('user') || 'null');
+                    const userId = userData?.user_id;
+                    const token = userData?.token;
+                    if (!userId || !token) return;
+                    const resp = await api.get(`/credits/${userId}`, { headers: { Authorization: `Bearer ${token}` } });
+                    const data = resp?.data ?? resp;
+                    const creditsVal = typeof data.credits === 'object' ? data.credits?.credits ?? null : data.credits ?? null;
+                    const coupon = data.coupon_code ?? data?.coupon ?? null;
+                    setCredits(typeof creditsVal === 'number' ? creditsVal : (Number(creditsVal) || null));
+                    setCouponCode(coupon ?? null);
+                } catch (err) {
+                    console.warn('credits refresh failed', err);
+                } finally {
+                    setCreditsLoading(false);
+                }
+            })();
+        };
+
+        window.addEventListener('credits:refresh', onRefresh as EventListener);
+        return () => window.removeEventListener('credits:refresh', onRefresh as EventListener);
+    }, []);
+
     return (
         <nav className="flex items-center justify-between px-6 py-6 bg-white border-b border-gray-200">
             <div className="text-lg font-medium text-gray-700">{heading}</div>

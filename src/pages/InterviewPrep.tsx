@@ -149,7 +149,11 @@ const InterviewPrep = () => {
             const slotId = slotToCancel.id || slotToCancel.interview_slot_id;
             await cancelInterviewSlot(userId, token, slotId);
             closeCancelModal();
-            fetchInterviewSlots();
+            await fetchInterviewSlots();
+            try {
+                window.dispatchEvent(new CustomEvent('credits:refresh', { detail: { reason: 'cancel_interview' } }));
+            } catch (e) {
+            }
         } catch (error) {
             console.error("Cancellation failed:", error);
             alert("Failed to cancel the interview slot.");
