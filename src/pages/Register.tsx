@@ -108,7 +108,7 @@ export default function Register() {
     e.preventDefault();
     setFormError("");
 
-    setLoading(true);
+    
 
     if (!agree) return setFormError("You must agree to the terms.");
 
@@ -131,6 +131,7 @@ export default function Register() {
 
     if (!linkedinUsername || !/^[A-Za-z0-9-]+$/.test(linkedinUsername))
       return setFormError("Invalid LinkedIn identifier.");
+     setLoading(true);
 
     try {
       await api.post("/auth", {
@@ -152,6 +153,7 @@ export default function Register() {
       setFormError(err?.response?.data?.message || "Signup error");
     } finally {
       setLoading(false);
+      
     }
   };
 
