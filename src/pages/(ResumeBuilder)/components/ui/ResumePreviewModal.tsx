@@ -911,55 +911,71 @@ const ResumePreviewModal: React.FC<ResumePreviewModalProps> = ({
                                 onClick={async () => {
                                   setPayLoading(true);
                                   try {
-                                    // Load Razorpay script if not loaded
-                                    const loadRazorpayScript = () => new Promise((resolve, reject) => {
-                                      if (typeof window !== 'undefined' && window.Razorpay) return resolve(true);
+                                    // Step 1: Load Razorpay script if not already loaded
+                                    const loadRazorpayScript = () => new Promise<void>((resolve, reject) => {
+                                      if (typeof window !== 'undefined' && window.Razorpay) {
+                                        return resolve();
+                                      }
                                       const script = document.createElement('script');
                                       script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-                                      script.onload = () => resolve(true);
+                                      script.onload = () => resolve();
                                       script.onerror = () => reject(new Error('Razorpay SDK failed to load'));
                                       document.body.appendChild(script);
                                     });
                                     await loadRazorpayScript();
-                                    // Create order on backend (assume /payment/create-order endpoint exists)
-                                    const amount = RESUME_AMOUNT; // rupees
-                                    const api = (await import('@/api')).default;
+
+                                    // Get user data and token from localStorage
                                     const userData = JSON.parse(localStorage.getItem('user') || '{}');
                                     const token = userData?.token;
-                                    const createResp = await api.post('/payment/create-order', { amount }, token ? { headers: { Authorization: `Bearer ${token}` } } : undefined);
-                                    const orderData = createResp?.data ?? createResp;
-                                    const orderId = orderData?.id || orderData?.order_id || orderData?.orderId || orderData?.razorpay_order_id;
-                                    let orderAmount = orderData?.amount ?? 1900;
-                                    const razorKey = orderData?.key || orderData?.key_id || import.meta.env.VITE_RAZORPAY_KEY_ID || '';
-                                    // Normalize amount to paise
-                                    try {
-                                      const oa = Number(orderAmount);
-                                      if (!Number.isNaN(oa)) {
-                                        if (amount != null && (oa === amount || oa === Math.round(amount))) {
-                                          orderAmount = Math.round(oa * 100);
-                                        } else if (oa > 0 && oa < 1000 && amount != null && Math.abs(oa - amount) < 1) {
-                                          orderAmount = Math.round(amount * 100);
-                                        }
+                                    if (!token) {
+                                      alert('User not authenticated. Please login again.');
+                                      setPayLoading(false);
+                                      return;
+                                    }
+
+                                    // Step 1: Call /payment/create-order to get order_id
+                                    const createOrderResponse = await api.post(
+                                      '/payment/create-order',
+                                      { amount: RESUME_AMOUNT },
+                                      {
+                                        headers: {
+                                          Authorization: `Bearer ${token}`,
+                                        },
                                       }
-                                    } catch (e) {}
+                                    );
+
+                                    const orderData = createOrderResponse?.data || createOrderResponse;
+                                    const orderId = orderData?.id;
+                                    const orderAmount = orderData?.amount; // in paise from backend
+                                    const currency = orderData?.currency || 'INR';
+
+                                    if (!orderId || !orderAmount) {
+                                      throw new Error('Failed to create order: missing order_id or amount');
+                                    }
+
+                                    const razorpayKeyId = import.meta.env.VITE_RAZORPAY_KEY_ID;
+                                    if (!razorpayKeyId) {
+                                      throw new Error('Razorpay Key ID not configured in environment variables');
+                                    }
+
+                                    // Step 2: Open Razorpay checkout with order details
                                     const options = {
-                                      key: razorKey,
+                                      key: razorpayKeyId,
                                       amount: orderAmount,
-                                      currency: 'INR',
+                                      currency: currency,
                                       name: 'Bowizzy',
-                                      description: 'Resume Unlock Payment',
+                                      description: 'Premium Resume Template Unlock',
                                       order_id: orderId,
                                       modal: {
                                         ondismiss: () => {
                                           setPayLoading(false);
-                                        }
+                                        },
                                       },
-                                      handler: async function (response) {
+                                      // Step 3: Handle successful payment
+                                      handler: async (response: any) => {
                                         try {
-                                          const userData = JSON.parse(localStorage.getItem('user') || '{}');
-                                          const token = userData?.token;
-
-                                          await api.post(
+                                          // Call /payment/verify with payment details
+                                          const verifyResponse = await api.post(
                                             '/payment/verify',
                                             {
                                               razorpay_order_id: response.razorpay_order_id,
@@ -973,34 +989,50 @@ const ResumePreviewModal: React.FC<ResumePreviewModalProps> = ({
                                             }
                                           );
 
-                                          setResumeUnlocked(true);
-                                          alert('Payment successful! Resume unlocked.');
-                                        } catch (err) {
-                                          alert('Payment verification failed.');
+                                          // Step 4: If verification successful, unlock resume
+                                          const responseData = verifyResponse?.data || verifyResponse;
+                                          const isSuccess = 
+                                            responseData?.status === 'success' ||
+                                            responseData?.message?.toLowerCase().includes('success') ||
+                                            responseData?.message === 'Payment successful';
+
+                                          if (isSuccess) {
+                                            setResumeUnlocked(true);
+                                            setShowPayMsg(false);
+                                            alert('Payment successful! Resume unlocked.');
+                                          } else {
+                                            throw new Error(`Payment verification returned: ${JSON.stringify(responseData)}`);
+                                          }
+                                        } catch (verifyErr) {
+                                          console.error('Payment verification error:', verifyErr);
+                                          alert('Payment verification failed. Please contact support if amount was deducted.');
                                         } finally {
                                           setPayLoading(false);
-                                          setShowPayMsg(false);
                                         }
                                       },
                                       prefill: {
                                         name: userData?.name || userData?.full_name || '',
-                                        email: userData?.email || ''
+                                        email: userData?.email || '',
                                       },
                                       theme: {
-                                        color: '#FF8251'
-                                      }
+                                        color: '#FF8251',
+                                      },
                                     };
+
+                                    // Initialize and open Razorpay checkout
                                     const rzp = new window.Razorpay(options);
                                     if (typeof rzp.on === 'function') {
-                                      rzp.on('payment.failed', (resp) => {
+                                      rzp.on('payment.failed', (failureResponse: any) => {
                                         setPayLoading(false);
-                                        alert('Payment failed or was cancelled.');
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              });
+                                        console.error('Razorpay payment failed:', failureResponse);
+                                        alert(`Payment failed: ${failureResponse?.error?.description || 'Unknown error'}`);
+                                      });
                                     }
                                     rzp.open();
                                   } catch (err) {
                                     setPayLoading(false);
-                                    alert('Failed to initiate payment. Please try again.');
+                                    console.error('Payment initialization error:', err);
+                                    alert(`Failed to initiate payment: ${err instanceof Error ? err.message : 'Unknown error'}`);
                                   }
                                 }}
                               >
