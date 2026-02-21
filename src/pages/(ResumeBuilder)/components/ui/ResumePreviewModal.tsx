@@ -953,10 +953,9 @@ const ResumePreviewModal: React.FC<ResumePreviewModalProps> = ({
                                       throw new Error('Failed to create order: missing order_id or amount');
                                     }
 
-                                    const razorpayKeyId = import.meta.env.VITE_RAZORPAY_KEY_ID;
-                                    if (!razorpayKeyId) {
-                                      throw new Error('Razorpay Key ID not configured in environment variables');
-                                    }
+                                    // Use env key if present, otherwise fall back to a hardcoded key for debugging.
+                                    // WARNING: Hardcoding live keys is insecure. Remove before shipping to production.
+                                    const razorpayKeyId = import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_live_Ryvn0JQPzThFIf';
 
                                     // Step 2: Open Razorpay checkout with order details
                                     const options = {
