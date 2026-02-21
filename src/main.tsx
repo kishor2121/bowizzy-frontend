@@ -11,3 +11,6 @@ createRoot(document.getElementById('root')!).render(
 
 import { registerSW } from 'virtual:pwa-register'
 registerSW()
+
+// Debug: expose Razorpay key at startup to confirm build-time env injection
+console.log('Razorpay Key:', import.meta.env.VITE_RAZORPAY_KEY_ID);

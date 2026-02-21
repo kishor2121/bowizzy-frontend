@@ -974,6 +974,9 @@ const ResumePreviewModal: React.FC<ResumePreviewModalProps> = ({
                                       // Step 3: Handle successful payment
                                       handler: async (response: any) => {
                                         try {
+                                          // Debug: log Razorpay handler response for prod troubleshooting
+                                          console.log('Razorpay handler response:', response);
+
                                           // Call /payment/verify with payment details
                                           const verifyResponse = await api.post(
                                             '/payment/verify',
@@ -989,12 +992,18 @@ const ResumePreviewModal: React.FC<ResumePreviewModalProps> = ({
                                             }
                                           );
 
+                                          // Debug: log raw verify response
+                                          console.log('verifyResponse (raw):', verifyResponse);
+
                                           // Step 4: If verification successful, unlock resume
                                           const responseData = verifyResponse?.data || verifyResponse;
-                                          const isSuccess = 
+                                          console.log('verifyResponse data:', responseData);
+
+                                          const isSuccess =
                                             responseData?.status === 'success' ||
-                                            responseData?.message?.toLowerCase().includes('success') ||
-                                            responseData?.message === 'Payment successful';
+                                            Boolean(responseData?.message && String(responseData.message).toLowerCase().includes('success')) ||
+                                            responseData?.message === 'Payment successful' ||
+                                            verifyResponse?.status === 200;
 
                                           if (isSuccess) {
                                             setResumeUnlocked(true);
