@@ -955,11 +955,32 @@ const ResumePreviewModal: React.FC<ResumePreviewModalProps> = ({
                                         }
                                       },
                                       handler: async function (response) {
-                                        setPayLoading(false);
-                                        setShowPayMsg(false);                                                                                                                                                         
-                                        setResumeUnlocked(true);
-                                        alert('Payment successful! Resume unlocked.');
-                                        // TODO: Call backend to unlock resume for user
+                                        try {
+                                          const userData = JSON.parse(localStorage.getItem('user') || '{}');
+                                          const token = userData?.token;
+
+                                          await api.post(
+                                            '/payment/verify',
+                                            {
+                                              razorpay_order_id: response.razorpay_order_id,
+                                              razorpay_payment_id: response.razorpay_payment_id,
+                                              razorpay_signature: response.razorpay_signature,
+                                            },
+                                            {
+                                              headers: {
+                                                Authorization: `Bearer ${token}`,
+                                              },
+                                            }
+                                          );
+
+                                          setResumeUnlocked(true);
+                                          alert('Payment successful! Resume unlocked.');
+                                        } catch (err) {
+                                          alert('Payment verification failed.');
+                                        } finally {
+                                          setPayLoading(false);
+                                          setShowPayMsg(false);
+                                        }
                                       },
                                       prefill: {
                                         name: userData?.name || userData?.full_name || '',
